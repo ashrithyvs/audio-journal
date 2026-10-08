@@ -1,0 +1,2294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Audio Journal Ui</title>
+<style>:root{color-scheme:light dark;background:light-dark(rgb(255 255 255), rgb(24 24 24))}html,body{margin:0}body{box-sizing:border-box;padding:1rem;background:inherit}iframe{display:block;width:100%;height:calc(100vh - 2rem);margin:0 auto;border:0}</style>
+</head>
+<body>
+<iframe sandbox="allow-scripts" referrerpolicy="no-referrer" title="Audio Journal Ui" srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;
+&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;; script-src &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; &#x27;wasm-unsafe-eval&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src &#x27;unsafe-inline&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src &#x27;none&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;&quot;&gt;
+&lt;title&gt;Audio Journal Ui&lt;/title&gt;
+&lt;style&gt;:root {
+  color-scheme: light dark;
+  background-color: var(
+    --background,
+    var(--color-background-primary, light-dark(rgb(255 255 255), rgb(24 24 24)))
+  ) !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: var(
+    --color-background-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --card: color-mix(in oklab, var(--foreground) 5%, var(--background));
+  --card-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --popover: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255), rgb(45 45 45))
+  );
+  --popover-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --primary: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --primary-foreground: var(
+    --color-text-inverse,
+    light-dark(rgb(255 255 255), rgb(13 13 13))
+  );
+  --secondary: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%))
+  );
+  --secondary-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: var(
+    --color-text-secondary,
+    light-dark(rgb(26 28 31 / 49.4%), rgb(255 255 255 / 49.8%))
+  );
+  --accent: var(
+    --color-background-info,
+    light-dark(rgb(229 242 255), rgb(13 39 63))
+  );
+  --accent-foreground: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --destructive: var(
+    --color-text-warning,
+    light-dark(rgb(226 85 7), rgb(255 133 73))
+  );
+  --border: var(
+    --color-border-secondary,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+  --input: var(
+    --color-border-primary,
+    light-dark(
+      rgb(26 28 31 / 11.8%),
+      color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+    )
+  );
+  --ring: var(
+    --color-ring-primary,
+    light-dark(rgb(51 156 255), rgb(131 195 255 / 76%))
+  );
+  --font-size-base: var(--font-text-md-size, 14px);
+  --blue: light-dark(rgb(51 156 255), rgb(51 156 255));
+  --orange: light-dark(rgb(226 85 7), rgb(251 106 34));
+  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+  --red: light-dark(rgb(224 46 42), rgb(255 103 100));
+  --purple: light-dark(rgb(146 79 247), rgb(173 123 249));
+  --yellow: light-dark(rgb(255 195 0), rgb(255 210 64));
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(rgb(243 136 59), rgb(245 154 86));
+  --viz-series-3: light-dark(rgb(93 201 119), rgb(116 213 139));
+  --viz-series-4: light-dark(rgb(235 119 177), rgb(240 143 192));
+  --viz-series-5: light-dark(rgb(155 121 236), rgb(170 145 239));
+  --viz-series-6: light-dark(rgb(58 185 177), rgb(90 203 194));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, &quot;Segoe UI&quot;, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;,
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --radius: var(--border-radius-lg, 12.5px);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url(&quot;data:image/svg+xml,%3Csvg xmlns=&#x27;http://www.w3.org/2000/svg&#x27; viewBox=&#x27;0 0 17 17&#x27;%3E%3Cpath d=&#x27;M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z&#x27;/%3E%3C/svg%3E&quot;);
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+}
+
+:root[data-theme=&quot;light&quot;] {
+  color-scheme: light;
+}
+
+:root[data-theme=&quot;dark&quot;] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html &gt; body {
+  /* Preserve MCP aliases for older inline renderers without creating :root cycles. */
+  --color-background-primary: var(
+    --background,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --color-text-primary: var(
+    --foreground,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --color-border-secondary: var(
+    --border,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+
+  margin: 0;
+  padding: 5px;
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: pointer;
+  font-weight: var(--font-weight-medium, 500);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.table-responsive &gt; .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead th {
+  padding-block: 8px;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 6px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align=&quot;right&quot;]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align=&quot;center&quot;]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  corner-shape: superellipse(1.5);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget &gt; :not(.card, .progress) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress {
+  display: flex;
+  height: 6px;
+  margin-block: calc((var(--line-height-normal, 1.5em) - 6px) / 2);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+}
+
+.progress-bar {
+  height: 100%;
+  flex-shrink: 0;
+  border: 0;
+  background: var(--viz-series-1);
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls &gt; .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls &gt; .form-label &gt; :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(in srgb, var(--primary-foreground) 50%, transparent);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type=&quot;file&quot;] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type=&quot;file&quot;]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type=&quot;file&quot;]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type=&quot;color&quot;] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+  corner-shape: superellipse(1.5);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;checkbox&quot;]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: &quot;&quot;;
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type=&quot;radio&quot;] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type=&quot;radio&quot;]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: &quot;&quot;;
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+  [aria-pressed=&quot;true&quot;],
+  [aria-selected=&quot;true&quot;],
+  .is-selected
+) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed=&quot;true&quot;], [aria-selected=&quot;true&quot;], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .btn,
+  .form-control,
+  .form-select {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .form-control,
+  .form-select {
+    font-size: max(16px, var(--font-size-normal));
+  }
+
+  .form-control[type=&quot;file&quot;]::file-selector-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .form-control-color[type=&quot;color&quot;] {
+    width: 44px;
+    height: 44px;
+  }
+
+  .form-control:is(
+    [type=&quot;date&quot;],
+    [type=&quot;datetime-local&quot;],
+    [type=&quot;month&quot;],
+    [type=&quot;time&quot;],
+    [type=&quot;week&quot;]
+  ) {
+    min-width: 0;
+    max-width: 100%;
+    padding-block: 8px;
+  }
+
+  .form-check {
+    min-height: 44px;
+    padding-inline: 15px;
+  }
+
+  .form-check-input {
+    position: relative;
+  }
+
+  .form-check-input::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    content: &quot;&quot;;
+    transform: translate(-50%, -50%);
+  }
+
+  .form-check-label {
+    display: inline-flex;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .form-range {
+    height: 44px;
+    touch-action: pan-y;
+  }
+
+  .form-range::-webkit-slider-runnable-track {
+    height: 44px;
+  }
+
+  .form-range::-moz-range-track {
+    height: 44px;
+  }
+
+  .form-range::-webkit-slider-thumb {
+    margin-top: 12px;
+  }
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget &gt; svg {
+  width: 100%;
+}
+
+/* Model-authored chart rules can otherwise stretch icons after these styles load. */
+svg.lucide {
+  display: block;
+  width: 16px !important;
+  height: 16px !important;
+  flex: none;
+  margin: 0 !important;
+  stroke-width: 1.6;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+
+html&gt;body{padding:0}&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div id=&quot;audio-journal-concept&quot; class=&quot;aj-prototype&quot;&gt;
+  &lt;style&gt;
+    #audio-journal-concept {
+      color-scheme: light dark;
+      width: 100%;
+      padding: 8px 0 18px;
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;
+      color: light-dark(#252822, #f0ebdd);
+    }
+    #audio-journal-concept * { box-sizing: border-box; }
+    #audio-journal-concept button { font: inherit; }
+    #audio-journal-concept .aj-concept-title {
+      width: min(100%, 430px);
+      margin: 0 auto 12px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      color: light-dark(#252822, #f0ebdd);
+    }
+    #audio-journal-concept .aj-concept-title strong {
+      font: 600 20px/1.2 Georgia, &quot;Times New Roman&quot;, serif;
+      letter-spacing: -0.02em;
+    }
+    #audio-journal-concept .aj-concept-title span {
+      font-size: 12px;
+      color: light-dark(#6c7167, #a9aea4);
+    }
+    #audio-journal-concept .aj-flow-tabs {
+      width: min(100%, 620px);
+      margin: 0 auto 14px;
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      padding: 3px;
+      scrollbar-width: none;
+    }
+    #audio-journal-concept .aj-flow-tabs::-webkit-scrollbar { display: none; }
+    #audio-journal-concept .aj-flow-tab {
+      border: 0;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: light-dark(#6c7167, #a9aea4);
+      padding: 7px 10px;
+      white-space: nowrap;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    #audio-journal-concept .aj-flow-tab[aria-pressed=&quot;true&quot;] {
+      color: light-dark(#314537, #c5d9c5);
+      border-bottom-color: light-dark(#526b57, #9db89d);
+      font-weight: 700;
+    }
+    #audio-journal-concept .aj-phone {
+      width: min(100%, 390px);
+      height: 780px;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid light-dark(#d8d0c1, #3b4038);
+      border-radius: 38px;
+      background: light-dark(#f5f1e8, #171a17);
+      box-shadow: 0 24px 70px light-dark(rgba(45, 43, 36, .18), rgba(0, 0, 0, .42));
+    }
+    #audio-journal-concept .aj-statusbar {
+      height: 34px;
+      padding: 13px 22px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+    #audio-journal-concept .aj-status-icons { letter-spacing: 2px; }
+    #audio-journal-concept .aj-screen {
+      display: none;
+      height: calc(100% - 34px);
+      position: relative;
+      overflow: hidden;
+    }
+    #audio-journal-concept .aj-screen.aj-active { display: flex; flex-direction: column; }
+    #audio-journal-concept .aj-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 14px 20px 112px;
+      scrollbar-width: none;
+    }
+    #audio-journal-concept .aj-scroll::-webkit-scrollbar { display: none; }
+    #audio-journal-concept .aj-topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    #audio-journal-concept .aj-brandmark {
+      width: 30px;
+      height: 30px;
+      border: 1.5px solid light-dark(#526b57, #9db89d);
+      border-radius: 50% 50% 48% 52% / 42% 45% 55% 58%;
+      display: grid;
+      place-items: center;
+      color: light-dark(#526b57, #9db89d);
+      font: 700 15px Georgia, serif;
+      transform: rotate(-4deg);
+    }
+    #audio-journal-concept .aj-icon-action,
+    #audio-journal-concept .aj-back {
+      border: 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      padding: 7px;
+      font-size: 18px;
+    }
+    #audio-journal-concept .aj-date-kicker {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .13em;
+      color: light-dark(#6c7167, #a9aea4);
+      margin-bottom: 5px;
+    }
+    #audio-journal-concept .aj-editorial-title {
+      margin: 0;
+      font: 500 34px/1.08 Georgia, &quot;Times New Roman&quot;, serif;
+      letter-spacing: -.035em;
+    }
+    #audio-journal-concept .aj-prompt {
+      margin: 10px 0 30px;
+      font: 400 17px/1.5 Georgia, &quot;Times New Roman&quot;, serif;
+      color: light-dark(#5c6058, #b9bdb2);
+    }
+    #audio-journal-concept .aj-journal-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      margin: 18px 0 26px;
+      padding: 4px;
+      border-radius: 15px;
+      background: light-dark(#e9e4d9, #242a23);
+    }
+    #audio-journal-concept .aj-journal-mode {
+      border: 0;
+      border-radius: 11px;
+      padding: 10px;
+      background: transparent;
+      color: light-dark(#686d64, #a9aea4);
+      cursor: pointer;
+      font-weight: 700;
+    }
+    #audio-journal-concept .aj-journal-mode.aj-selected {
+      background: light-dark(#fffcf6, #343b32);
+      color: light-dark(#314537, #d0e2d0);
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    #audio-journal-concept .aj-section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 0 0 8px;
+      font-size: 12px;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: light-dark(#6c7167, #a9aea4);
+    }
+    #audio-journal-concept .aj-entry-row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 42px 1fr auto;
+      gap: 12px;
+      align-items: start;
+      text-align: left;
+      border: 0;
+      border-top: 1px solid light-dark(#ddd6c8, #3b4038);
+      background: transparent;
+      color: inherit;
+      padding: 16px 0;
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-entry-symbol {
+      width: 38px;
+      height: 38px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: light-dark(#dde5d9, #303b31);
+      color: light-dark(#42594a, #b8ccb8);
+      font-size: 17px;
+    }
+    #audio-journal-concept .aj-entry-copy strong {
+      display: block;
+      font: 500 17px/1.25 Georgia, &quot;Times New Roman&quot;, serif;
+      margin-bottom: 5px;
+    }
+    #audio-journal-concept .aj-entry-copy span {
+      display: block;
+      font-size: 13px;
+      line-height: 1.45;
+      color: light-dark(#6c7167, #a9aea4);
+    }
+    #audio-journal-concept .aj-entry-time {
+      font-size: 11px;
+      color: light-dark(#7f837a, #969c92);
+      padding-top: 3px;
+      white-space: nowrap;
+    }
+    #audio-journal-concept .aj-privacy-line {
+      margin-top: 20px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+      color: light-dark(#6c7167, #a9aea4);
+    }
+    #audio-journal-concept .aj-record-fab {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: 5px solid light-dark(#f5f1e8, #171a17);
+      background: light-dark(#c85d43, #e07a5f);
+      color: white;
+      position: absolute;
+      z-index: 5;
+      left: 50%;
+      bottom: 38px;
+      transform: translateX(-50%);
+      cursor: pointer;
+      box-shadow: 0 7px 18px rgba(83, 47, 37, .22);
+      font-size: 22px;
+    }
+    #audio-journal-concept .aj-bottom-nav {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 72px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 72px 1fr 1fr;
+      align-items: center;
+      padding: 0 10px 8px;
+      background: light-dark(rgba(255,252,246,.96), rgba(33,37,31,.97));
+      border-top: 1px solid light-dark(#ddd6c8, #3b4038);
+      backdrop-filter: blur(14px);
+    }
+    #audio-journal-concept .aj-nav-action {
+      border: 0;
+      background: transparent;
+      color: light-dark(#777c72, #9da39a);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      align-items: center;
+      cursor: pointer;
+      font-size: 10px;
+      padding: 8px 2px;
+    }
+    #audio-journal-concept .aj-nav-action span:first-child { font-size: 17px; }
+    #audio-journal-concept .aj-nav-action.aj-selected {
+      color: light-dark(#42594a, #b8ccb8);
+      font-weight: 700;
+    }
+    #audio-journal-concept .aj-lock-screen {
+      justify-content: space-between;
+      align-items: center;
+      padding: 76px 28px 34px;
+      text-align: center;
+      background: light-dark(#f5f1e8, #171a17);
+    }
+    #audio-journal-concept .aj-lock-mark {
+      width: 68px;
+      height: 68px;
+      margin: 0 auto 28px;
+      border-radius: 50% 50% 46% 54% / 43% 47% 53% 57%;
+      border: 1.5px solid light-dark(#526b57, #9db89d);
+      display: grid;
+      place-items: center;
+      color: light-dark(#526b57, #9db89d);
+      font: 500 30px Georgia, serif;
+      transform: rotate(-3deg);
+    }
+    #audio-journal-concept .aj-lock-screen h2 {
+      font: 500 31px/1.15 Georgia, &quot;Times New Roman&quot;, serif;
+      margin: 0 0 9px;
+      letter-spacing: -.025em;
+    }
+    #audio-journal-concept .aj-lock-screen p {
+      margin: 0 auto;
+      max-width: 260px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: light-dark(#6c7167, #a9aea4);
+    }
+    #audio-journal-concept .aj-biometric {
+      width: 100%;
+      max-width: 300px;
+      border: 0;
+      border-radius: 16px;
+      background: light-dark(#526b57, #9db89d);
+      color: light-dark(#fffdf7, #182019);
+      padding: 14px 18px;
+      font-weight: 750;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    #audio-journal-concept .aj-text-action {
+      border: 0;
+      background: transparent;
+      color: light-dark(#42594a, #b8ccb8);
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-pin-panel { width: 100%; max-width: 280px; display: none; }
+    #audio-journal-concept .aj-pin-panel.aj-visible { display: block; }
+    #audio-journal-concept .aj-pin-dots { display: flex; justify-content: center; gap: 14px; margin-bottom: 22px; }
+    #audio-journal-concept .aj-pin-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1.5px solid light-dark(#526b57, #9db89d);
+    }
+    #audio-journal-concept .aj-pin-dot.aj-filled { background: light-dark(#526b57, #9db89d); }
+    #audio-journal-concept .aj-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    #audio-journal-concept .aj-key {
+      height: 48px;
+      border-radius: 16px;
+      border: 1px solid light-dark(#ddd6c8, #3b4038);
+      background: light-dark(#fffcf6, #21251f);
+      color: inherit;
+      cursor: pointer;
+      font-size: 17px;
+    }
+    #audio-journal-concept .aj-recorder-screen {
+      padding: 30px 24px 28px;
+      align-items: stretch;
+    }
+    #audio-journal-concept .aj-recorder-top { display: flex; justify-content: space-between; align-items: center; }
+    #audio-journal-concept .aj-save-state { font-size: 12px; color: light-dark(#526b57, #9db89d); }
+    #audio-journal-concept .aj-timer {
+      margin: 74px 0 26px;
+      text-align: center;
+      font-size: 13px;
+      letter-spacing: .12em;
+      color: light-dark(#6c7167, #a9aea4);
+      font-variant-numeric: tabular-nums;
+    }
+    #audio-journal-concept .aj-wave {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 34px;
+    }
+    #audio-journal-concept .aj-wave i {
+      display: block;
+      width: 3px;
+      border-radius: 4px;
+      background: light-dark(#c85d43, #e07a5f);
+      animation: aj-wave-motion .9s ease-in-out infinite alternate;
+    }
+    #audio-journal-concept .aj-wave i:nth-child(3n) { animation-delay: -.55s; }
+    #audio-journal-concept .aj-wave i:nth-child(2n) { animation-delay: -.25s; }
+    #audio-journal-concept .aj-wave.aj-paused i { animation-play-state: paused; opacity: .45; }
+    @keyframes aj-wave-motion { from { transform: scaleY(.55); } to { transform: scaleY(1.12); } }
+    #audio-journal-concept .aj-live-copy {
+      flex: 1;
+      font: 400 22px/1.48 Georgia, &quot;Times New Roman&quot;, serif;
+      letter-spacing: -.015em;
+      color: light-dark(#30342d, #e8e3d6);
+    }
+    #audio-journal-concept .aj-live-copy .aj-provisional { color: light-dark(#8b8e86, #888f86); }
+    #audio-journal-concept .aj-record-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    #audio-journal-concept .aj-control-secondary,
+    #audio-journal-concept .aj-control-primary {
+      border-radius: 17px;
+      padding: 14px;
+      cursor: pointer;
+      font-weight: 750;
+    }
+    #audio-journal-concept .aj-control-secondary {
+      border: 1px solid light-dark(#d0c8b9, #454b42);
+      background: transparent;
+      color: inherit;
+    }
+    #audio-journal-concept .aj-control-primary {
+      border: 0;
+      background: light-dark(#252822, #f0ebdd);
+      color: light-dark(#fffdf7, #1a1d19);
+    }
+    #audio-journal-concept .aj-entry-screen-header {
+      display: grid;
+      grid-template-columns: 38px 1fr 38px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    #audio-journal-concept .aj-entry-screen-header h2 {
+      text-align: center;
+      margin: 0;
+      font: 500 18px Georgia, serif;
+    }
+    #audio-journal-concept .aj-player {
+      padding: 17px;
+      border: 1px solid light-dark(#ddd6c8, #3b4038);
+      border-radius: 18px;
+      background: light-dark(#fffcf6, #21251f);
+      margin-bottom: 24px;
+    }
+    #audio-journal-concept .aj-player-row { display: grid; grid-template-columns: 42px 1fr; gap: 12px; align-items: center; }
+    #audio-journal-concept .aj-play {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 0;
+      background: light-dark(#526b57, #9db89d);
+      color: light-dark(#fff, #182019);
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-progress { height: 3px; background: light-dark(#ddd6c8, #3b4038); border-radius: 2px; margin-bottom: 7px; overflow: hidden; }
+    #audio-journal-concept .aj-progress span { display: block; width: 37%; height: 100%; background: light-dark(#526b57, #9db89d); }
+    #audio-journal-concept .aj-player-meta { display: flex; justify-content: space-between; font-size: 11px; color: light-dark(#6c7167, #a9aea4); }
+    #audio-journal-concept .aj-transcript-title { font-size: 12px; text-transform: uppercase; letter-spacing: .11em; color: light-dark(#6c7167, #a9aea4); margin-bottom: 12px; }
+    #audio-journal-concept .aj-transcript {
+      font-size: 16px;
+      line-height: 1.65;
+      color: light-dark(#4b5048, #c9cdc3);
+      margin-bottom: 22px;
+    }
+    #audio-journal-concept .aj-transcript mark,
+    #audio-journal-concept .aj-source-excerpt mark {
+      background: light-dark(#dde5d9, #303b31);
+      color: inherit;
+      border-radius: 4px;
+      padding: 2px 3px;
+    }
+    #audio-journal-concept .aj-organize-action {
+      width: 100%;
+      border: 1px solid light-dark(#526b57, #9db89d);
+      background: transparent;
+      color: light-dark(#42594a, #b8ccb8);
+      border-radius: 16px;
+      padding: 13px;
+      font-weight: 750;
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-derived {
+      display: none;
+      margin-top: 28px;
+      padding: 18px;
+      border-radius: 18px;
+      background: light-dark(#dde5d9, #303b31);
+    }
+    #audio-journal-concept .aj-derived.aj-visible { display: block; }
+    #audio-journal-concept .aj-derived small { text-transform: uppercase; letter-spacing: .09em; color: light-dark(#526b57, #a9c0a9); }
+    #audio-journal-concept .aj-derived h3 { font: 500 20px Georgia, serif; margin: 8px 0; }
+    #audio-journal-concept .aj-source-link { border: 0; background: transparent; color: light-dark(#42594a, #b8ccb8); padding: 7px 0; font-weight: 700; cursor: pointer; }
+    #audio-journal-concept .aj-sheet-screen { justify-content: flex-end; background: light-dark(rgba(37,40,34,.14), rgba(0,0,0,.33)); }
+    #audio-journal-concept .aj-organize-sheet {
+      background: light-dark(#fffcf6, #21251f);
+      border-radius: 28px 28px 0 0;
+      padding: 10px 22px 30px;
+      box-shadow: 0 -18px 48px rgba(0,0,0,.15);
+    }
+    #audio-journal-concept .aj-sheet-handle { width: 38px; height: 4px; border-radius: 4px; background: light-dark(#d7d0c4, #555b52); margin: 0 auto 22px; }
+    #audio-journal-concept .aj-organize-sheet h2 { font: 500 28px Georgia, serif; margin: 0 0 8px; }
+    #audio-journal-concept .aj-sheet-copy { font-size: 13px; line-height: 1.5; color: light-dark(#6c7167, #a9aea4); margin-bottom: 18px; }
+    #audio-journal-concept .aj-private-node {
+      padding: 12px;
+      border-radius: 14px;
+      background: light-dark(#f5f1e8, #171a17);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+    #audio-journal-concept .aj-node-dot { width: 8px; height: 8px; border-radius: 50%; background: light-dark(#526b57, #9db89d); }
+    #audio-journal-concept .aj-output-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+    #audio-journal-concept .aj-output-option {
+      border: 1px solid light-dark(#ddd6c8, #3b4038);
+      border-radius: 14px;
+      background: transparent;
+      color: inherit;
+      padding: 12px;
+      text-align: left;
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-output-option[aria-pressed=&quot;true&quot;] {
+      background: light-dark(#dde5d9, #303b31);
+      border-color: light-dark(#8ca18f, #718971);
+      color: light-dark(#314537, #d0e2d0);
+      font-weight: 700;
+    }
+    #audio-journal-concept .aj-run-organize {
+      width: 100%;
+      border: 0;
+      border-radius: 16px;
+      padding: 14px;
+      background: light-dark(#526b57, #9db89d);
+      color: light-dark(#fff, #182019);
+      font-weight: 800;
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-task-group { margin-bottom: 26px; }
+    #audio-journal-concept .aj-task-group h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .11em; color: light-dark(#6c7167, #a9aea4); margin: 0 0 5px; }
+    #audio-journal-concept .aj-task-row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      gap: 11px;
+      border: 0;
+      border-top: 1px solid light-dark(#ddd6c8, #3b4038);
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      padding: 14px 0;
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-check {
+      width: 20px;
+      height: 20px;
+      border: 1.5px solid light-dark(#8a9085, #858c81);
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      margin-top: 1px;
+      font-size: 12px;
+      padding: 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-task-row.aj-done .aj-check { background: light-dark(#526b57, #9db89d); color: light-dark(#fff, #182019); border-color: transparent; }
+    #audio-journal-concept .aj-task-row.aj-done .aj-task-text { text-decoration: line-through; opacity: .55; }
+    #audio-journal-concept .aj-task-text { display: block; font-size: 15px; line-height: 1.35; margin-bottom: 5px; }
+    #audio-journal-concept .aj-task-source {
+      border: 0;
+      background: transparent;
+      padding: 4px 0;
+      font-size: 11px;
+      color: light-dark(#526b57, #9db89d);
+      cursor: pointer;
+      text-align: left;
+    }
+    #audio-journal-concept .aj-organized-group { margin-bottom: 28px; }
+    #audio-journal-concept .aj-organized-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 9px;
+      border-bottom: 1px solid light-dark(#ddd6c8, #3b4038);
+      margin-bottom: 6px;
+    }
+    #audio-journal-concept .aj-organized-heading h3 {
+      margin: 0;
+      font: 500 22px Georgia, serif;
+    }
+    #audio-journal-concept .aj-organized-heading span {
+      font-size: 11px;
+      color: light-dark(#6c7167, #a9aea4);
+    }
+    #audio-journal-concept .aj-organized-item {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      padding: 13px 0;
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-organized-item strong { display: block; font-size: 15px; margin-bottom: 5px; }
+    #audio-journal-concept .aj-organized-item span { display: block; font-size: 12px; line-height: 1.45; color: light-dark(#6c7167, #a9aea4); }
+    #audio-journal-concept .aj-organized-source { margin-top: 7px; color: light-dark(#526b57, #9db89d) !important; }
+    #audio-journal-concept .aj-source-task {
+      padding: 16px;
+      border-radius: 16px;
+      background: light-dark(#dde5d9, #303b31);
+      margin-bottom: 22px;
+    }
+    #audio-journal-concept .aj-source-task small { color: light-dark(#526b57, #a9c0a9); text-transform: uppercase; letter-spacing: .08em; }
+    #audio-journal-concept .aj-source-task strong { display: block; margin-top: 8px; font-size: 16px; line-height: 1.4; }
+    #audio-journal-concept .aj-source-range {
+      padding: 17px;
+      border-radius: 18px;
+      background: light-dark(#fffcf6, #21251f);
+      border: 1px solid light-dark(#ddd6c8, #3b4038);
+      margin-bottom: 22px;
+    }
+    #audio-journal-concept .aj-source-wave {
+      height: 58px;
+      display: flex;
+      gap: 3px;
+      align-items: center;
+      margin: 13px 0;
+    }
+    #audio-journal-concept .aj-source-wave i {
+      width: 3px;
+      border-radius: 3px;
+      background: light-dark(#c6c0b5, #4b5148);
+    }
+    #audio-journal-concept .aj-source-wave i.aj-cited { background: light-dark(#526b57, #9db89d); }
+    #audio-journal-concept .aj-source-meta { display: flex; justify-content: space-between; font-size: 11px; color: light-dark(#6c7167, #a9aea4); }
+    #audio-journal-concept .aj-source-play {
+      width: 100%;
+      border: 0;
+      border-radius: 14px;
+      padding: 12px;
+      margin-top: 14px;
+      background: light-dark(#526b57, #9db89d);
+      color: light-dark(#fff, #182019);
+      font-weight: 750;
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-source-excerpt {
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      color: light-dark(#4b5048, #c9cdc3);
+    }
+    #audio-journal-concept .aj-settings-section { margin-bottom: 26px; }
+    #audio-journal-concept .aj-settings-section h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: light-dark(#6c7167, #a9aea4); margin: 0 0 4px; }
+    #audio-journal-concept .aj-setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 15px 0;
+      border-top: 1px solid light-dark(#ddd6c8, #3b4038);
+      font-size: 14px;
+    }
+    #audio-journal-concept .aj-setting-copy small { display: block; color: light-dark(#6c7167, #a9aea4); margin-top: 4px; line-height: 1.35; }
+    #audio-journal-concept .aj-setting-value { color: light-dark(#526b57, #9db89d); font-size: 12px; white-space: nowrap; }
+    #audio-journal-concept .aj-toggle {
+      width: 40px;
+      height: 23px;
+      border-radius: 14px;
+      border: 0;
+      background: light-dark(#526b57, #9db89d);
+      position: relative;
+    }
+    #audio-journal-concept .aj-toggle::after { content: &quot;&quot;; width: 17px; height: 17px; background: #fff; border-radius: 50%; position: absolute; top: 3px; right: 3px; }
+    #audio-journal-concept .aj-backup-status {
+      padding: 18px;
+      border-radius: 18px;
+      background: light-dark(#dde5d9, #303b31);
+      margin-bottom: 24px;
+    }
+    #audio-journal-concept .aj-backup-status small { text-transform: uppercase; letter-spacing: .09em; color: light-dark(#526b57, #a9c0a9); }
+    #audio-journal-concept .aj-backup-status strong { display: block; font: 500 20px Georgia, serif; margin: 7px 0 5px; }
+    #audio-journal-concept .aj-backup-status span { font-size: 12px; color: light-dark(#6c7167, #a9aea4); }
+    #audio-journal-concept .aj-backup-list { margin: 0 0 24px; padding: 0; list-style: none; }
+    #audio-journal-concept .aj-backup-list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid light-dark(#ddd6c8, #3b4038); font-size: 13px; }
+    #audio-journal-concept .aj-backup-list li span:last-child { color: light-dark(#6c7167, #a9aea4); }
+    #audio-journal-concept .aj-backup-action,
+    #audio-journal-concept .aj-backup-secondary {
+      width: 100%;
+      border-radius: 16px;
+      padding: 14px;
+      font-weight: 750;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    #audio-journal-concept .aj-backup-action { border: 0; background: light-dark(#526b57, #9db89d); color: light-dark(#fff, #182019); }
+    #audio-journal-concept .aj-backup-secondary { border: 1px solid light-dark(#526b57, #9db89d); background: transparent; color: light-dark(#42594a, #b8ccb8); }
+    #audio-journal-concept .aj-backup-note { font-size: 12px; line-height: 1.5; color: light-dark(#6c7167, #a9aea4); margin: 10px 2px 22px; }
+    #audio-journal-concept .aj-restore-preview { display: none; padding: 16px; border: 1px solid light-dark(#ddd6c8, #3b4038); border-radius: 16px; margin: 12px 0; background: light-dark(#fffcf6, #21251f); }
+    #audio-journal-concept .aj-restore-preview.aj-visible { display: block; }
+    #audio-journal-concept .aj-restore-preview strong { display: block; margin-bottom: 8px; }
+    #audio-journal-concept .aj-restore-preview span { display: block; font-size: 12px; color: light-dark(#6c7167, #a9aea4); line-height: 1.5; }
+    @media (max-width: 430px) {
+      #audio-journal-concept { padding-top: 0; }
+      #audio-journal-concept .aj-concept-title { padding: 0 10px; }
+      #audio-journal-concept .aj-phone { border-radius: 26px; height: 740px; }
+      #audio-journal-concept .aj-flow-tab { padding-inline: 8px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #audio-journal-concept .aj-wave i { animation: none; }
+    }
+  &lt;/style&gt;
+
+  &lt;div class=&quot;aj-concept-title&quot;&gt;
+    &lt;strong&gt;Quiet Archive&lt;/strong&gt;
+    &lt;span&gt;Audio Journal · UI direction&lt;/span&gt;
+  &lt;/div&gt;
+
+  &lt;nav class=&quot;aj-flow-tabs&quot; aria-label=&quot;Prototype screens&quot;&gt;
+    &lt;button type=&quot;button&quot; class=&quot;aj-flow-tab&quot; data-show=&quot;lock&quot; aria-pressed=&quot;false&quot;&gt;Lock&lt;/button&gt;
+    &lt;button type=&quot;button&quot; class=&quot;aj-flow-tab&quot; data-show=&quot;today&quot; aria-pressed=&quot;true&quot;&gt;Diary&lt;/button&gt;
+    &lt;button type=&quot;button&quot; class=&quot;aj-flow-tab&quot; data-show=&quot;organized&quot; aria-pressed=&quot;false&quot;&gt;Organized&lt;/button&gt;
+    &lt;button type=&quot;button&quot; class=&quot;aj-flow-tab&quot; data-show=&quot;record&quot; aria-pressed=&quot;false&quot;&gt;Record&lt;/button&gt;
+    &lt;button type=&quot;button&quot; class=&quot;aj-flow-tab&quot; data-show=&quot;entry&quot; aria-pressed=&quot;false&quot;&gt;Entry&lt;/button&gt;
+    &lt;button type=&quot;button&quot; class=&quot;aj-flow-tab&quot; data-show=&quot;organize&quot; aria-pressed=&quot;false&quot;&gt;Organize&lt;/button&gt;
+    &lt;button type=&quot;button&quot; class=&quot;aj-flow-tab&quot; data-show=&quot;tasks&quot; aria-pressed=&quot;false&quot;&gt;Tasks&lt;/button&gt;
+    &lt;button type=&quot;button&quot; class=&quot;aj-flow-tab&quot; data-show=&quot;source&quot; aria-pressed=&quot;false&quot;&gt;Task source&lt;/button&gt;
+    &lt;button type=&quot;button&quot; class=&quot;aj-flow-tab&quot; data-show=&quot;backup&quot; aria-pressed=&quot;false&quot;&gt;Backup&lt;/button&gt;
+    &lt;button type=&quot;button&quot; class=&quot;aj-flow-tab&quot; data-show=&quot;settings&quot; aria-pressed=&quot;false&quot;&gt;Settings&lt;/button&gt;
+  &lt;/nav&gt;
+
+  &lt;div class=&quot;aj-phone&quot; role=&quot;application&quot; aria-label=&quot;Audio Journal mobile interface concept&quot;&gt;
+    &lt;div class=&quot;aj-statusbar&quot;&gt;&lt;span&gt;10:42&lt;/span&gt;&lt;span class=&quot;aj-status-icons&quot;&gt;● ◔ ▰&lt;/span&gt;&lt;/div&gt;
+
+    &lt;section class=&quot;aj-screen aj-lock-screen&quot; data-screen=&quot;lock&quot; aria-label=&quot;Locked journal&quot;&gt;
+      &lt;div&gt;
+        &lt;div class=&quot;aj-lock-mark&quot;&gt;J&lt;/div&gt;
+        &lt;h2&gt;Your journal is locked&lt;/h2&gt;
+        &lt;p&gt;Protected on this device. No account or internet connection is required.&lt;/p&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;aj-pin-panel&quot; data-pin-panel&gt;
+        &lt;div class=&quot;aj-pin-dots&quot; aria-label=&quot;PIN entry&quot;&gt;
+          &lt;span class=&quot;aj-pin-dot&quot;&gt;&lt;/span&gt;&lt;span class=&quot;aj-pin-dot&quot;&gt;&lt;/span&gt;&lt;span class=&quot;aj-pin-dot&quot;&gt;&lt;/span&gt;&lt;span class=&quot;aj-pin-dot&quot;&gt;&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;aj-keypad&quot;&gt;
+          &lt;button type=&quot;button&quot; class=&quot;aj-key&quot; data-key=&quot;1&quot;&gt;1&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;aj-key&quot; data-key=&quot;2&quot;&gt;2&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;aj-key&quot; data-key=&quot;3&quot;&gt;3&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;aj-key&quot; data-key=&quot;4&quot;&gt;4&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;aj-key&quot; data-key=&quot;5&quot;&gt;5&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;aj-key&quot; data-key=&quot;6&quot;&gt;6&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;aj-key&quot; data-key=&quot;7&quot;&gt;7&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;aj-key&quot; data-key=&quot;8&quot;&gt;8&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;aj-key&quot; data-key=&quot;9&quot;&gt;9&lt;/button&gt;
+          &lt;span&gt;&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;aj-key&quot; data-key=&quot;0&quot;&gt;0&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;aj-key&quot; data-key=&quot;back&quot;&gt;⌫&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;aj-lock-actions&quot;&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-biometric&quot; data-unlock&gt;◎ Unlock with biometrics&lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-text-action&quot; data-use-pin&gt;Use PIN instead&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+
+    &lt;section class=&quot;aj-screen aj-active&quot; data-screen=&quot;today&quot; aria-label=&quot;Diary timeline&quot;&gt;
+      &lt;div class=&quot;aj-scroll&quot;&gt;
+        &lt;div class=&quot;aj-topline&quot;&gt;&lt;div class=&quot;aj-brandmark&quot;&gt;J&lt;/div&gt;&lt;button type=&quot;button&quot; class=&quot;aj-icon-action&quot; aria-label=&quot;Search&quot;&gt;⌕&lt;/button&gt;&lt;/div&gt;
+        &lt;div class=&quot;aj-date-kicker&quot;&gt;Wednesday · 8 October&lt;/div&gt;
+        &lt;h1 class=&quot;aj-editorial-title&quot;&gt;Diary&lt;/h1&gt;
+        &lt;div class=&quot;aj-journal-switch&quot; aria-label=&quot;Journal view&quot;&gt;
+          &lt;button type=&quot;button&quot; class=&quot;aj-journal-mode aj-selected&quot; data-nav=&quot;today&quot;&gt;Diary&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;aj-journal-mode&quot; data-nav=&quot;organized&quot;&gt;Organized&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;p class=&quot;aj-prompt&quot;&gt;What do you want to remember?&lt;/p&gt;
+        &lt;div class=&quot;aj-section-head&quot;&gt;&lt;span&gt;Recent entries&lt;/span&gt;&lt;span&gt;3 today&lt;/span&gt;&lt;/div&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-entry-row&quot; data-open-entry&gt;
+          &lt;span class=&quot;aj-entry-symbol&quot;&gt;◉&lt;/span&gt;
+          &lt;span class=&quot;aj-entry-copy&quot;&gt;&lt;strong&gt;Work, momentum, tomorrow&lt;/strong&gt;&lt;span&gt;“I&#x27;ve been working on the Hybrid AI SDK today…” · Voice · 4:18&lt;/span&gt;&lt;/span&gt;
+          &lt;span class=&quot;aj-entry-time&quot;&gt;10:42 PM&lt;/span&gt;
+        &lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-entry-row&quot;&gt;
+          &lt;span class=&quot;aj-entry-symbol&quot;&gt;✎&lt;/span&gt;
+          &lt;span class=&quot;aj-entry-copy&quot;&gt;&lt;strong&gt;A quieter afternoon&lt;/strong&gt;&lt;span&gt;Walked without headphones and noticed how much… · Written&lt;/span&gt;&lt;/span&gt;
+          &lt;span class=&quot;aj-entry-time&quot;&gt;4:06 PM&lt;/span&gt;
+        &lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-entry-row&quot;&gt;
+          &lt;span class=&quot;aj-entry-symbol&quot;&gt;◉&lt;/span&gt;
+          &lt;span class=&quot;aj-entry-copy&quot;&gt;&lt;strong&gt;Morning notes&lt;/strong&gt;&lt;span&gt;Voice · 1:37 · Transcript ready&lt;/span&gt;&lt;/span&gt;
+          &lt;span class=&quot;aj-entry-time&quot;&gt;8:15 AM&lt;/span&gt;
+        &lt;/button&gt;
+        &lt;div class=&quot;aj-privacy-line&quot;&gt;&lt;span&gt;⌁&lt;/span&gt;&lt;span&gt;Entries are stored on this device&lt;/span&gt;&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;button type=&quot;button&quot; class=&quot;aj-record-fab&quot; data-record aria-label=&quot;Start recording&quot;&gt;●&lt;/button&gt;
+      &lt;nav class=&quot;aj-bottom-nav&quot; aria-label=&quot;Main navigation&quot;&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-nav-action aj-selected&quot; data-nav=&quot;today&quot;&gt;&lt;span&gt;⌂&lt;/span&gt;&lt;span&gt;Journal&lt;/span&gt;&lt;/button&gt;
+        &lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-nav-action&quot; data-nav=&quot;tasks&quot;&gt;&lt;span&gt;✓&lt;/span&gt;&lt;span&gt;Tasks&lt;/span&gt;&lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-nav-action&quot; data-nav=&quot;settings&quot;&gt;&lt;span&gt;⚙&lt;/span&gt;&lt;span&gt;Settings&lt;/span&gt;&lt;/button&gt;
+      &lt;/nav&gt;
+    &lt;/section&gt;
+
+    &lt;section class=&quot;aj-screen&quot; data-screen=&quot;organized&quot; aria-label=&quot;Organized journal views&quot;&gt;
+      &lt;div class=&quot;aj-scroll&quot;&gt;
+        &lt;div class=&quot;aj-topline&quot;&gt;&lt;div class=&quot;aj-brandmark&quot;&gt;J&lt;/div&gt;&lt;button type=&quot;button&quot; class=&quot;aj-icon-action&quot; aria-label=&quot;Search organized views&quot;&gt;⌕&lt;/button&gt;&lt;/div&gt;
+        &lt;div class=&quot;aj-date-kicker&quot;&gt;Views over your diary&lt;/div&gt;
+        &lt;h1 class=&quot;aj-editorial-title&quot;&gt;Organized&lt;/h1&gt;
+        &lt;div class=&quot;aj-journal-switch&quot; aria-label=&quot;Journal view&quot;&gt;
+          &lt;button type=&quot;button&quot; class=&quot;aj-journal-mode&quot; data-nav=&quot;today&quot;&gt;Diary&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;aj-journal-mode aj-selected&quot; data-nav=&quot;organized&quot;&gt;Organized&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;aj-organized-group&quot;&gt;
+          &lt;div class=&quot;aj-organized-heading&quot;&gt;&lt;h3&gt;Work&lt;/h3&gt;&lt;span&gt;3 entries&lt;/span&gt;&lt;/div&gt;
+          &lt;button type=&quot;button&quot; class=&quot;aj-organized-item&quot; data-open-entry&gt;&lt;strong&gt;Hybrid AI SDK&lt;/strong&gt;&lt;span&gt;Documentation, pairing review, and the path to v0.1.&lt;/span&gt;&lt;span class=&quot;aj-organized-source&quot;&gt;3 tasks · Sources from Oct 6–8 ↗&lt;/span&gt;&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;aj-organized-item&quot;&gt;&lt;strong&gt;Audio Journal&lt;/strong&gt;&lt;span&gt;Product structure, app lock, and the first UI direction.&lt;/span&gt;&lt;span class=&quot;aj-organized-source&quot;&gt;2 entries · 1 idea ↗&lt;/span&gt;&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;aj-organized-group&quot;&gt;
+          &lt;div class=&quot;aj-organized-heading&quot;&gt;&lt;h3&gt;Personal&lt;/h3&gt;&lt;span&gt;2 entries&lt;/span&gt;&lt;/div&gt;
+          &lt;button type=&quot;button&quot; class=&quot;aj-organized-item&quot;&gt;&lt;strong&gt;Quiet time&lt;/strong&gt;&lt;span&gt;Walking without headphones made the afternoon feel slower.&lt;/span&gt;&lt;span class=&quot;aj-organized-source&quot;&gt;From Oct 8 · 4:06 PM ↗&lt;/span&gt;&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;aj-organized-item&quot;&gt;&lt;strong&gt;Tomorrow&lt;/strong&gt;&lt;span&gt;Keep the morning clear before returning to project work.&lt;/span&gt;&lt;span class=&quot;aj-organized-source&quot;&gt;From Oct 8 · 8:15 AM ↗&lt;/span&gt;&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;aj-privacy-line&quot;&gt;&lt;span&gt;⌁&lt;/span&gt;&lt;span&gt;Organized views never replace Diary entries&lt;/span&gt;&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;button type=&quot;button&quot; class=&quot;aj-record-fab&quot; data-record aria-label=&quot;Start recording&quot;&gt;●&lt;/button&gt;
+      &lt;nav class=&quot;aj-bottom-nav&quot; aria-label=&quot;Main navigation&quot;&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-nav-action aj-selected&quot; data-nav=&quot;today&quot;&gt;&lt;span&gt;⌂&lt;/span&gt;&lt;span&gt;Journal&lt;/span&gt;&lt;/button&gt;
+        &lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-nav-action&quot; data-nav=&quot;tasks&quot;&gt;&lt;span&gt;✓&lt;/span&gt;&lt;span&gt;Tasks&lt;/span&gt;&lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-nav-action&quot; data-nav=&quot;settings&quot;&gt;&lt;span&gt;⚙&lt;/span&gt;&lt;span&gt;Settings&lt;/span&gt;&lt;/button&gt;
+      &lt;/nav&gt;
+    &lt;/section&gt;
+
+    &lt;section class=&quot;aj-screen aj-recorder-screen&quot; data-screen=&quot;record&quot; aria-label=&quot;Active recording&quot;&gt;
+      &lt;div class=&quot;aj-recorder-top&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;aj-back&quot; data-back-today aria-label=&quot;Close recording&quot;&gt;×&lt;/button&gt;&lt;span class=&quot;aj-save-state&quot;&gt;● Saved on this device&lt;/span&gt;&lt;/div&gt;
+      &lt;div class=&quot;aj-timer&quot;&gt;RECORDING · &lt;span data-timer&gt;00:42&lt;/span&gt;&lt;/div&gt;
+      &lt;div class=&quot;aj-wave&quot; data-wave aria-label=&quot;Live audio waveform&quot;&gt;
+        &lt;i style=&quot;height:20px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:38px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:52px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:29px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:63px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:42px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:24px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:56px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:70px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:33px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:49px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:24px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:59px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:39px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:21px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:47px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:65px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:31px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:45px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:27px&quot;&gt;&lt;/i&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;aj-live-copy&quot;&gt;I&#x27;ve been working on the Hybrid AI SDK today, and I think tomorrow I need to finish the documentation and review the pairing flow. &lt;span class=&quot;aj-provisional&quot;&gt;Then I want to…&lt;/span&gt;&lt;/div&gt;
+      &lt;div class=&quot;aj-record-controls&quot;&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-control-secondary&quot; data-pause&gt;Ⅱ Pause&lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-control-primary&quot; data-finish&gt;Finish&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+
+    &lt;section class=&quot;aj-screen&quot; data-screen=&quot;entry&quot; aria-label=&quot;Journal entry detail&quot;&gt;
+      &lt;div class=&quot;aj-scroll&quot;&gt;
+        &lt;div class=&quot;aj-entry-screen-header&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;aj-back&quot; data-back-today aria-label=&quot;Back&quot;&gt;‹&lt;/button&gt;&lt;h2&gt;10:42 PM&lt;/h2&gt;&lt;button type=&quot;button&quot; class=&quot;aj-icon-action&quot; aria-label=&quot;More options&quot;&gt;•••&lt;/button&gt;&lt;/div&gt;
+        &lt;div class=&quot;aj-date-kicker&quot;&gt;Diary entry · original · Wednesday, 8 October&lt;/div&gt;
+        &lt;h1 class=&quot;aj-editorial-title&quot; style=&quot;font-size:29px;margin-bottom:20px&quot;&gt;Work, momentum, tomorrow&lt;/h1&gt;
+        &lt;div class=&quot;aj-player&quot;&gt;
+          &lt;div class=&quot;aj-player-row&quot;&gt;
+            &lt;button type=&quot;button&quot; class=&quot;aj-play&quot; aria-label=&quot;Play recording&quot;&gt;▶&lt;/button&gt;
+            &lt;div&gt;&lt;div class=&quot;aj-progress&quot;&gt;&lt;span&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;aj-player-meta&quot;&gt;&lt;span&gt;1:36&lt;/span&gt;&lt;span&gt;4:18&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;aj-transcript-title&quot;&gt;Transcript&lt;/div&gt;
+        &lt;div class=&quot;aj-transcript&quot;&gt;&lt;mark&gt;I&#x27;ve been working on the Hybrid AI SDK today&lt;/mark&gt;, and I think tomorrow I need to finish the documentation and review the pairing flow. Then I want to outline the Audio Journal screens while the product idea is still clear.&lt;/div&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-organize-action&quot; data-open-organize&gt;Organize this entry&lt;/button&gt;
+        &lt;div class=&quot;aj-derived&quot; data-derived&gt;
+          &lt;small&gt;Organized from this entry&lt;/small&gt;
+          &lt;h3&gt;Tomorrow&#x27;s focus&lt;/h3&gt;
+          &lt;div&gt;Finish the documentation, review pairing, and outline the Audio Journal screens.&lt;/div&gt;
+          &lt;button type=&quot;button&quot; class=&quot;aj-source-link&quot; data-open-source&gt;↗ Play source · 1:31–2:18&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+
+    &lt;section class=&quot;aj-screen aj-sheet-screen&quot; data-screen=&quot;organize&quot; aria-label=&quot;Organize entry options&quot;&gt;
+      &lt;div class=&quot;aj-organize-sheet&quot;&gt;
+        &lt;div class=&quot;aj-sheet-handle&quot;&gt;&lt;/div&gt;
+        &lt;h2&gt;Organize this entry&lt;/h2&gt;
+        &lt;p class=&quot;aj-sheet-copy&quot;&gt;Choose the views you want. Your transcript—not the audio recording—will be sent to your paired private node.&lt;/p&gt;
+        &lt;div class=&quot;aj-private-node&quot;&gt;&lt;span class=&quot;aj-node-dot&quot;&gt;&lt;/span&gt;&lt;span&gt;&lt;strong&gt;Home Node&lt;/strong&gt;&lt;br&gt;Paired · private connection&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;aj-output-options&quot;&gt;
+          &lt;button type=&quot;button&quot; class=&quot;aj-output-option&quot; aria-pressed=&quot;true&quot;&gt;✓ Work &amp; personal&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;aj-output-option&quot; aria-pressed=&quot;true&quot;&gt;✓ Tasks&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;aj-output-option&quot; aria-pressed=&quot;false&quot;&gt;Ideas&lt;/button&gt;
+          &lt;button type=&quot;button&quot; class=&quot;aj-output-option&quot; aria-pressed=&quot;false&quot;&gt;People &amp; projects&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-run-organize&quot; data-run-organize&gt;Organize privately&lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-text-action&quot; data-cancel-organize style=&quot;width:100%&quot;&gt;Cancel&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+
+    &lt;section class=&quot;aj-screen&quot; data-screen=&quot;tasks&quot; aria-label=&quot;Derived tasks&quot;&gt;
+      &lt;div class=&quot;aj-scroll&quot;&gt;
+        &lt;div class=&quot;aj-topline&quot;&gt;&lt;div class=&quot;aj-brandmark&quot;&gt;J&lt;/div&gt;&lt;button type=&quot;button&quot; class=&quot;aj-icon-action&quot; aria-label=&quot;Task options&quot;&gt;•••&lt;/button&gt;&lt;/div&gt;
+        &lt;div class=&quot;aj-date-kicker&quot;&gt;From your journal&lt;/div&gt;
+        &lt;h1 class=&quot;aj-editorial-title&quot; style=&quot;margin-bottom:30px&quot;&gt;Tasks&lt;/h1&gt;
+        &lt;div class=&quot;aj-task-group&quot;&gt;
+          &lt;h3&gt;Today&lt;/h3&gt;
+          &lt;div class=&quot;aj-task-row&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;aj-check&quot; aria-label=&quot;Complete task&quot;&gt;&lt;/button&gt;&lt;span&gt;&lt;span class=&quot;aj-task-text&quot;&gt;Review the Hybrid AI pairing flow&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;aj-task-source&quot; data-open-source&gt;Source · Oct 8 · 1:31–2:18 ↗&lt;/button&gt;&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;aj-task-row&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;aj-check&quot; aria-label=&quot;Complete task&quot;&gt;&lt;/button&gt;&lt;span&gt;&lt;span class=&quot;aj-task-text&quot;&gt;Finish the architecture documentation&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;aj-task-source&quot; data-open-source&gt;Source · Oct 8 · 0:44–1:30 ↗&lt;/button&gt;&lt;/span&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;aj-task-group&quot;&gt;
+          &lt;h3&gt;No date&lt;/h3&gt;
+          &lt;div class=&quot;aj-task-row&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;aj-check&quot; aria-label=&quot;Complete task&quot;&gt;&lt;/button&gt;&lt;span&gt;&lt;span class=&quot;aj-task-text&quot;&gt;Outline Audio Journal core screens&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;aj-task-source&quot; data-open-source&gt;Source · Oct 8 · 2:19–2:52 ↗&lt;/button&gt;&lt;/span&gt;&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;button type=&quot;button&quot; class=&quot;aj-record-fab&quot; data-record aria-label=&quot;Start recording&quot;&gt;●&lt;/button&gt;
+      &lt;nav class=&quot;aj-bottom-nav&quot; aria-label=&quot;Main navigation&quot;&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-nav-action&quot; data-nav=&quot;today&quot;&gt;&lt;span&gt;⌂&lt;/span&gt;&lt;span&gt;Journal&lt;/span&gt;&lt;/button&gt;
+        &lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-nav-action aj-selected&quot; data-nav=&quot;tasks&quot;&gt;&lt;span&gt;✓&lt;/span&gt;&lt;span&gt;Tasks&lt;/span&gt;&lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-nav-action&quot; data-nav=&quot;settings&quot;&gt;&lt;span&gt;⚙&lt;/span&gt;&lt;span&gt;Settings&lt;/span&gt;&lt;/button&gt;
+      &lt;/nav&gt;
+    &lt;/section&gt;
+
+    &lt;section class=&quot;aj-screen&quot; data-screen=&quot;source&quot; aria-label=&quot;Task source reference&quot;&gt;
+      &lt;div class=&quot;aj-scroll&quot;&gt;
+        &lt;div class=&quot;aj-entry-screen-header&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;aj-back&quot; data-back-tasks aria-label=&quot;Back to tasks&quot;&gt;‹&lt;/button&gt;&lt;h2&gt;Task source&lt;/h2&gt;&lt;span&gt;&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;aj-source-task&quot;&gt;&lt;small&gt;Task&lt;/small&gt;&lt;strong&gt;Review the Hybrid AI pairing flow&lt;/strong&gt;&lt;/div&gt;
+        &lt;div class=&quot;aj-date-kicker&quot;&gt;From Diary · Oct 8 · 10:42 PM&lt;/div&gt;
+        &lt;h1 class=&quot;aj-editorial-title&quot; style=&quot;font-size:27px;margin:6px 0 18px&quot;&gt;Work, momentum, tomorrow&lt;/h1&gt;
+        &lt;div class=&quot;aj-source-range&quot;&gt;
+          &lt;div class=&quot;aj-section-head&quot;&gt;&lt;span&gt;Exact recording reference&lt;/span&gt;&lt;span&gt;1:31–2:18&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;aj-source-wave&quot; aria-label=&quot;Recording waveform with cited range highlighted&quot;&gt;
+            &lt;i style=&quot;height:18px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:31px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:42px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:26px&quot;&gt;&lt;/i&gt;&lt;i class=&quot;aj-cited&quot; style=&quot;height:48px&quot;&gt;&lt;/i&gt;&lt;i class=&quot;aj-cited&quot; style=&quot;height:35px&quot;&gt;&lt;/i&gt;&lt;i class=&quot;aj-cited&quot; style=&quot;height:50px&quot;&gt;&lt;/i&gt;&lt;i class=&quot;aj-cited&quot; style=&quot;height:29px&quot;&gt;&lt;/i&gt;&lt;i class=&quot;aj-cited&quot; style=&quot;height:45px&quot;&gt;&lt;/i&gt;&lt;i class=&quot;aj-cited&quot; style=&quot;height:54px&quot;&gt;&lt;/i&gt;&lt;i class=&quot;aj-cited&quot; style=&quot;height:32px&quot;&gt;&lt;/i&gt;&lt;i class=&quot;aj-cited&quot; style=&quot;height:47px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:24px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:38px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:29px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:20px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:36px&quot;&gt;&lt;/i&gt;&lt;i style=&quot;height:25px&quot;&gt;&lt;/i&gt;
+          &lt;/div&gt;
+          &lt;div class=&quot;aj-source-meta&quot;&gt;&lt;span&gt;0:00&lt;/span&gt;&lt;strong&gt;cited excerpt&lt;/strong&gt;&lt;span&gt;4:18&lt;/span&gt;&lt;/div&gt;
+          &lt;button type=&quot;button&quot; class=&quot;aj-source-play&quot;&gt;▶ Play source excerpt · 0:47&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;aj-transcript-title&quot;&gt;Matching transcript&lt;/div&gt;
+        &lt;div class=&quot;aj-source-excerpt&quot;&gt;“…finish the documentation and &lt;mark&gt;review the pairing flow&lt;/mark&gt;. Then I want to outline the Audio Journal screens…”&lt;/div&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-organize-action&quot; data-open-entry&gt;Open full Diary entry&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+
+    &lt;section class=&quot;aj-screen&quot; data-screen=&quot;settings&quot; aria-label=&quot;Journal settings&quot;&gt;
+      &lt;div class=&quot;aj-scroll&quot;&gt;
+        &lt;div class=&quot;aj-topline&quot;&gt;&lt;div class=&quot;aj-brandmark&quot;&gt;J&lt;/div&gt;&lt;/div&gt;
+        &lt;h1 class=&quot;aj-editorial-title&quot; style=&quot;margin-bottom:30px&quot;&gt;Settings&lt;/h1&gt;
+        &lt;div class=&quot;aj-settings-section&quot;&gt;
+          &lt;h3&gt;Privacy &amp; lock&lt;/h3&gt;
+          &lt;div class=&quot;aj-setting-row&quot;&gt;&lt;span class=&quot;aj-setting-copy&quot;&gt;Biometric unlock&lt;small&gt;PIN is always available as fallback&lt;/small&gt;&lt;/span&gt;&lt;button type=&quot;button&quot; class=&quot;aj-toggle&quot; aria-label=&quot;Biometric unlock enabled&quot;&gt;&lt;/button&gt;&lt;/div&gt;
+          &lt;div class=&quot;aj-setting-row&quot;&gt;&lt;span class=&quot;aj-setting-copy&quot;&gt;Auto-lock&lt;small&gt;After the app is backgrounded&lt;/small&gt;&lt;/span&gt;&lt;span class=&quot;aj-setting-value&quot;&gt;1 minute ›&lt;/span&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;aj-settings-section&quot;&gt;
+          &lt;h3&gt;Private AI Node&lt;/h3&gt;
+          &lt;div class=&quot;aj-setting-row&quot;&gt;&lt;span class=&quot;aj-setting-copy&quot;&gt;Home Node&lt;small&gt;Paired and reachable&lt;/small&gt;&lt;/span&gt;&lt;span class=&quot;aj-setting-value&quot;&gt;Connected&lt;/span&gt;&lt;/div&gt;
+          &lt;div class=&quot;aj-setting-row&quot;&gt;&lt;span class=&quot;aj-setting-copy&quot;&gt;Default organization&lt;small&gt;Transcript only; audio stays local&lt;/small&gt;&lt;/span&gt;&lt;span class=&quot;aj-setting-value&quot;&gt;Private node ›&lt;/span&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;aj-settings-section&quot;&gt;
+          &lt;h3&gt;Storage&lt;/h3&gt;
+          &lt;div class=&quot;aj-setting-row&quot;&gt;&lt;span class=&quot;aj-setting-copy&quot;&gt;Journal data&lt;small&gt;Stored on this device&lt;/small&gt;&lt;/span&gt;&lt;span class=&quot;aj-setting-value&quot;&gt;286 MB&lt;/span&gt;&lt;/div&gt;
+          &lt;button type=&quot;button&quot; class=&quot;aj-setting-row&quot; data-open-backup style=&quot;width:100%;border-left:0;border-right:0;border-bottom:0;background:transparent;color:inherit;text-align:left;cursor:pointer&quot;&gt;&lt;span class=&quot;aj-setting-copy&quot;&gt;Backup &amp; restore&lt;small&gt;Portable encrypted journal archive&lt;/small&gt;&lt;/span&gt;&lt;span class=&quot;aj-setting-value&quot;&gt;No backup yet ›&lt;/span&gt;&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;button type=&quot;button&quot; class=&quot;aj-record-fab&quot; data-record aria-label=&quot;Start recording&quot;&gt;●&lt;/button&gt;
+      &lt;nav class=&quot;aj-bottom-nav&quot; aria-label=&quot;Main navigation&quot;&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-nav-action&quot; data-nav=&quot;today&quot;&gt;&lt;span&gt;⌂&lt;/span&gt;&lt;span&gt;Journal&lt;/span&gt;&lt;/button&gt;
+        &lt;span&gt;&lt;/span&gt;&lt;span&gt;&lt;/span&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-nav-action&quot; data-nav=&quot;tasks&quot;&gt;&lt;span&gt;✓&lt;/span&gt;&lt;span&gt;Tasks&lt;/span&gt;&lt;/button&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-nav-action aj-selected&quot; data-nav=&quot;settings&quot;&gt;&lt;span&gt;⚙&lt;/span&gt;&lt;span&gt;Settings&lt;/span&gt;&lt;/button&gt;
+      &lt;/nav&gt;
+    &lt;/section&gt;
+
+    &lt;section class=&quot;aj-screen&quot; data-screen=&quot;backup&quot; aria-label=&quot;Backup and restore&quot;&gt;
+      &lt;div class=&quot;aj-scroll&quot;&gt;
+        &lt;div class=&quot;aj-entry-screen-header&quot;&gt;&lt;button type=&quot;button&quot; class=&quot;aj-back&quot; data-back-settings aria-label=&quot;Back to settings&quot;&gt;‹&lt;/button&gt;&lt;h2&gt;Backup &amp; restore&lt;/h2&gt;&lt;span&gt;&lt;/span&gt;&lt;/div&gt;
+        &lt;div class=&quot;aj-backup-status&quot; aria-live=&quot;polite&quot;&gt;
+          &lt;small&gt;Recovery status&lt;/small&gt;
+          &lt;strong data-backup-heading&gt;No backup yet&lt;/strong&gt;
+          &lt;span data-backup-detail&gt;Create an encrypted copy before clearing app data or reinstalling.&lt;/span&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;aj-transcript-title&quot;&gt;Included in a full backup&lt;/div&gt;
+        &lt;ul class=&quot;aj-backup-list&quot;&gt;
+          &lt;li&gt;&lt;span&gt;Diary entries &amp; recordings&lt;/span&gt;&lt;span&gt;143 · 286 MB&lt;/span&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;span&gt;Transcripts &amp; corrections&lt;/span&gt;&lt;span&gt;All&lt;/span&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;span&gt;Work, Personal &amp; other views&lt;/span&gt;&lt;span&gt;All&lt;/span&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;span&gt;Tasks &amp; exact source ranges&lt;/span&gt;&lt;span&gt;17&lt;/span&gt;&lt;/li&gt;
+        &lt;/ul&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-backup-action&quot; data-create-backup&gt;Create encrypted backup&lt;/button&gt;
+        &lt;p class=&quot;aj-backup-note&quot;&gt;You choose where to save the &lt;strong&gt;.ajbackup&lt;/strong&gt; file. Protect it with a strong backup password or recovery key. Your PIN, biometrics, and Private AI Node pairing are not included.&lt;/p&gt;
+        &lt;button type=&quot;button&quot; class=&quot;aj-backup-secondary&quot; data-restore-backup&gt;Restore from backup&lt;/button&gt;
+        &lt;div class=&quot;aj-restore-preview&quot; data-restore-preview&gt;
+          &lt;strong&gt;AudioJournal-2026-10-01.ajbackup&lt;/strong&gt;
+          &lt;span&gt;Created Oct 1 · 128 entries · 251 MB&lt;/span&gt;
+          &lt;span&gt;Restore requires an empty journal and the backup password.&lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/section&gt;
+  &lt;/div&gt;
+
+  &lt;script&gt;
+    (() =&gt; {
+      const root = document.getElementById(&#x27;audio-journal-concept&#x27;);
+      const screens = [...root.querySelectorAll(&#x27;[data-screen]&#x27;)];
+      const tabs = [...root.querySelectorAll(&#x27;[data-show]&#x27;)];
+      let pin = &#x27;&#x27;;
+      let paused = false;
+
+      function show(name) {
+        screens.forEach(screen =&gt; screen.classList.toggle(&#x27;aj-active&#x27;, screen.dataset.screen === name));
+        tabs.forEach(tab =&gt; tab.setAttribute(&#x27;aria-pressed&#x27;, String(tab.dataset.show === name)));
+      }
+
+      tabs.forEach(tab =&gt; tab.addEventListener(&#x27;click&#x27;, () =&gt; show(tab.dataset.show)));
+      root.querySelectorAll(&#x27;[data-nav]&#x27;).forEach(button =&gt; button.addEventListener(&#x27;click&#x27;, () =&gt; show(button.dataset.nav)));
+      root.querySelectorAll(&#x27;[data-record]&#x27;).forEach(button =&gt; button.addEventListener(&#x27;click&#x27;, () =&gt; show(&#x27;record&#x27;)));
+      root.querySelectorAll(&#x27;[data-back-today]&#x27;).forEach(button =&gt; button.addEventListener(&#x27;click&#x27;, () =&gt; show(&#x27;today&#x27;)));
+      root.querySelectorAll(&#x27;[data-open-entry]&#x27;).forEach(button =&gt; button.addEventListener(&#x27;click&#x27;, () =&gt; show(&#x27;entry&#x27;)));
+      root.querySelectorAll(&#x27;[data-open-source]&#x27;).forEach(button =&gt; button.addEventListener(&#x27;click&#x27;, () =&gt; show(&#x27;source&#x27;)));
+      root.querySelector(&#x27;[data-back-tasks]&#x27;).addEventListener(&#x27;click&#x27;, () =&gt; show(&#x27;tasks&#x27;));
+      root.querySelector(&#x27;[data-open-backup]&#x27;).addEventListener(&#x27;click&#x27;, () =&gt; show(&#x27;backup&#x27;));
+      root.querySelector(&#x27;[data-back-settings]&#x27;).addEventListener(&#x27;click&#x27;, () =&gt; show(&#x27;settings&#x27;));
+      root.querySelector(&#x27;[data-open-organize]&#x27;).addEventListener(&#x27;click&#x27;, () =&gt; show(&#x27;organize&#x27;));
+      root.querySelector(&#x27;[data-cancel-organize]&#x27;).addEventListener(&#x27;click&#x27;, () =&gt; show(&#x27;entry&#x27;));
+      root.querySelector(&#x27;[data-unlock]&#x27;).addEventListener(&#x27;click&#x27;, () =&gt; show(&#x27;today&#x27;));
+      root.querySelector(&#x27;[data-use-pin]&#x27;).addEventListener(&#x27;click&#x27;, () =&gt; {
+        root.querySelector(&#x27;[data-pin-panel]&#x27;).classList.add(&#x27;aj-visible&#x27;);
+        root.querySelector(&#x27;.aj-lock-actions&#x27;).style.display = &#x27;none&#x27;;
+      });
+      root.querySelectorAll(&#x27;[data-key]&#x27;).forEach(key =&gt; key.addEventListener(&#x27;click&#x27;, () =&gt; {
+        if (key.dataset.key === &#x27;back&#x27;) pin = pin.slice(0, -1);
+        else if (pin.length &lt; 4) pin += key.dataset.key;
+        root.querySelectorAll(&#x27;.aj-pin-dot&#x27;).forEach((dot, index) =&gt; dot.classList.toggle(&#x27;aj-filled&#x27;, index &lt; pin.length));
+        if (pin.length === 4) setTimeout(() =&gt; { pin = &#x27;&#x27;; show(&#x27;today&#x27;); }, 180);
+      }));
+      root.querySelector(&#x27;[data-pause]&#x27;).addEventListener(&#x27;click&#x27;, event =&gt; {
+        paused = !paused;
+        root.querySelector(&#x27;[data-wave]&#x27;).classList.toggle(&#x27;aj-paused&#x27;, paused);
+        event.currentTarget.textContent = paused ? &#x27;▶ Resume&#x27; : &#x27;Ⅱ Pause&#x27;;
+        root.querySelector(&#x27;.aj-timer&#x27;).firstChild.textContent = paused ? &#x27;PAUSED · &#x27; : &#x27;RECORDING · &#x27;;
+      });
+      root.querySelector(&#x27;[data-finish]&#x27;).addEventListener(&#x27;click&#x27;, () =&gt; show(&#x27;entry&#x27;));
+      root.querySelectorAll(&#x27;.aj-output-option&#x27;).forEach(option =&gt; option.addEventListener(&#x27;click&#x27;, () =&gt; {
+        option.setAttribute(&#x27;aria-pressed&#x27;, String(option.getAttribute(&#x27;aria-pressed&#x27;) !== &#x27;true&#x27;));
+        option.textContent = option.getAttribute(&#x27;aria-pressed&#x27;) === &#x27;true&#x27; ? `✓ ${option.textContent.replace(&#x27;✓ &#x27;, &#x27;&#x27;)}` : option.textContent.replace(&#x27;✓ &#x27;, &#x27;&#x27;);
+      }));
+      root.querySelector(&#x27;[data-run-organize]&#x27;).addEventListener(&#x27;click&#x27;, () =&gt; {
+        root.querySelector(&#x27;[data-derived]&#x27;).classList.add(&#x27;aj-visible&#x27;);
+        root.querySelector(&#x27;[data-open-organize]&#x27;).textContent = &#x27;Organize again&#x27;;
+        show(&#x27;entry&#x27;);
+      });
+      root.querySelectorAll(&#x27;.aj-check&#x27;).forEach(check =&gt; check.addEventListener(&#x27;click&#x27;, () =&gt; {
+        const row = check.closest(&#x27;.aj-task-row&#x27;);
+        row.classList.toggle(&#x27;aj-done&#x27;);
+        check.textContent = row.classList.contains(&#x27;aj-done&#x27;) ? &#x27;✓&#x27; : &#x27;&#x27;;
+      }));
+      root.querySelector(&#x27;[data-create-backup]&#x27;).addEventListener(&#x27;click&#x27;, () =&gt; {
+        root.querySelector(&#x27;[data-backup-heading]&#x27;).textContent = &#x27;Backup verified&#x27;;
+        root.querySelector(&#x27;[data-backup-detail]&#x27;).textContent = &#x27;AudioJournal-2026-10-08.ajbackup · 291 MB · saved through Files&#x27;;
+        root.querySelector(&#x27;[data-create-backup]&#x27;).textContent = &#x27;Create another backup&#x27;;
+      });
+      root.querySelector(&#x27;[data-restore-backup]&#x27;).addEventListener(&#x27;click&#x27;, () =&gt; {
+        root.querySelector(&#x27;[data-restore-preview]&#x27;).classList.toggle(&#x27;aj-visible&#x27;);
+      });
+      const requestedScreen = new URLSearchParams(window.location.search).get(&#x27;screen&#x27;) || window.location.hash.slice(1);
+      if (requestedScreen &amp;&amp; screens.some(screen =&gt; screen.dataset.screen === requestedScreen)) show(requestedScreen);
+    })();
+  &lt;/script&gt;
+&lt;/div&gt;
+
+&lt;script src=&quot;https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set([&quot;top&quot;, &quot;right&quot;, &quot;bottom&quot;, &quot;left&quot;]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+  let lastPointerWasTouch = false;
+  let pinnedByTouch = false;
+
+  const getTrigger = (target) =&gt;
+    target?.nodeType === Node.ELEMENT_NODE
+      ? target.closest(&quot;[data-tooltip]&quot;)
+      : null;
+  const containsTarget = (trigger, target) =&gt;
+    target?.nodeType != null &amp;&amp; trigger.contains(target);
+  const getContent = (trigger) =&gt;
+    trigger.getAttribute(&quot;data-tooltip&quot;)?.trim() ?? &quot;&quot;;
+  const getPlacement = (trigger) =&gt; {
+    const placement = trigger.getAttribute(&quot;data-tooltip-placement&quot;);
+    return tooltipPlacements.has(placement) ? placement : &quot;top&quot;;
+  };
+  const getTooltip = () =&gt; {
+    if (tooltip == null) {
+      tooltip = document.createElement(&quot;div&quot;);
+      tooltip.id = tooltipId;
+      tooltip.className = &quot;tooltip&quot;;
+      tooltip.setAttribute(&quot;role&quot;, &quot;tooltip&quot;);
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) =&gt; {
+    const ids = new Set(
+      (trigger.getAttribute(&quot;aria-describedby&quot;) ?? &quot;&quot;)
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute(&quot;aria-describedby&quot;);
+    } else {
+      trigger.setAttribute(&quot;aria-describedby&quot;, [...ids].join(&quot; &quot;));
+    }
+  };
+  const clearOpenTimeout = () =&gt; {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) =&gt; {
+    clearOpenTimeout();
+    pinnedByTouch = false;
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) =&gt; {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-width&quot;,
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-height&quot;,
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: &quot;fixed&quot;,
+    })
+      .then(({ x, y }) =&gt; {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = &quot;visible&quot;;
+      })
+      .catch(() =&gt; {
+        if (activeTrigger === trigger &amp;&amp; request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) =&gt; {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = &quot;hidden&quot;;
+    floating.style.transform = &quot;translate(0, 0)&quot;;
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () =&gt; {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) =&gt; {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() &lt; skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() =&gt; {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) =&gt; {
+    if (event.pointerType === &quot;touch&quot;) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handlePointer = (event) =&gt; {
+    lastPointerWasTouch =
+      event.type === &quot;pointerdown&quot; &amp;&amp; event.pointerType === &quot;touch&quot;;
+  };
+  const handleTouchClick = (event) =&gt; {
+    const isTouch = event.pointerType === &quot;touch&quot; || lastPointerWasTouch;
+    lastPointerWasTouch = false;
+    if (!isTouch || event.detail === 0) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (
+      trigger == null ||
+      !trigger.isConnected ||
+      getContent(trigger).length === 0 ||
+      (pinnedByTouch &amp;&amp; activeTrigger === trigger)
+    ) {
+      if (pinnedByTouch) {
+        closeTooltip();
+      }
+      return;
+    }
+    openTooltip(trigger);
+    pinnedByTouch = activeTrigger === trigger;
+    window.setTimeout(() =&gt; {
+      if (activeTrigger === trigger &amp;&amp; !trigger.isConnected) {
+        closeTooltip(false);
+      }
+    }, 0);
+  };
+  const handleLeave = (event) =&gt; {
+    if (pinnedByTouch) {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger?.matches(&quot;:focus-visible&quot;)) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) =&gt; {
+    if (event.key === &quot;Escape&quot;) {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) =&gt; {
+    lastPointerWasTouch = false;
+    const trigger = getTrigger(event.target);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const destroy = () =&gt; {
+    closeTooltip(false);
+    lastPointerWasTouch = false;
+    document.removeEventListener(&quot;pointerover&quot;, handlePointerOpen);
+    document.removeEventListener(&quot;pointerdown&quot;, handlePointer);
+    document.removeEventListener(&quot;pointercancel&quot;, handlePointer);
+    document.removeEventListener(&quot;click&quot;, handleTouchClick);
+    document.removeEventListener(&quot;pointerout&quot;, handleLeave);
+    document.removeEventListener(&quot;focusin&quot;, handleFocusIn);
+    document.removeEventListener(&quot;focusout&quot;, handleLeave);
+    document.removeEventListener(&quot;keydown&quot;, handleKeyDown);
+    document.removeEventListener(&quot;contextmenu&quot;, handleContextMenu);
+    tooltip = null;
+  };
+
+  document.addEventListener(&quot;pointerover&quot;, handlePointerOpen);
+  document.addEventListener(&quot;pointerdown&quot;, handlePointer);
+  document.addEventListener(&quot;pointercancel&quot;, handlePointer);
+  document.addEventListener(&quot;click&quot;, handleTouchClick);
+  document.addEventListener(&quot;pointerout&quot;, handleLeave);
+  document.addEventListener(&quot;focusin&quot;, handleFocusIn);
+  document.addEventListener(&quot;focusout&quot;, handleLeave);
+  document.addEventListener(&quot;keydown&quot;, handleKeyDown);
+  document.addEventListener(&quot;contextmenu&quot;, handleContextMenu);
+  window.addEventListener(&quot;pagehide&quot;, destroy, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-lucide&quot; async src=&quot;https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  const initialize = () =&gt; {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById(&quot;codex-visualization-lucide&quot;)
+    ?.addEventListener(&quot;load&quot;, initialize, { once: true });
+})();
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+</body>
+</html>

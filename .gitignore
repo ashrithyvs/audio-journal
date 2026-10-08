@@ -1,0 +1,27 @@
+# OS and editor state
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Future JavaScript / React Native outputs
+node_modules/
+.expo/
+dist/
+coverage/
+
+# Future native build outputs and local secrets
+android/.gradle/
+android/app/build/
+ios/Pods/
+ios/build/
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+.env
+.env.*
+!.env.example
+
+# Volatile validation output
+test-results/

@@ -1,0 +1,1015 @@
+<div id="audio-journal-concept" class="aj-prototype">
+  <style>
+    #audio-journal-concept {
+      color-scheme: light dark;
+      width: 100%;
+      padding: 8px 0 18px;
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: light-dark(#252822, #f0ebdd);
+    }
+    #audio-journal-concept * { box-sizing: border-box; }
+    #audio-journal-concept button { font: inherit; }
+    #audio-journal-concept .aj-concept-title {
+      width: min(100%, 430px);
+      margin: 0 auto 12px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      color: light-dark(#252822, #f0ebdd);
+    }
+    #audio-journal-concept .aj-concept-title strong {
+      font: 600 20px/1.2 Georgia, "Times New Roman", serif;
+      letter-spacing: -0.02em;
+    }
+    #audio-journal-concept .aj-concept-title span {
+      font-size: 12px;
+      color: light-dark(#6c7167, #a9aea4);
+    }
+    #audio-journal-concept .aj-flow-tabs {
+      width: min(100%, 620px);
+      margin: 0 auto 14px;
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      padding: 3px;
+      scrollbar-width: none;
+    }
+    #audio-journal-concept .aj-flow-tabs::-webkit-scrollbar { display: none; }
+    #audio-journal-concept .aj-flow-tab {
+      border: 0;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: light-dark(#6c7167, #a9aea4);
+      padding: 7px 10px;
+      white-space: nowrap;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    #audio-journal-concept .aj-flow-tab[aria-pressed="true"] {
+      color: light-dark(#314537, #c5d9c5);
+      border-bottom-color: light-dark(#526b57, #9db89d);
+      font-weight: 700;
+    }
+    #audio-journal-concept .aj-phone {
+      width: min(100%, 390px);
+      height: 780px;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid light-dark(#d8d0c1, #3b4038);
+      border-radius: 38px;
+      background: light-dark(#f5f1e8, #171a17);
+      box-shadow: 0 24px 70px light-dark(rgba(45, 43, 36, .18), rgba(0, 0, 0, .42));
+    }
+    #audio-journal-concept .aj-statusbar {
+      height: 34px;
+      padding: 13px 22px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+    #audio-journal-concept .aj-status-icons { letter-spacing: 2px; }
+    #audio-journal-concept .aj-screen {
+      display: none;
+      height: calc(100% - 34px);
+      position: relative;
+      overflow: hidden;
+    }
+    #audio-journal-concept .aj-screen.aj-active { display: flex; flex-direction: column; }
+    #audio-journal-concept .aj-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 14px 20px 112px;
+      scrollbar-width: none;
+    }
+    #audio-journal-concept .aj-scroll::-webkit-scrollbar { display: none; }
+    #audio-journal-concept .aj-topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    #audio-journal-concept .aj-brandmark {
+      width: 30px;
+      height: 30px;
+      border: 1.5px solid light-dark(#526b57, #9db89d);
+      border-radius: 50% 50% 48% 52% / 42% 45% 55% 58%;
+      display: grid;
+      place-items: center;
+      color: light-dark(#526b57, #9db89d);
+      font: 700 15px Georgia, serif;
+      transform: rotate(-4deg);
+    }
+    #audio-journal-concept .aj-icon-action,
+    #audio-journal-concept .aj-back {
+      border: 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      padding: 7px;
+      font-size: 18px;
+    }
+    #audio-journal-concept .aj-date-kicker {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .13em;
+      color: light-dark(#6c7167, #a9aea4);
+      margin-bottom: 5px;
+    }
+    #audio-journal-concept .aj-editorial-title {
+      margin: 0;
+      font: 500 34px/1.08 Georgia, "Times New Roman", serif;
+      letter-spacing: -.035em;
+    }
+    #audio-journal-concept .aj-prompt {
+      margin: 10px 0 30px;
+      font: 400 17px/1.5 Georgia, "Times New Roman", serif;
+      color: light-dark(#5c6058, #b9bdb2);
+    }
+    #audio-journal-concept .aj-journal-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      margin: 18px 0 26px;
+      padding: 4px;
+      border-radius: 15px;
+      background: light-dark(#e9e4d9, #242a23);
+    }
+    #audio-journal-concept .aj-journal-mode {
+      border: 0;
+      border-radius: 11px;
+      padding: 10px;
+      background: transparent;
+      color: light-dark(#686d64, #a9aea4);
+      cursor: pointer;
+      font-weight: 700;
+    }
+    #audio-journal-concept .aj-journal-mode.aj-selected {
+      background: light-dark(#fffcf6, #343b32);
+      color: light-dark(#314537, #d0e2d0);
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+    #audio-journal-concept .aj-section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 0 0 8px;
+      font-size: 12px;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: light-dark(#6c7167, #a9aea4);
+    }
+    #audio-journal-concept .aj-entry-row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 42px 1fr auto;
+      gap: 12px;
+      align-items: start;
+      text-align: left;
+      border: 0;
+      border-top: 1px solid light-dark(#ddd6c8, #3b4038);
+      background: transparent;
+      color: inherit;
+      padding: 16px 0;
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-entry-symbol {
+      width: 38px;
+      height: 38px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: light-dark(#dde5d9, #303b31);
+      color: light-dark(#42594a, #b8ccb8);
+      font-size: 17px;
+    }
+    #audio-journal-concept .aj-entry-copy strong {
+      display: block;
+      font: 500 17px/1.25 Georgia, "Times New Roman", serif;
+      margin-bottom: 5px;
+    }
+    #audio-journal-concept .aj-entry-copy span {
+      display: block;
+      font-size: 13px;
+      line-height: 1.45;
+      color: light-dark(#6c7167, #a9aea4);
+    }
+    #audio-journal-concept .aj-entry-time {
+      font-size: 11px;
+      color: light-dark(#7f837a, #969c92);
+      padding-top: 3px;
+      white-space: nowrap;
+    }
+    #audio-journal-concept .aj-privacy-line {
+      margin-top: 20px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+      color: light-dark(#6c7167, #a9aea4);
+    }
+    #audio-journal-concept .aj-record-fab {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: 5px solid light-dark(#f5f1e8, #171a17);
+      background: light-dark(#c85d43, #e07a5f);
+      color: white;
+      position: absolute;
+      z-index: 5;
+      left: 50%;
+      bottom: 38px;
+      transform: translateX(-50%);
+      cursor: pointer;
+      box-shadow: 0 7px 18px rgba(83, 47, 37, .22);
+      font-size: 22px;
+    }
+    #audio-journal-concept .aj-bottom-nav {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 72px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 72px 1fr 1fr;
+      align-items: center;
+      padding: 0 10px 8px;
+      background: light-dark(rgba(255,252,246,.96), rgba(33,37,31,.97));
+      border-top: 1px solid light-dark(#ddd6c8, #3b4038);
+      backdrop-filter: blur(14px);
+    }
+    #audio-journal-concept .aj-nav-action {
+      border: 0;
+      background: transparent;
+      color: light-dark(#777c72, #9da39a);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      align-items: center;
+      cursor: pointer;
+      font-size: 10px;
+      padding: 8px 2px;
+    }
+    #audio-journal-concept .aj-nav-action span:first-child { font-size: 17px; }
+    #audio-journal-concept .aj-nav-action.aj-selected {
+      color: light-dark(#42594a, #b8ccb8);
+      font-weight: 700;
+    }
+    #audio-journal-concept .aj-lock-screen {
+      justify-content: space-between;
+      align-items: center;
+      padding: 76px 28px 34px;
+      text-align: center;
+      background: light-dark(#f5f1e8, #171a17);
+    }
+    #audio-journal-concept .aj-lock-mark {
+      width: 68px;
+      height: 68px;
+      margin: 0 auto 28px;
+      border-radius: 50% 50% 46% 54% / 43% 47% 53% 57%;
+      border: 1.5px solid light-dark(#526b57, #9db89d);
+      display: grid;
+      place-items: center;
+      color: light-dark(#526b57, #9db89d);
+      font: 500 30px Georgia, serif;
+      transform: rotate(-3deg);
+    }
+    #audio-journal-concept .aj-lock-screen h2 {
+      font: 500 31px/1.15 Georgia, "Times New Roman", serif;
+      margin: 0 0 9px;
+      letter-spacing: -.025em;
+    }
+    #audio-journal-concept .aj-lock-screen p {
+      margin: 0 auto;
+      max-width: 260px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: light-dark(#6c7167, #a9aea4);
+    }
+    #audio-journal-concept .aj-biometric {
+      width: 100%;
+      max-width: 300px;
+      border: 0;
+      border-radius: 16px;
+      background: light-dark(#526b57, #9db89d);
+      color: light-dark(#fffdf7, #182019);
+      padding: 14px 18px;
+      font-weight: 750;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    #audio-journal-concept .aj-text-action {
+      border: 0;
+      background: transparent;
+      color: light-dark(#42594a, #b8ccb8);
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-pin-panel { width: 100%; max-width: 280px; display: none; }
+    #audio-journal-concept .aj-pin-panel.aj-visible { display: block; }
+    #audio-journal-concept .aj-pin-dots { display: flex; justify-content: center; gap: 14px; margin-bottom: 22px; }
+    #audio-journal-concept .aj-pin-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1.5px solid light-dark(#526b57, #9db89d);
+    }
+    #audio-journal-concept .aj-pin-dot.aj-filled { background: light-dark(#526b57, #9db89d); }
+    #audio-journal-concept .aj-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    #audio-journal-concept .aj-key {
+      height: 48px;
+      border-radius: 16px;
+      border: 1px solid light-dark(#ddd6c8, #3b4038);
+      background: light-dark(#fffcf6, #21251f);
+      color: inherit;
+      cursor: pointer;
+      font-size: 17px;
+    }
+    #audio-journal-concept .aj-recorder-screen {
+      padding: 30px 24px 28px;
+      align-items: stretch;
+    }
+    #audio-journal-concept .aj-recorder-top { display: flex; justify-content: space-between; align-items: center; }
+    #audio-journal-concept .aj-save-state { font-size: 12px; color: light-dark(#526b57, #9db89d); }
+    #audio-journal-concept .aj-timer {
+      margin: 74px 0 26px;
+      text-align: center;
+      font-size: 13px;
+      letter-spacing: .12em;
+      color: light-dark(#6c7167, #a9aea4);
+      font-variant-numeric: tabular-nums;
+    }
+    #audio-journal-concept .aj-wave {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 34px;
+    }
+    #audio-journal-concept .aj-wave i {
+      display: block;
+      width: 3px;
+      border-radius: 4px;
+      background: light-dark(#c85d43, #e07a5f);
+      animation: aj-wave-motion .9s ease-in-out infinite alternate;
+    }
+    #audio-journal-concept .aj-wave i:nth-child(3n) { animation-delay: -.55s; }
+    #audio-journal-concept .aj-wave i:nth-child(2n) { animation-delay: -.25s; }
+    #audio-journal-concept .aj-wave.aj-paused i { animation-play-state: paused; opacity: .45; }
+    @keyframes aj-wave-motion { from { transform: scaleY(.55); } to { transform: scaleY(1.12); } }
+    #audio-journal-concept .aj-live-copy {
+      flex: 1;
+      font: 400 22px/1.48 Georgia, "Times New Roman", serif;
+      letter-spacing: -.015em;
+      color: light-dark(#30342d, #e8e3d6);
+    }
+    #audio-journal-concept .aj-live-copy .aj-provisional { color: light-dark(#8b8e86, #888f86); }
+    #audio-journal-concept .aj-record-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    #audio-journal-concept .aj-control-secondary,
+    #audio-journal-concept .aj-control-primary {
+      border-radius: 17px;
+      padding: 14px;
+      cursor: pointer;
+      font-weight: 750;
+    }
+    #audio-journal-concept .aj-control-secondary {
+      border: 1px solid light-dark(#d0c8b9, #454b42);
+      background: transparent;
+      color: inherit;
+    }
+    #audio-journal-concept .aj-control-primary {
+      border: 0;
+      background: light-dark(#252822, #f0ebdd);
+      color: light-dark(#fffdf7, #1a1d19);
+    }
+    #audio-journal-concept .aj-entry-screen-header {
+      display: grid;
+      grid-template-columns: 38px 1fr 38px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    #audio-journal-concept .aj-entry-screen-header h2 {
+      text-align: center;
+      margin: 0;
+      font: 500 18px Georgia, serif;
+    }
+    #audio-journal-concept .aj-player {
+      padding: 17px;
+      border: 1px solid light-dark(#ddd6c8, #3b4038);
+      border-radius: 18px;
+      background: light-dark(#fffcf6, #21251f);
+      margin-bottom: 24px;
+    }
+    #audio-journal-concept .aj-player-row { display: grid; grid-template-columns: 42px 1fr; gap: 12px; align-items: center; }
+    #audio-journal-concept .aj-play {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 0;
+      background: light-dark(#526b57, #9db89d);
+      color: light-dark(#fff, #182019);
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-progress { height: 3px; background: light-dark(#ddd6c8, #3b4038); border-radius: 2px; margin-bottom: 7px; overflow: hidden; }
+    #audio-journal-concept .aj-progress span { display: block; width: 37%; height: 100%; background: light-dark(#526b57, #9db89d); }
+    #audio-journal-concept .aj-player-meta { display: flex; justify-content: space-between; font-size: 11px; color: light-dark(#6c7167, #a9aea4); }
+    #audio-journal-concept .aj-transcript-title { font-size: 12px; text-transform: uppercase; letter-spacing: .11em; color: light-dark(#6c7167, #a9aea4); margin-bottom: 12px; }
+    #audio-journal-concept .aj-transcript {
+      font-size: 16px;
+      line-height: 1.65;
+      color: light-dark(#4b5048, #c9cdc3);
+      margin-bottom: 22px;
+    }
+    #audio-journal-concept .aj-transcript mark,
+    #audio-journal-concept .aj-source-excerpt mark {
+      background: light-dark(#dde5d9, #303b31);
+      color: inherit;
+      border-radius: 4px;
+      padding: 2px 3px;
+    }
+    #audio-journal-concept .aj-organize-action {
+      width: 100%;
+      border: 1px solid light-dark(#526b57, #9db89d);
+      background: transparent;
+      color: light-dark(#42594a, #b8ccb8);
+      border-radius: 16px;
+      padding: 13px;
+      font-weight: 750;
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-derived {
+      display: none;
+      margin-top: 28px;
+      padding: 18px;
+      border-radius: 18px;
+      background: light-dark(#dde5d9, #303b31);
+    }
+    #audio-journal-concept .aj-derived.aj-visible { display: block; }
+    #audio-journal-concept .aj-derived small { text-transform: uppercase; letter-spacing: .09em; color: light-dark(#526b57, #a9c0a9); }
+    #audio-journal-concept .aj-derived h3 { font: 500 20px Georgia, serif; margin: 8px 0; }
+    #audio-journal-concept .aj-source-link { border: 0; background: transparent; color: light-dark(#42594a, #b8ccb8); padding: 7px 0; font-weight: 700; cursor: pointer; }
+    #audio-journal-concept .aj-sheet-screen { justify-content: flex-end; background: light-dark(rgba(37,40,34,.14), rgba(0,0,0,.33)); }
+    #audio-journal-concept .aj-organize-sheet {
+      background: light-dark(#fffcf6, #21251f);
+      border-radius: 28px 28px 0 0;
+      padding: 10px 22px 30px;
+      box-shadow: 0 -18px 48px rgba(0,0,0,.15);
+    }
+    #audio-journal-concept .aj-sheet-handle { width: 38px; height: 4px; border-radius: 4px; background: light-dark(#d7d0c4, #555b52); margin: 0 auto 22px; }
+    #audio-journal-concept .aj-organize-sheet h2 { font: 500 28px Georgia, serif; margin: 0 0 8px; }
+    #audio-journal-concept .aj-sheet-copy { font-size: 13px; line-height: 1.5; color: light-dark(#6c7167, #a9aea4); margin-bottom: 18px; }
+    #audio-journal-concept .aj-private-node {
+      padding: 12px;
+      border-radius: 14px;
+      background: light-dark(#f5f1e8, #171a17);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+    #audio-journal-concept .aj-node-dot { width: 8px; height: 8px; border-radius: 50%; background: light-dark(#526b57, #9db89d); }
+    #audio-journal-concept .aj-output-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+    #audio-journal-concept .aj-output-option {
+      border: 1px solid light-dark(#ddd6c8, #3b4038);
+      border-radius: 14px;
+      background: transparent;
+      color: inherit;
+      padding: 12px;
+      text-align: left;
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-output-option[aria-pressed="true"] {
+      background: light-dark(#dde5d9, #303b31);
+      border-color: light-dark(#8ca18f, #718971);
+      color: light-dark(#314537, #d0e2d0);
+      font-weight: 700;
+    }
+    #audio-journal-concept .aj-run-organize {
+      width: 100%;
+      border: 0;
+      border-radius: 16px;
+      padding: 14px;
+      background: light-dark(#526b57, #9db89d);
+      color: light-dark(#fff, #182019);
+      font-weight: 800;
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-task-group { margin-bottom: 26px; }
+    #audio-journal-concept .aj-task-group h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .11em; color: light-dark(#6c7167, #a9aea4); margin: 0 0 5px; }
+    #audio-journal-concept .aj-task-row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      gap: 11px;
+      border: 0;
+      border-top: 1px solid light-dark(#ddd6c8, #3b4038);
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      padding: 14px 0;
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-check {
+      width: 20px;
+      height: 20px;
+      border: 1.5px solid light-dark(#8a9085, #858c81);
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      margin-top: 1px;
+      font-size: 12px;
+      padding: 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-task-row.aj-done .aj-check { background: light-dark(#526b57, #9db89d); color: light-dark(#fff, #182019); border-color: transparent; }
+    #audio-journal-concept .aj-task-row.aj-done .aj-task-text { text-decoration: line-through; opacity: .55; }
+    #audio-journal-concept .aj-task-text { display: block; font-size: 15px; line-height: 1.35; margin-bottom: 5px; }
+    #audio-journal-concept .aj-task-source {
+      border: 0;
+      background: transparent;
+      padding: 4px 0;
+      font-size: 11px;
+      color: light-dark(#526b57, #9db89d);
+      cursor: pointer;
+      text-align: left;
+    }
+    #audio-journal-concept .aj-organized-group { margin-bottom: 28px; }
+    #audio-journal-concept .aj-organized-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 9px;
+      border-bottom: 1px solid light-dark(#ddd6c8, #3b4038);
+      margin-bottom: 6px;
+    }
+    #audio-journal-concept .aj-organized-heading h3 {
+      margin: 0;
+      font: 500 22px Georgia, serif;
+    }
+    #audio-journal-concept .aj-organized-heading span {
+      font-size: 11px;
+      color: light-dark(#6c7167, #a9aea4);
+    }
+    #audio-journal-concept .aj-organized-item {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      padding: 13px 0;
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-organized-item strong { display: block; font-size: 15px; margin-bottom: 5px; }
+    #audio-journal-concept .aj-organized-item span { display: block; font-size: 12px; line-height: 1.45; color: light-dark(#6c7167, #a9aea4); }
+    #audio-journal-concept .aj-organized-source { margin-top: 7px; color: light-dark(#526b57, #9db89d) !important; }
+    #audio-journal-concept .aj-source-task {
+      padding: 16px;
+      border-radius: 16px;
+      background: light-dark(#dde5d9, #303b31);
+      margin-bottom: 22px;
+    }
+    #audio-journal-concept .aj-source-task small { color: light-dark(#526b57, #a9c0a9); text-transform: uppercase; letter-spacing: .08em; }
+    #audio-journal-concept .aj-source-task strong { display: block; margin-top: 8px; font-size: 16px; line-height: 1.4; }
+    #audio-journal-concept .aj-source-range {
+      padding: 17px;
+      border-radius: 18px;
+      background: light-dark(#fffcf6, #21251f);
+      border: 1px solid light-dark(#ddd6c8, #3b4038);
+      margin-bottom: 22px;
+    }
+    #audio-journal-concept .aj-source-wave {
+      height: 58px;
+      display: flex;
+      gap: 3px;
+      align-items: center;
+      margin: 13px 0;
+    }
+    #audio-journal-concept .aj-source-wave i {
+      width: 3px;
+      border-radius: 3px;
+      background: light-dark(#c6c0b5, #4b5148);
+    }
+    #audio-journal-concept .aj-source-wave i.aj-cited { background: light-dark(#526b57, #9db89d); }
+    #audio-journal-concept .aj-source-meta { display: flex; justify-content: space-between; font-size: 11px; color: light-dark(#6c7167, #a9aea4); }
+    #audio-journal-concept .aj-source-play {
+      width: 100%;
+      border: 0;
+      border-radius: 14px;
+      padding: 12px;
+      margin-top: 14px;
+      background: light-dark(#526b57, #9db89d);
+      color: light-dark(#fff, #182019);
+      font-weight: 750;
+      cursor: pointer;
+    }
+    #audio-journal-concept .aj-source-excerpt {
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      color: light-dark(#4b5048, #c9cdc3);
+    }
+    #audio-journal-concept .aj-settings-section { margin-bottom: 26px; }
+    #audio-journal-concept .aj-settings-section h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: light-dark(#6c7167, #a9aea4); margin: 0 0 4px; }
+    #audio-journal-concept .aj-setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 15px 0;
+      border-top: 1px solid light-dark(#ddd6c8, #3b4038);
+      font-size: 14px;
+    }
+    #audio-journal-concept .aj-setting-copy small { display: block; color: light-dark(#6c7167, #a9aea4); margin-top: 4px; line-height: 1.35; }
+    #audio-journal-concept .aj-setting-value { color: light-dark(#526b57, #9db89d); font-size: 12px; white-space: nowrap; }
+    #audio-journal-concept .aj-toggle {
+      width: 40px;
+      height: 23px;
+      border-radius: 14px;
+      border: 0;
+      background: light-dark(#526b57, #9db89d);
+      position: relative;
+    }
+    #audio-journal-concept .aj-toggle::after { content: ""; width: 17px; height: 17px; background: #fff; border-radius: 50%; position: absolute; top: 3px; right: 3px; }
+    #audio-journal-concept .aj-backup-status {
+      padding: 18px;
+      border-radius: 18px;
+      background: light-dark(#dde5d9, #303b31);
+      margin-bottom: 24px;
+    }
+    #audio-journal-concept .aj-backup-status small { text-transform: uppercase; letter-spacing: .09em; color: light-dark(#526b57, #a9c0a9); }
+    #audio-journal-concept .aj-backup-status strong { display: block; font: 500 20px Georgia, serif; margin: 7px 0 5px; }
+    #audio-journal-concept .aj-backup-status span { font-size: 12px; color: light-dark(#6c7167, #a9aea4); }
+    #audio-journal-concept .aj-backup-list { margin: 0 0 24px; padding: 0; list-style: none; }
+    #audio-journal-concept .aj-backup-list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid light-dark(#ddd6c8, #3b4038); font-size: 13px; }
+    #audio-journal-concept .aj-backup-list li span:last-child { color: light-dark(#6c7167, #a9aea4); }
+    #audio-journal-concept .aj-backup-action,
+    #audio-journal-concept .aj-backup-secondary {
+      width: 100%;
+      border-radius: 16px;
+      padding: 14px;
+      font-weight: 750;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    #audio-journal-concept .aj-backup-action { border: 0; background: light-dark(#526b57, #9db89d); color: light-dark(#fff, #182019); }
+    #audio-journal-concept .aj-backup-secondary { border: 1px solid light-dark(#526b57, #9db89d); background: transparent; color: light-dark(#42594a, #b8ccb8); }
+    #audio-journal-concept .aj-backup-note { font-size: 12px; line-height: 1.5; color: light-dark(#6c7167, #a9aea4); margin: 10px 2px 22px; }
+    #audio-journal-concept .aj-restore-preview { display: none; padding: 16px; border: 1px solid light-dark(#ddd6c8, #3b4038); border-radius: 16px; margin: 12px 0; background: light-dark(#fffcf6, #21251f); }
+    #audio-journal-concept .aj-restore-preview.aj-visible { display: block; }
+    #audio-journal-concept .aj-restore-preview strong { display: block; margin-bottom: 8px; }
+    #audio-journal-concept .aj-restore-preview span { display: block; font-size: 12px; color: light-dark(#6c7167, #a9aea4); line-height: 1.5; }
+    @media (max-width: 430px) {
+      #audio-journal-concept { padding-top: 0; }
+      #audio-journal-concept .aj-concept-title { padding: 0 10px; }
+      #audio-journal-concept .aj-phone { border-radius: 26px; height: 740px; }
+      #audio-journal-concept .aj-flow-tab { padding-inline: 8px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #audio-journal-concept .aj-wave i { animation: none; }
+    }
+  </style>
+
+  <div class="aj-concept-title">
+    <strong>Quiet Archive</strong>
+    <span>Audio Journal · UI direction</span>
+  </div>
+
+  <nav class="aj-flow-tabs" aria-label="Prototype screens">
+    <button type="button" class="aj-flow-tab" data-show="lock" aria-pressed="false">Lock</button>
+    <button type="button" class="aj-flow-tab" data-show="today" aria-pressed="true">Diary</button>
+    <button type="button" class="aj-flow-tab" data-show="organized" aria-pressed="false">Organized</button>
+    <button type="button" class="aj-flow-tab" data-show="record" aria-pressed="false">Record</button>
+    <button type="button" class="aj-flow-tab" data-show="entry" aria-pressed="false">Entry</button>
+    <button type="button" class="aj-flow-tab" data-show="organize" aria-pressed="false">Organize</button>
+    <button type="button" class="aj-flow-tab" data-show="tasks" aria-pressed="false">Tasks</button>
+    <button type="button" class="aj-flow-tab" data-show="source" aria-pressed="false">Task source</button>
+    <button type="button" class="aj-flow-tab" data-show="backup" aria-pressed="false">Backup</button>
+    <button type="button" class="aj-flow-tab" data-show="settings" aria-pressed="false">Settings</button>
+  </nav>
+
+  <div class="aj-phone" role="application" aria-label="Audio Journal mobile interface concept">
+    <div class="aj-statusbar"><span>10:42</span><span class="aj-status-icons">● ◔ ▰</span></div>
+
+    <section class="aj-screen aj-lock-screen" data-screen="lock" aria-label="Locked journal">
+      <div>
+        <div class="aj-lock-mark">J</div>
+        <h2>Your journal is locked</h2>
+        <p>Protected on this device. No account or internet connection is required.</p>
+      </div>
+      <div class="aj-pin-panel" data-pin-panel>
+        <div class="aj-pin-dots" aria-label="PIN entry">
+          <span class="aj-pin-dot"></span><span class="aj-pin-dot"></span><span class="aj-pin-dot"></span><span class="aj-pin-dot"></span>
+        </div>
+        <div class="aj-keypad">
+          <button type="button" class="aj-key" data-key="1">1</button><button type="button" class="aj-key" data-key="2">2</button><button type="button" class="aj-key" data-key="3">3</button>
+          <button type="button" class="aj-key" data-key="4">4</button><button type="button" class="aj-key" data-key="5">5</button><button type="button" class="aj-key" data-key="6">6</button>
+          <button type="button" class="aj-key" data-key="7">7</button><button type="button" class="aj-key" data-key="8">8</button><button type="button" class="aj-key" data-key="9">9</button>
+          <span></span><button type="button" class="aj-key" data-key="0">0</button><button type="button" class="aj-key" data-key="back">⌫</button>
+        </div>
+      </div>
+      <div class="aj-lock-actions">
+        <button type="button" class="aj-biometric" data-unlock>◎ Unlock with biometrics</button>
+        <button type="button" class="aj-text-action" data-use-pin>Use PIN instead</button>
+      </div>
+    </section>
+
+    <section class="aj-screen aj-active" data-screen="today" aria-label="Diary timeline">
+      <div class="aj-scroll">
+        <div class="aj-topline"><div class="aj-brandmark">J</div><button type="button" class="aj-icon-action" aria-label="Search">⌕</button></div>
+        <div class="aj-date-kicker">Wednesday · 8 October</div>
+        <h1 class="aj-editorial-title">Diary</h1>
+        <div class="aj-journal-switch" aria-label="Journal view">
+          <button type="button" class="aj-journal-mode aj-selected" data-nav="today">Diary</button>
+          <button type="button" class="aj-journal-mode" data-nav="organized">Organized</button>
+        </div>
+        <p class="aj-prompt">What do you want to remember?</p>
+        <div class="aj-section-head"><span>Recent entries</span><span>3 today</span></div>
+        <button type="button" class="aj-entry-row" data-open-entry>
+          <span class="aj-entry-symbol">◉</span>
+          <span class="aj-entry-copy"><strong>Work, momentum, tomorrow</strong><span>“I've been working on the Hybrid AI SDK today…” · Voice · 4:18</span></span>
+          <span class="aj-entry-time">10:42 PM</span>
+        </button>
+        <button type="button" class="aj-entry-row">
+          <span class="aj-entry-symbol">✎</span>
+          <span class="aj-entry-copy"><strong>A quieter afternoon</strong><span>Walked without headphones and noticed how much… · Written</span></span>
+          <span class="aj-entry-time">4:06 PM</span>
+        </button>
+        <button type="button" class="aj-entry-row">
+          <span class="aj-entry-symbol">◉</span>
+          <span class="aj-entry-copy"><strong>Morning notes</strong><span>Voice · 1:37 · Transcript ready</span></span>
+          <span class="aj-entry-time">8:15 AM</span>
+        </button>
+        <div class="aj-privacy-line"><span>⌁</span><span>Entries are stored on this device</span></div>
+      </div>
+      <button type="button" class="aj-record-fab" data-record aria-label="Start recording">●</button>
+      <nav class="aj-bottom-nav" aria-label="Main navigation">
+        <button type="button" class="aj-nav-action aj-selected" data-nav="today"><span>⌂</span><span>Journal</span></button>
+        <span></span><span></span>
+        <button type="button" class="aj-nav-action" data-nav="tasks"><span>✓</span><span>Tasks</span></button>
+        <button type="button" class="aj-nav-action" data-nav="settings"><span>⚙</span><span>Settings</span></button>
+      </nav>
+    </section>
+
+    <section class="aj-screen" data-screen="organized" aria-label="Organized journal views">
+      <div class="aj-scroll">
+        <div class="aj-topline"><div class="aj-brandmark">J</div><button type="button" class="aj-icon-action" aria-label="Search organized views">⌕</button></div>
+        <div class="aj-date-kicker">Views over your diary</div>
+        <h1 class="aj-editorial-title">Organized</h1>
+        <div class="aj-journal-switch" aria-label="Journal view">
+          <button type="button" class="aj-journal-mode" data-nav="today">Diary</button>
+          <button type="button" class="aj-journal-mode aj-selected" data-nav="organized">Organized</button>
+        </div>
+        <div class="aj-organized-group">
+          <div class="aj-organized-heading"><h3>Work</h3><span>3 entries</span></div>
+          <button type="button" class="aj-organized-item" data-open-entry><strong>Hybrid AI SDK</strong><span>Documentation, pairing review, and the path to v0.1.</span><span class="aj-organized-source">3 tasks · Sources from Oct 6–8 ↗</span></button>
+          <button type="button" class="aj-organized-item"><strong>Audio Journal</strong><span>Product structure, app lock, and the first UI direction.</span><span class="aj-organized-source">2 entries · 1 idea ↗</span></button>
+        </div>
+        <div class="aj-organized-group">
+          <div class="aj-organized-heading"><h3>Personal</h3><span>2 entries</span></div>
+          <button type="button" class="aj-organized-item"><strong>Quiet time</strong><span>Walking without headphones made the afternoon feel slower.</span><span class="aj-organized-source">From Oct 8 · 4:06 PM ↗</span></button>
+          <button type="button" class="aj-organized-item"><strong>Tomorrow</strong><span>Keep the morning clear before returning to project work.</span><span class="aj-organized-source">From Oct 8 · 8:15 AM ↗</span></button>
+        </div>
+        <div class="aj-privacy-line"><span>⌁</span><span>Organized views never replace Diary entries</span></div>
+      </div>
+      <button type="button" class="aj-record-fab" data-record aria-label="Start recording">●</button>
+      <nav class="aj-bottom-nav" aria-label="Main navigation">
+        <button type="button" class="aj-nav-action aj-selected" data-nav="today"><span>⌂</span><span>Journal</span></button>
+        <span></span><span></span>
+        <button type="button" class="aj-nav-action" data-nav="tasks"><span>✓</span><span>Tasks</span></button>
+        <button type="button" class="aj-nav-action" data-nav="settings"><span>⚙</span><span>Settings</span></button>
+      </nav>
+    </section>
+
+    <section class="aj-screen aj-recorder-screen" data-screen="record" aria-label="Active recording">
+      <div class="aj-recorder-top"><button type="button" class="aj-back" data-back-today aria-label="Close recording">×</button><span class="aj-save-state">● Saved on this device</span></div>
+      <div class="aj-timer">RECORDING · <span data-timer>00:42</span></div>
+      <div class="aj-wave" data-wave aria-label="Live audio waveform">
+        <i style="height:20px"></i><i style="height:38px"></i><i style="height:52px"></i><i style="height:29px"></i><i style="height:63px"></i><i style="height:42px"></i><i style="height:24px"></i><i style="height:56px"></i><i style="height:70px"></i><i style="height:33px"></i><i style="height:49px"></i><i style="height:24px"></i><i style="height:59px"></i><i style="height:39px"></i><i style="height:21px"></i><i style="height:47px"></i><i style="height:65px"></i><i style="height:31px"></i><i style="height:45px"></i><i style="height:27px"></i>
+      </div>
+      <div class="aj-live-copy">I've been working on the Hybrid AI SDK today, and I think tomorrow I need to finish the documentation and review the pairing flow. <span class="aj-provisional">Then I want to…</span></div>
+      <div class="aj-record-controls">
+        <button type="button" class="aj-control-secondary" data-pause>Ⅱ Pause</button>
+        <button type="button" class="aj-control-primary" data-finish>Finish</button>
+      </div>
+    </section>
+
+    <section class="aj-screen" data-screen="entry" aria-label="Journal entry detail">
+      <div class="aj-scroll">
+        <div class="aj-entry-screen-header"><button type="button" class="aj-back" data-back-today aria-label="Back">‹</button><h2>10:42 PM</h2><button type="button" class="aj-icon-action" aria-label="More options">•••</button></div>
+        <div class="aj-date-kicker">Diary entry · original · Wednesday, 8 October</div>
+        <h1 class="aj-editorial-title" style="font-size:29px;margin-bottom:20px">Work, momentum, tomorrow</h1>
+        <div class="aj-player">
+          <div class="aj-player-row">
+            <button type="button" class="aj-play" aria-label="Play recording">▶</button>
+            <div><div class="aj-progress"><span></span></div><div class="aj-player-meta"><span>1:36</span><span>4:18</span></div></div>
+          </div>
+        </div>
+        <div class="aj-transcript-title">Transcript</div>
+        <div class="aj-transcript"><mark>I've been working on the Hybrid AI SDK today</mark>, and I think tomorrow I need to finish the documentation and review the pairing flow. Then I want to outline the Audio Journal screens while the product idea is still clear.</div>
+        <button type="button" class="aj-organize-action" data-open-organize>Organize this entry</button>
+        <div class="aj-derived" data-derived>
+          <small>Organized from this entry</small>
+          <h3>Tomorrow's focus</h3>
+          <div>Finish the documentation, review pairing, and outline the Audio Journal screens.</div>
+          <button type="button" class="aj-source-link" data-open-source>↗ Play source · 1:31–2:18</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="aj-screen aj-sheet-screen" data-screen="organize" aria-label="Organize entry options">
+      <div class="aj-organize-sheet">
+        <div class="aj-sheet-handle"></div>
+        <h2>Organize this entry</h2>
+        <p class="aj-sheet-copy">Choose the views you want. Your transcript—not the audio recording—will be sent to your paired private node.</p>
+        <div class="aj-private-node"><span class="aj-node-dot"></span><span><strong>Home Node</strong><br>Paired · private connection</span></div>
+        <div class="aj-output-options">
+          <button type="button" class="aj-output-option" aria-pressed="true">✓ Work & personal</button>
+          <button type="button" class="aj-output-option" aria-pressed="true">✓ Tasks</button>
+          <button type="button" class="aj-output-option" aria-pressed="false">Ideas</button>
+          <button type="button" class="aj-output-option" aria-pressed="false">People & projects</button>
+        </div>
+        <button type="button" class="aj-run-organize" data-run-organize>Organize privately</button>
+        <button type="button" class="aj-text-action" data-cancel-organize style="width:100%">Cancel</button>
+      </div>
+    </section>
+
+    <section class="aj-screen" data-screen="tasks" aria-label="Derived tasks">
+      <div class="aj-scroll">
+        <div class="aj-topline"><div class="aj-brandmark">J</div><button type="button" class="aj-icon-action" aria-label="Task options">•••</button></div>
+        <div class="aj-date-kicker">From your journal</div>
+        <h1 class="aj-editorial-title" style="margin-bottom:30px">Tasks</h1>
+        <div class="aj-task-group">
+          <h3>Today</h3>
+          <div class="aj-task-row"><button type="button" class="aj-check" aria-label="Complete task"></button><span><span class="aj-task-text">Review the Hybrid AI pairing flow</span><button type="button" class="aj-task-source" data-open-source>Source · Oct 8 · 1:31–2:18 ↗</button></span></div>
+          <div class="aj-task-row"><button type="button" class="aj-check" aria-label="Complete task"></button><span><span class="aj-task-text">Finish the architecture documentation</span><button type="button" class="aj-task-source" data-open-source>Source · Oct 8 · 0:44–1:30 ↗</button></span></div>
+        </div>
+        <div class="aj-task-group">
+          <h3>No date</h3>
+          <div class="aj-task-row"><button type="button" class="aj-check" aria-label="Complete task"></button><span><span class="aj-task-text">Outline Audio Journal core screens</span><button type="button" class="aj-task-source" data-open-source>Source · Oct 8 · 2:19–2:52 ↗</button></span></div>
+        </div>
+      </div>
+      <button type="button" class="aj-record-fab" data-record aria-label="Start recording">●</button>
+      <nav class="aj-bottom-nav" aria-label="Main navigation">
+        <button type="button" class="aj-nav-action" data-nav="today"><span>⌂</span><span>Journal</span></button>
+        <span></span><span></span>
+        <button type="button" class="aj-nav-action aj-selected" data-nav="tasks"><span>✓</span><span>Tasks</span></button>
+        <button type="button" class="aj-nav-action" data-nav="settings"><span>⚙</span><span>Settings</span></button>
+      </nav>
+    </section>
+
+    <section class="aj-screen" data-screen="source" aria-label="Task source reference">
+      <div class="aj-scroll">
+        <div class="aj-entry-screen-header"><button type="button" class="aj-back" data-back-tasks aria-label="Back to tasks">‹</button><h2>Task source</h2><span></span></div>
+        <div class="aj-source-task"><small>Task</small><strong>Review the Hybrid AI pairing flow</strong></div>
+        <div class="aj-date-kicker">From Diary · Oct 8 · 10:42 PM</div>
+        <h1 class="aj-editorial-title" style="font-size:27px;margin:6px 0 18px">Work, momentum, tomorrow</h1>
+        <div class="aj-source-range">
+          <div class="aj-section-head"><span>Exact recording reference</span><span>1:31–2:18</span></div>
+          <div class="aj-source-wave" aria-label="Recording waveform with cited range highlighted">
+            <i style="height:18px"></i><i style="height:31px"></i><i style="height:42px"></i><i style="height:26px"></i><i class="aj-cited" style="height:48px"></i><i class="aj-cited" style="height:35px"></i><i class="aj-cited" style="height:50px"></i><i class="aj-cited" style="height:29px"></i><i class="aj-cited" style="height:45px"></i><i class="aj-cited" style="height:54px"></i><i class="aj-cited" style="height:32px"></i><i class="aj-cited" style="height:47px"></i><i style="height:24px"></i><i style="height:38px"></i><i style="height:29px"></i><i style="height:20px"></i><i style="height:36px"></i><i style="height:25px"></i>
+          </div>
+          <div class="aj-source-meta"><span>0:00</span><strong>cited excerpt</strong><span>4:18</span></div>
+          <button type="button" class="aj-source-play">▶ Play source excerpt · 0:47</button>
+        </div>
+        <div class="aj-transcript-title">Matching transcript</div>
+        <div class="aj-source-excerpt">“…finish the documentation and <mark>review the pairing flow</mark>. Then I want to outline the Audio Journal screens…”</div>
+        <button type="button" class="aj-organize-action" data-open-entry>Open full Diary entry</button>
+      </div>
+    </section>
+
+    <section class="aj-screen" data-screen="settings" aria-label="Journal settings">
+      <div class="aj-scroll">
+        <div class="aj-topline"><div class="aj-brandmark">J</div></div>
+        <h1 class="aj-editorial-title" style="margin-bottom:30px">Settings</h1>
+        <div class="aj-settings-section">
+          <h3>Privacy & lock</h3>
+          <div class="aj-setting-row"><span class="aj-setting-copy">Biometric unlock<small>PIN is always available as fallback</small></span><button type="button" class="aj-toggle" aria-label="Biometric unlock enabled"></button></div>
+          <div class="aj-setting-row"><span class="aj-setting-copy">Auto-lock<small>After the app is backgrounded</small></span><span class="aj-setting-value">1 minute ›</span></div>
+        </div>
+        <div class="aj-settings-section">
+          <h3>Private AI Node</h3>
+          <div class="aj-setting-row"><span class="aj-setting-copy">Home Node<small>Paired and reachable</small></span><span class="aj-setting-value">Connected</span></div>
+          <div class="aj-setting-row"><span class="aj-setting-copy">Default organization<small>Transcript only; audio stays local</small></span><span class="aj-setting-value">Private node ›</span></div>
+        </div>
+        <div class="aj-settings-section">
+          <h3>Storage</h3>
+          <div class="aj-setting-row"><span class="aj-setting-copy">Journal data<small>Stored on this device</small></span><span class="aj-setting-value">286 MB</span></div>
+          <button type="button" class="aj-setting-row" data-open-backup style="width:100%;border-left:0;border-right:0;border-bottom:0;background:transparent;color:inherit;text-align:left;cursor:pointer"><span class="aj-setting-copy">Backup & restore<small>Portable encrypted journal archive</small></span><span class="aj-setting-value">No backup yet ›</span></button>
+        </div>
+      </div>
+      <button type="button" class="aj-record-fab" data-record aria-label="Start recording">●</button>
+      <nav class="aj-bottom-nav" aria-label="Main navigation">
+        <button type="button" class="aj-nav-action" data-nav="today"><span>⌂</span><span>Journal</span></button>
+        <span></span><span></span>
+        <button type="button" class="aj-nav-action" data-nav="tasks"><span>✓</span><span>Tasks</span></button>
+        <button type="button" class="aj-nav-action aj-selected" data-nav="settings"><span>⚙</span><span>Settings</span></button>
+      </nav>
+    </section>
+
+    <section class="aj-screen" data-screen="backup" aria-label="Backup and restore">
+      <div class="aj-scroll">
+        <div class="aj-entry-screen-header"><button type="button" class="aj-back" data-back-settings aria-label="Back to settings">‹</button><h2>Backup & restore</h2><span></span></div>
+        <div class="aj-backup-status" aria-live="polite">
+          <small>Recovery status</small>
+          <strong data-backup-heading>No backup yet</strong>
+          <span data-backup-detail>Create an encrypted copy before clearing app data or reinstalling.</span>
+        </div>
+        <div class="aj-transcript-title">Included in a full backup</div>
+        <ul class="aj-backup-list">
+          <li><span>Diary entries & recordings</span><span>143 · 286 MB</span></li>
+          <li><span>Transcripts & corrections</span><span>All</span></li>
+          <li><span>Work, Personal & other views</span><span>All</span></li>
+          <li><span>Tasks & exact source ranges</span><span>17</span></li>
+        </ul>
+        <button type="button" class="aj-backup-action" data-create-backup>Create encrypted backup</button>
+        <p class="aj-backup-note">You choose where to save the <strong>.ajbackup</strong> file. Protect it with a strong backup password or recovery key. Your PIN, biometrics, and Private AI Node pairing are not included.</p>
+        <button type="button" class="aj-backup-secondary" data-restore-backup>Restore from backup</button>
+        <div class="aj-restore-preview" data-restore-preview>
+          <strong>AudioJournal-2026-10-01.ajbackup</strong>
+          <span>Created Oct 1 · 128 entries · 251 MB</span>
+          <span>Restore requires an empty journal and the backup password.</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (() => {
+      const root = document.getElementById('audio-journal-concept');
+      const screens = [...root.querySelectorAll('[data-screen]')];
+      const tabs = [...root.querySelectorAll('[data-show]')];
+      let pin = '';
+      let paused = false;
+
+      function show(name) {
+        screens.forEach(screen => screen.classList.toggle('aj-active', screen.dataset.screen === name));
+        tabs.forEach(tab => tab.setAttribute('aria-pressed', String(tab.dataset.show === name)));
+      }
+
+      tabs.forEach(tab => tab.addEventListener('click', () => show(tab.dataset.show)));
+      root.querySelectorAll('[data-nav]').forEach(button => button.addEventListener('click', () => show(button.dataset.nav)));
+      root.querySelectorAll('[data-record]').forEach(button => button.addEventListener('click', () => show('record')));
+      root.querySelectorAll('[data-back-today]').forEach(button => button.addEventListener('click', () => show('today')));
+      root.querySelectorAll('[data-open-entry]').forEach(button => button.addEventListener('click', () => show('entry')));
+      root.querySelectorAll('[data-open-source]').forEach(button => button.addEventListener('click', () => show('source')));
+      root.querySelector('[data-back-tasks]').addEventListener('click', () => show('tasks'));
+      root.querySelector('[data-open-backup]').addEventListener('click', () => show('backup'));
+      root.querySelector('[data-back-settings]').addEventListener('click', () => show('settings'));
+      root.querySelector('[data-open-organize]').addEventListener('click', () => show('organize'));
+      root.querySelector('[data-cancel-organize]').addEventListener('click', () => show('entry'));
+      root.querySelector('[data-unlock]').addEventListener('click', () => show('today'));
+      root.querySelector('[data-use-pin]').addEventListener('click', () => {
+        root.querySelector('[data-pin-panel]').classList.add('aj-visible');
+        root.querySelector('.aj-lock-actions').style.display = 'none';
+      });
+      root.querySelectorAll('[data-key]').forEach(key => key.addEventListener('click', () => {
+        if (key.dataset.key === 'back') pin = pin.slice(0, -1);
+        else if (pin.length < 4) pin += key.dataset.key;
+        root.querySelectorAll('.aj-pin-dot').forEach((dot, index) => dot.classList.toggle('aj-filled', index < pin.length));
+        if (pin.length === 4) setTimeout(() => { pin = ''; show('today'); }, 180);
+      }));
+      root.querySelector('[data-pause]').addEventListener('click', event => {
+        paused = !paused;
+        root.querySelector('[data-wave]').classList.toggle('aj-paused', paused);
+        event.currentTarget.textContent = paused ? '▶ Resume' : 'Ⅱ Pause';
+        root.querySelector('.aj-timer').firstChild.textContent = paused ? 'PAUSED · ' : 'RECORDING · ';
+      });
+      root.querySelector('[data-finish]').addEventListener('click', () => show('entry'));
+      root.querySelectorAll('.aj-output-option').forEach(option => option.addEventListener('click', () => {
+        option.setAttribute('aria-pressed', String(option.getAttribute('aria-pressed') !== 'true'));
+        option.textContent = option.getAttribute('aria-pressed') === 'true' ? `✓ ${option.textContent.replace('✓ ', '')}` : option.textContent.replace('✓ ', '');
+      }));
+      root.querySelector('[data-run-organize]').addEventListener('click', () => {
+        root.querySelector('[data-derived]').classList.add('aj-visible');
+        root.querySelector('[data-open-organize]').textContent = 'Organize again';
+        show('entry');
+      });
+      root.querySelectorAll('.aj-check').forEach(check => check.addEventListener('click', () => {
+        const row = check.closest('.aj-task-row');
+        row.classList.toggle('aj-done');
+        check.textContent = row.classList.contains('aj-done') ? '✓' : '';
+      }));
+      root.querySelector('[data-create-backup]').addEventListener('click', () => {
+        root.querySelector('[data-backup-heading]').textContent = 'Backup verified';
+        root.querySelector('[data-backup-detail]').textContent = 'AudioJournal-2026-10-08.ajbackup · 291 MB · saved through Files';
+        root.querySelector('[data-create-backup]').textContent = 'Create another backup';
+      });
+      root.querySelector('[data-restore-backup]').addEventListener('click', () => {
+        root.querySelector('[data-restore-preview]').classList.toggle('aj-visible');
+      });
+      const requestedScreen = new URLSearchParams(window.location.search).get('screen') || window.location.hash.slice(1);
+      if (requestedScreen && screens.some(screen => screen.dataset.screen === requestedScreen)) show(requestedScreen);
+    })();
+  </script>
+</div>
