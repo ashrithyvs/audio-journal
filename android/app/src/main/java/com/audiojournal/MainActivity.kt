@@ -26,5 +26,13 @@ class MainActivity : ReactActivity() {
    * which allows you to enable New Architecture with a single boolean flags [fabricEnabled]
    */
   override fun createReactActivityDelegate(): ReactActivityDelegate =
-      DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)
+      object : DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled) {
+        // Hands the provisioned local-model directory to JS as a root prop.
+        override fun getLaunchOptions(): Bundle =
+            Bundle().apply {
+              LocalModelAssets.install(applicationContext)?.let {
+                putString("modelDirectory", it)
+              }
+            }
+      }
 }

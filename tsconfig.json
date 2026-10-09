@@ -1,6 +1,6 @@
 {
   "extends": "@react-native/typescript-config",
   "compilerOptions": {"types": ["jest", "node", "react", "react-native"]},
-  "include": ["App.tsx", "index.js", "src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "unit-tests/**/*.ts", "smoke-tests/**/*.tsx", "integration-tests/**/*.tsx", "performance-tests/**/*.ts"],
+  "include": ["App.tsx", "index.js", "src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "test/**/*.tsx", "unit-tests/**/*.ts", "smoke-tests/**/*.tsx", "integration-tests/**/*.tsx", "performance-tests/**/*.ts"],
   "exclude": ["**/node_modules", "**/Pods"]
 }

@@ -1,0 +1,23 @@
+// Exposes the packaged Hybrid AI Android AAR as the `:hybrid-ai-android`
+// project that @hybrid-ai/react-native depends on. The AAR is consumed from the
+// pinned package directory, never from SDK source, and its SHA-256 is checked
+// so AJ evidence stays reproducible against the accepted M5.5 package.
+import java.security.MessageDigest
+
+def aar = rootProject.file(findProperty('hybridAi.aarPath'))
+def expectedSha256 = findProperty('hybridAi.aarSha256')
+if (!aar.isFile()) {
+  throw new GradleException("Hybrid AI AAR not found: ${aar}")
+}
+def actualSha256 = MessageDigest.getInstance('SHA-256').digest(aar.bytes).encodeHex().toString()
+if (actualSha256 != expectedSha256) {
+  throw new GradleException("Hybrid AI AAR SHA-256 mismatch: expected ${expectedSha256}, got ${actualSha256}")
+}
+
+configurations.maybeCreate('default')
+artifacts.add('default', aar)
+
+// An AAR file carries no POM; mirror the SDK module's declared `api` dependency.
+dependencies {
+  add('default', 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2')
+}

@@ -1,13 +1,16 @@
 import type { AppServices } from '../src/app/AppServices';
 import type { BiometricResult } from '../src/features/app-lock/ports/BiometricAuthenticator';
 import type { LockCredentialStore } from '../src/features/app-lock/ports/LockCredentialStore';
+import { FakeHybridAiGateway } from './FakeHybridAiGateway';
 
 export function makeTestServices({
   configuredPin,
   biometricResult = 'unavailable',
+  hybridAI = new FakeHybridAiGateway(),
 }: {
   configuredPin?: string;
   biometricResult?: BiometricResult;
+  hybridAI?: FakeHybridAiGateway;
 } = {}): AppServices {
   let pin = configuredPin;
   const credentials: LockCredentialStore = {
@@ -29,12 +32,7 @@ export function makeTestServices({
         authenticate: async () => biometricResult,
       },
     },
-    hybridAI: {
-      initialize: async () => ({
-        state: 'ready',
-        capabilityCount: 0,
-        packageVersion: '0.1.0-m4',
-      }),
-    },
+    hybridAI,
+    privateNode: { pollIntervalMs: 0 },
   };
 }

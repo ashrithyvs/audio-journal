@@ -3,28 +3,63 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useAppLock } from '../../features/app-lock/application/AppLockContext';
 import { PrimaryButton } from '../../features/app-lock/ui/PrimaryButton';
+import { usePrivateNode } from '../../features/private-node/application/PrivateNodeContext';
+import { presentConnection } from '../../features/private-node/domain/connectionPresentation';
+import { SDK_PACKAGE_VERSION } from '../../platform/hybrid-ai/PackagedHybridAiGateway';
 import { colors } from '../../theme/colors';
-import { useAppRuntime } from '../AppRuntimeContext';
 
-export function SettingsScreen() {
+export function SettingsScreen({
+  onOpenNode,
+  onOpenDiagnostics,
+}: {
+  onOpenNode(): void;
+  onOpenDiagnostics(): void;
+}) {
   const { lock } = useAppLock();
-  const runtime = useAppRuntime();
+  const { state, activeNode } = usePrivateNode();
+  const { sdk } = state;
   const sdkStatus =
-    runtime.state === 'initializing'
-      ? 'Initializing…'
-      : runtime.state === 'ready'
-      ? `Ready · ${runtime.capabilityCount} capabilities`
-      : `Unavailable · ${runtime.code}`;
-  const sdkVersion =
-    runtime.state === 'initializing' ? '0.1.0-m4' : runtime.packageVersion;
+    sdk.phase === 'ready'
+      ? `Ready · ${sdk.capabilityCount} capabilities`
+      : sdk.phase === 'unavailable'
+      ? `Unavailable · ${sdk.code}`
+      : 'Initializing…';
+  const connection = presentConnection(
+    state.link.status.state,
+    activeNode,
+    state.link.operation === 'connecting',
+  );
 
   return (
     <View style={styles.page}>
       <Text style={styles.title}>Settings</Text>
       <View style={styles.card}>
+        <Text style={styles.label}>Private AI Node</Text>
+        <Text style={styles.value} testID="settings-node-state">
+          {connection.label}
+        </Text>
+        <View style={styles.action}>
+          <PrimaryButton
+            label="Manage Private AI Node"
+            onPress={onOpenNode}
+            testID="open-private-node"
+          />
+        </View>
+      </View>
+      <View style={styles.card}>
         <Text style={styles.label}>Hybrid AI SDK</Text>
-        <Text style={styles.value}>{sdkStatus}</Text>
-        <Text style={styles.meta}>Public package {sdkVersion}</Text>
+        <Text style={styles.value} testID="settings-sdk-state">
+          {sdkStatus}
+        </Text>
+        <Text style={styles.meta}>Public package {SDK_PACKAGE_VERSION}</Text>
+        <View style={styles.action}>
+          <PrimaryButton
+            label="Developer diagnostics"
+            secondary
+            onPress={onOpenDiagnostics}
+            testID="open-diagnostics"
+          />
+        </View>
       </View>
       <View style={styles.card}>
         <Text style={styles.label}>App lock</Text>
@@ -32,7 +67,7 @@ export function SettingsScreen() {
           AJ-0 uses volatile credentials until the security ADR is accepted.
         </Text>
         <View style={styles.action}>
-          <PrimaryButton label="Lock now" onPress={lock} />
+          <PrimaryButton label="Lock now" onPress={lock} testID="lock-now" />
         </View>
       </View>
     </View>

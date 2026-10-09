@@ -71,6 +71,19 @@ credentials, content-rich logs, or unprotected exports.
 - Forgetting the node removes node access but does not delete local content.
 - Never add public-cloud fallback for convenience.
 
+### 6.1 AJ-3 implementation notes
+
+- Pairing codes are one-time secrets. They live in a text field until checked,
+  then in memory only until the ceremony starts. They are never written to
+  state, storage, or logs. Locking drops an unused code.
+- Pairing keys and trust records belong to the SDK (no-backup storage, Android
+  Keystore). The app sees no pairing ID, key, or rotation material.
+- `FLAG_SECURE` stays on. AJ-3 device evidence uses UI-hierarchy text, not
+  screenshots. The device suite checks logcat for the PIN, pairing-code
+  prefix, and diagnostic input text.
+- Diagnostics drop SDK error messages and output text and keep public codes
+  only (LLD §11).
+
 ## 7. AI output validation
 
 Treat node output as untrusted structured data:

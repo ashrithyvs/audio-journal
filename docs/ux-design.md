@@ -140,6 +140,55 @@ sheet with:
 The task cannot be persisted or displayed as AI-derived when this reference is
 missing or invalid.
 
+## 7.1 Private AI Node settings (implemented in AJ-3)
+
+**Settings → Manage Private AI Node** shows:
+
+- **Status.** A text status pill (not color alone): No node paired, Connecting
+  securely…, Connected, Reconnecting…, Unavailable, Identity check failed, Trust
+  revoked, or Pairing key unavailable. It names the active node, shows a short
+  node ID, and offers one recovery action: Reconnect, Pair a node, or Forget and
+  pair again.
+- **Paired nodes.** Each node shows Paired · Active, Paired, Revoked,
+  Forgetting…, or Key unavailable, with Make active and Forget. After a forget,
+  the screen says whether the node confirmed it. If not, it asks the user to
+  also remove this device on the node.
+- **Nearby nodes.** Results appear under an explicit statement that announced
+  nodes are unverified and that finding one never pairs it. Every row carries
+  an "Unverified" pill. Rows that claim a paired identity, conflict with
+  another announcement, or reuse a node name show "Unverified · Possible
+  impersonation" with an explanation. The section covers searching, empty, and
+  failed states, plus permission denial (Open settings; code pairing still
+  available).
+- **AI routing.** "Use Private AI Node" and "Use on-device AI" switches. They
+  only restrict routing; there is no cloud fallback.
+
+**Pair a node** is a five-step flow:
+
+1. Paste the code text shown on the node.
+2. Check it. The flow shows the name carried by the code and a countdown, and
+   an expired code is refused here.
+3. Connect securely, with Cancel available.
+4. Compare the six-digit verification code with the node's screen, with the
+   node-reported name labelled "unverified". Choose "Codes match" or "Codes
+   don't match".
+5. Paired.
+
+Every failure shows a title, a plain explanation, the public error code, and
+"Enter a new code". Leaving the screen, or locking the app, cancels an
+unfinished ceremony. Camera QR scanning is deferred (ADR-015).
+
+**Developer diagnostics** shows:
+
+- SDK state, node link state, policy, and capability descriptors;
+- a test request with a target (auto, local, node) and a deadline (5 s or
+  30 s);
+- the last request's phase, request ID, events, target, routing reason,
+  result validity, typed failure, and local/node reasons;
+- development timings.
+
+It never shows input or output text.
+
 ## 8. Offline and error UX
 
 - Offline capture and browsing are normal states, not warnings.

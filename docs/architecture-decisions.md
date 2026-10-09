@@ -189,7 +189,59 @@ KDF/backoff/reset semantics before the security ADR. Android applies
 Consume Hybrid AI only through `@hybrid-ai/react-native`'s public root API. The
 development workspace may use a local package link pinned by its declared
 version; this is not a releasable artifact. A publishable package with a valid
-Metro entry point is required before AJ-0 acceptance.
+Metro entry point is required before AJ-0 acceptance. (Superseded for the
+package source by ADR-015: the app now consumes the packed M5 tarball and AAR.)
+
+## ADR-015: AJ-3 Private AI Node integration through the packaged SDK
+
+**Status:** Frozen for AJ-3 (Android-first). Supersedes ADR-014's development
+package link.
+
+**Decision:**
+
+- **Pinned artifacts.** The app depends on the packed
+  `hybrid-ai-react-native-0.1.0-m5.tgz` built from SDK M5.5 `e0fc3c5` (G5-A
+  `07a8bf7`). The package's `:hybrid-ai-android` Gradle project is satisfied
+  by `android/hybrid-ai-android`, a wrapper over the packaged release AAR from
+  the same commit. The build fails if the AAR's SHA-256 differs from
+  `hybridAi.aarSha256`. Neither file is copied into this repository, and no
+  path into the SDK working tree is used. Packaged ABIs are restricted to the
+  SDK's `arm64-v8a` and `x86_64`. Release builds are R8-minified, relying on
+  the AAR's consumer rules.
+- **One adapter.** Only `src/platform/hybrid-ai/PackagedHybridAiGateway.ts`
+  imports `@hybrid-ai/react-native`, and only its public root. It maps SDK
+  values and typed errors into the app-owned `HybridAiGateway` port. SDK error
+  messages are dropped; codes and structured reasons are kept.
+- **Start after unlock.** The SDK is created on first unlock (AJ-FR-035) with
+  `pairing: true` and the app routing policy. The policy only restricts
+  routing (`allowLocal`, `allowNode`) and is not persisted until the
+  persistence ADR exists.
+- **Lock ends attended flows.** Locking stops discovery, cancels an
+  unfinished pairing ceremony, drops any entered pairing code, and cancels an
+  in-flight diagnostic request. Trust and the node connection are left to the
+  SDK. Unlocking refreshes status and reconnects an active paired node.
+- **Pairing input.** The user pastes or enters the QR payload text and checks
+  it before a ceremony starts. Camera scanning is deferred: it needs a camera
+  library and permission decision. The code is cleared from input and memory
+  once used, and a code already past `expiresAt` on the device clock is
+  refused locally. The SDK and node still enforce expiry and replay.
+- **Untrusted discovery.** Discovery results are shown as unverified hints
+  and never as paired. A candidate is flagged as possible impersonation when
+  it claims a paired node ID, when several announcements share one ID, or
+  when it reuses a node name with a different ID. Node names are shown
+  stripped of control and bidi-override characters and inside a
+  first-strong isolate.
+- **Diagnostics.** Developer diagnostics show only codes, targets, routing
+  reasons, request IDs, counts, capability descriptors, and durations. Input
+  and output text are never displayed or logged. AJ-3 exercises the
+  product-neutral `document.analyze@1` because `journal.organize@1` is still
+  Open (ADR-010, Open decision 4).
+- **Device E2E harness.** Android device tests use a dependency-free Node.js
+  driver over `adb` and `uiautomator` (`e2e/android/`), with React Native
+  `testID`s as selectors. Evidence is UI-hierarchy text, because `FLAG_SECURE`
+  intentionally blocks screenshots. A standalone fixture APK advertises test
+  services through Android's public `NsdManager` for discovery and spoofing
+  scenarios. No SDK code is imported.
 
 ## Open decisions before implementation
 

@@ -1,11 +1,12 @@
-jest.mock(
-  '@hybrid-ai/react-native',
-  () => ({
-    createHybridAI: jest.fn(async () => ({ capabilities: async () => [] })),
-    HybridAIError: class HybridAIError extends Error {},
+// Keep the packaged SDK's real public tables and error type; only the factory
+// that reaches the native TurboModule is replaced. Tests that exercise the
+// packaged adapter install their own factory.
+jest.mock('@hybrid-ai/react-native', () => ({
+  ...jest.requireActual('@hybrid-ai/react-native'),
+  createHybridAI: jest.fn(async () => {
+    throw new Error('native SDK is not available in Jest');
   }),
-  { virtual: true },
-);
+}));
 
 jest.mock(
   'react-native-safe-area-context',
@@ -13,11 +14,6 @@ jest.mock(
 );
 
 jest.mock('react-native-screens', () => ({
+  ...jest.requireActual('react-native-screens'),
   enableScreens: jest.fn(),
-  Screen: require('react-native').View,
-  ScreenContainer: require('react-native').View,
-  ScreenStack: require('react-native').View,
-  ScreenStackHeaderConfig: require('react-native').View,
-  ScreenStackHeaderSubview: require('react-native').View,
-  shouldUseActivityState: false,
 }));

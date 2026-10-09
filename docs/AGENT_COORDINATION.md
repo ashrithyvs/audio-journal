@@ -9,7 +9,11 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 - **Branch:** `main` after Git initialization.
 - **Last agent:** Codex.
 - **Last updated:** 2026-10-09.
-- **Active claim:** none after this handoff.
+- **Active claim (Claude Code, `main`, 2026-10-09):** AJ-3 secure Private AI
+  Node workflow against the packaged SDK from `e0fc3c5` (G5-A `07a8bf7`).
+  Touching `package.json`/lock, `android/` (AAR wrapper, R8), `src/app/`,
+  `src/platform/hybrid-ai/`, new `src/features/private-node/`, `test/`, all
+  Jest suites, new `e2e/`, and the roadmap/LLD/HLD/UX/tech-stack/validation docs.
 - **Implementation status:** AJ-0 checkpoint implemented but not accepted.
   JavaScript tests and Android native assembly pass; SDK Metro packaging,
   device smoke, production credentials/biometrics, and iOS remain open.

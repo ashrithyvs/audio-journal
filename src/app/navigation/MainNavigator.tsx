@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import { colors } from '../../theme/colors';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
-import { SettingsScreen } from '../screens/SettingsScreen';
+import { SettingsNavigator } from './SettingsNavigator';
 
 export type MainTabParamList = {
   Diary: undefined;
@@ -52,7 +52,7 @@ export function MainNavigator() {
           />
         )}
       </Tabs.Screen>
-      <Tabs.Screen name="Settings" component={SettingsScreen} />
+      <Tabs.Screen name="Settings" component={SettingsNavigator} />
     </Tabs.Navigator>
   );
 }

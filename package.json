@@ -5,7 +5,7 @@
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "start": "react-native start",
     "test": "jest",
@@ -13,10 +13,12 @@
     "test:smoke": "jest --runInBand --selectProjects smoke",
     "test:integration": "jest --runInBand --selectProjects integration",
     "test:performance": "jest --runInBand --selectProjects performance",
-    "test:baseline": "npm run typecheck && npm run lint && npm run test:unit && npm run test:smoke && npm run test:integration && npm run test:performance"
+    "test:baseline": "npm run format:check && npm run typecheck && npm run lint && npm run test:unit && npm run test:smoke && npm run test:integration && npm run test:performance",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"test/**/*.{ts,tsx}\" \"unit-tests/**/*.ts\" \"integration-tests/**/*.tsx\" \"smoke-tests/**/*.tsx\" \"performance-tests/**/*.ts\" \"e2e/**/*.mjs\"",
+    "e2e:android:aj3": "node e2e/android/aj3-e2e.mjs"
   },
   "dependencies": {
-    "@hybrid-ai/react-native": "file:../hybridAi/packages/react-native",
+    "@hybrid-ai/react-native": "file:../hybrid-ai-packages/e0fc3c5/hybrid-ai-react-native-0.1.0-m5.tgz",
     "@react-navigation/bottom-tabs": "7.20.0",
     "@react-navigation/native": "7.5.0",
     "@react-navigation/native-stack": "7.20.0",

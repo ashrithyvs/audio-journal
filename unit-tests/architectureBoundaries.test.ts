@@ -23,9 +23,43 @@ it('uses only the packaged Hybrid AI public entry point', () => {
   const externalImports = imports.filter(item =>
     item.module.startsWith('@hybrid-ai'),
   );
+  // Only the packaged adapter touches the SDK, and only its public root.
   expect(externalImports).toEqual([
-    expect.objectContaining({ module: '@hybrid-ai/react-native' }),
+    {
+      file: path.join(
+        __dirname,
+        '..',
+        'src/platform/hybrid-ai/PackagedHybridAiGateway.ts',
+      ),
+      module: '@hybrid-ai/react-native',
+    },
   ]);
+});
+
+it('never reaches SDK internals or the native module directly', () => {
+  const sources = sourceFiles(path.join(__dirname, '..', 'src'));
+  for (const file of sources) {
+    const text = fs.readFileSync(file, 'utf8');
+    expect([file, text]).not.toEqual([
+      file,
+      expect.stringMatching(
+        /@hybrid-ai\/react-native\/|NativeHybridAI|TurboModuleRegistry|hybridAi\//,
+      ),
+    ]);
+  }
+});
+
+it('adds no cloud, relay, account, or analytics dependency', () => {
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'),
+  );
+  const names = Object.keys({
+    ...manifest.dependencies,
+    ...manifest.devDependencies,
+  }).join(' ');
+  expect(names).not.toMatch(
+    /firebase|amplify|auth0|segment|sentry|analytics|mixpanel|amplitude|supabase|aws-sdk|openai|anthropic/i,
+  );
 });
 
 it('does not introduce account or public-cloud dependencies', () => {

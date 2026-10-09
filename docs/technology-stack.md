@@ -51,7 +51,9 @@ Android/iOS and Hybrid AI package matrix.
 | Screens / safe area | 4.28.0 / 5.10.1 | New-Architecture Android compilation |
 | TypeScript | template-compatible 6.0.x | Strict no-emit check |
 | Jest / RN Testing Library | 29.6.x / 14.1.0 | Separate unit, smoke, integration, and performance projects |
-| Hybrid AI React Native | public package 0.1.0-m4 via local development link | Native Android modules compile; Metro entry-point blocker remains |
+| Hybrid AI React Native | `hybrid-ai-react-native-0.1.0-m5.tgz` (SDK `e0fc3c5`), SHA-256 `4761ea3b…8b74` | Metro release bundle, R8 release APK, API 35 device suite ([AJ-3](validation/AJ3-android.md)) |
+| Hybrid AI Android AAR | `hybrid-ai-android-release.aar` (SDK `e0fc3c5`), SHA-256 `ed8ee30c…3579`, via `android/hybrid-ai-android` wrapper | Build-time SHA-256 check; `arm64-v8a` and `x86_64` only |
+| Android device E2E | Node.js 22 driver over `adb` + `uiautomator` (`e2e/android/`), no third-party framework | AJ-3 device suite (ADR-015) |
 
 Android uses min API 26 and target API 35 to match the accepted SDK profile.
 React Native 0.87's AndroidX Core dependency requires compile API 36; compile SDK

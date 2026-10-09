@@ -5,7 +5,7 @@ const project = (displayName, directory) => ({
   testMatch: [`<rootDir>/${directory}/**/*.test.{ts,tsx}`],
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
   transformIgnorePatterns: [
-    'node_modules/(?!((@)?react-native|@react-native(-community)?|@react-navigation)/)',
+    'node_modules/(?!((@)?react-native|@react-native(-community)?|@react-navigation|@hybrid-ai)/)',
   ],
 });
 

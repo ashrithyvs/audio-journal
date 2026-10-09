@@ -98,6 +98,10 @@ flowchart TB
 
 ### Hybrid AI adapter
 
+AJ-3 implements the node part of this adapter as the `HybridAiGateway` port
+plus the Private AI Node feature: discovery, pairing, status, reconnect,
+forget, policy, and diagnostics. See ADR-015 and LLD §7.1.
+
 - Converts app domain requests into public SDK capability calls.
 - Separates provisional transcription streams from persisted finalized segments.
 - Validates application-owned organization results before domain persistence.

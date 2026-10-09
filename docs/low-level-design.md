@@ -172,6 +172,47 @@ interface JournalAI {
 ```
 
 These are app-side abstractions, not claims about current SDK method names.
+
+### 7.1 Implemented AJ-3 node adapter (ADR-015)
+
+The AJ-3 node workflow uses an implemented port, `HybridAiGateway`
+(`src/platform/hybrid-ai/HybridAiGateway.ts`). Its single production adapter
+calls only the `@hybrid-ai/react-native` 0.1.0-m5 public root:
+
+| Port operation | Public SDK call |
+|---|---|
+| `initialize(policy)` | `createHybridAI({pairing: true, policy})`, then `capabilities()` |
+| `setPolicy` | `setPolicy` |
+| `status`, `pairedNodes`, `capabilities` | `node.status()`, `node.pairedNodes()`, `capabilities()` |
+| `startDiscovery` | `node.startDiscovery()`; async events become callbacks |
+| `inspectPairingCode` | `node.parseBootstrap(qrText)` |
+| `pair` | `node.pair(qrText, {deviceName, activate: true})` with `confirm`, `reject`, `cancel` |
+| `connect`, `setActive`, `forget` | `node.connect`, `node.setActive`, `node.forget` |
+| `run`, `cancel` | `stream(request)` and `cancel(requestId)` |
+
+Failures surface as `HybridAiFailure {code, localReason?, nodeReason?}`.
+Codes are public SDK codes, plus the app-only `SDK_INITIALIZATION_FAILED`,
+`SDK_NOT_INITIALIZED`, and `INVALID_RESULT`. `run` delivers exactly one
+terminal update even when the stream throws or ends early. Paired-node
+records expose no pairing ID or rotation material to the app.
+
+Feature state lives in a pure reducer
+(`src/features/private-node/domain/privateNodeState.ts`) driven by
+`PrivateNodeProvider`. The reducer covers:
+
+- the SDK phase: `idle`, `initializing`, `ready`, or `unavailable`;
+- discovery: `idle`, `searching`, `stopped`, or `failed`;
+- the pairing ceremony: `inspecting`, `ready`, `pairing`, then `confirming`
+  with a single decision, ending `paired`, `failed`, or `cancelled`;
+- link operations: `connecting` and `forgetting`;
+- one capability request: `running`, ending `completed`, `failed`, or
+  `cancelled`;
+- development timings.
+
+Asynchronous guards use refs, not render state, so back-to-back actions are
+safe. Error copy comes from `errorPresentation.ts`, which covers every code in
+the packaged SDK's `ERROR_CODES` table and every `NODE_REASONS` value.
+
 The adapter maps them to the installed Hybrid AI version and records that version
 in validation evidence. Journal-specific JSON schemas will live under a future
 `schemas/journal/v1/` directory after the contract ADR is approved.
