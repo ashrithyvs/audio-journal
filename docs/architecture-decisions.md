@@ -105,15 +105,16 @@ must never stop, discard, or corrupt source audio.
 
 ## ADR-009: Live transcription
 
-**Status:** Frozen UX; capability contract Open.
+**Status:** Frozen UX. The engine boundary is decided by ADR-016.
 
 **Decision:** Timestamped transcript segments appear while the user speaks.
 Provisional text may be revised until a segment is finalized. Recording remains
 the source of truth. If live STT is unavailable, recording continues and the app
 offers retry/transcribe-later behavior.
 
-**Open:** exact Hybrid AI capability ID/schema, audio-frame transport, chunking,
-model/language selection, and post-recording reconciliation.
+**Open:** audio-frame chunking for live (streaming) transcription and
+post-recording reconciliation. Transcription is app-owned per ADR-016; it is
+not a Hybrid AI capability.
 
 ## ADR-010: Hybrid AI public boundary
 
@@ -231,6 +232,11 @@ package link.
   when it reuses a node name with a different ID. Node names are shown
   stripped of control and bidi-override characters and inside a
   first-strong isolate.
+- **Packaged local models.** The SDK's local models are application-provided
+  (SDK ADR-019). At launch the app copies the AAR's verified model assets into
+  no-backup storage and passes that directory to `createHybridAI`. If the SDK
+  rejects the directory, the app restarts the SDK without local models so
+  that node features keep working.
 - **Diagnostics.** Developer diagnostics show only codes, targets, routing
   reasons, request IDs, counts, capability descriptors, and durations. Input
   and output text are never displayed or logged. AJ-3 exercises the
@@ -243,13 +249,56 @@ package link.
   services through Android's public `NsdManager` for discovery and spoofing
   scenarios. No SDK code is imported.
 
+## ADR-016: Application-owned transcription; SDK receives text
+
+**Status:** Frozen (owner decision, 2026-10-09). Supersedes the earlier
+assumption (ADR-009, AJ-1, HLD flow 4) that Audio Journal transcribes through
+a Hybrid AI SDK capability.
+
+**Decision:** Transcription is application-owned preprocessing. The Hybrid AI
+SDK receives text through generic capability contracts and stays independent
+of recording and speech-engine implementation.
+
+```text
+Audio Journal
+  ├── records and stores audio
+  ├── runs its chosen transcription engine (TranscriptionService)
+  └── sends transcript text, or explicitly selected sections
+          ↓
+Hybrid AI SDK
+  └── local/node/auto AI capabilities for analysis and organization
+```
+
+- Audio Journal owns recording, codecs, transcription, timestamps, correction,
+  and transcript persistence.
+- Transcription sits behind the app port `TranscriptionService`. The
+  implementation is on-device and private: audio never leaves the device for
+  transcription.
+- The Android engine is whisper.cpp v1.9.5 (commit `d1be6fde`), built from a
+  SHA-256-pinned source archive into the app's own native library.
+- The default model is `base.en-q5_1` (SHA-256 `4baf70dd…dd2f`).
+  `tiny.en-q5_1` (`c77c5766…7c2b`) is an explicit low-resource option. There
+  is no automatic model switching. Models are app assets, pinned by SHA-256
+  and verified before load.
+- The Hybrid AI SDK gains no Whisper-specific API, model, or packaging. The
+  accepted G5-A package (`e0fc3c5`) is unchanged. A generic multimodal
+  provider-extension mechanism in the SDK would be a separately designed SDK
+  milestone.
+
+**Consequences:** AJ-1 no longer waits for an SDK transcription capability.
+The SDK roadmap's AJ-1 wording ("local transcription capability through the
+SDK") is superseded for this application; that change is recorded here, not
+in the SDK repository. Speech accuracy is the app's responsibility and is
+evaluated with the real-speech suite (`e2e/speech`).
+
 ## Open decisions before implementation
 
 1. Database and recording encryption, key hierarchy, KDF parameters, biometric
    key binding, PIN change, and destructive reset behavior.
 2. Audio capture library/native implementation, file format, interruption policy,
    maximum duration, and storage-pressure behavior.
-3. Live transcription capability ID/schema and audio-frame delivery contract.
+3. Live (streaming) transcription chunking and reconciliation. The engine
+   boundary is decided by ADR-016.
 4. `journal.organize@1` request/result/event schemas and provenance granularity.
 5. Portable backup AEAD/KDF/container/chunking, recovery-key encoding, versioned
    cross-platform fixtures, and non-empty-vault merge semantics.

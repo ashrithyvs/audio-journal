@@ -161,10 +161,27 @@ and cancellation token; cancelling it does not cancel recording.
 
 ## 7. Hybrid AI adapter
 
+Transcription is not part of this adapter (ADR-016). It lives behind the
+app-owned port below. Its first implementation transcribes 16 kHz mono PCM
+files with on-device whisper.cpp, emits each segment as it is decoded, and
+supports cancellation:
+
+```ts
+interface TranscriptionService {
+  models(): Promise<TranscriptionModelInfo[]>; // id, sha256, bytes, available
+  transcribe(request: {
+    requestId: string;
+    audioPath: string;         // app-private 16 kHz mono PCM WAV
+    model: 'base.en-q5_1' | 'tiny.en-q5_1';
+    threads?: number;
+  }, onSegment: (segment: {t0Ms: number; t1Ms: number; text: string}) => void):
+    Promise<TranscriptionResult>; // segments, timings, peak memory
+  cancel(requestId: string): void;
+}
+```
+
 ```ts
 interface JournalAI {
-  transcribe(input: AudioFrameStream, options: TranscriptionOptions):
-    AsyncIterable<TranscriptEvent>;
   organize(input: OrganizeInput, execution: "local" | "node" | "auto"):
     AsyncIterable<OrganizationEvent>;
   cancel(operationId: string): Promise<void>;

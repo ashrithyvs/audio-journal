@@ -13,7 +13,7 @@ export interface AppServices {
 
 /**
  * Production services. `modelDirectory` comes from the Android launch props:
- * the app-provisioned Hybrid AI local model directory (ADR-016).
+ * the app-provisioned Hybrid AI local model directory (ADR-015).
  */
 export function createDefaultAppServices(modelDirectory?: string): AppServices {
   return {

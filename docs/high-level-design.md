@@ -103,7 +103,7 @@ plus the Private AI Node feature: discovery, pairing, status, reconnect,
 forget, policy, and diagnostics. See ADR-015 and LLD §7.1.
 
 - Converts app domain requests into public SDK capability calls.
-- Separates provisional transcription streams from persisted finalized segments.
+- Receives transcript text only; transcription is app-owned (ADR-016).
 - Validates application-owned organization results before domain persistence.
 - Maps SDK target/status/error events into user-appropriate app states.
 
@@ -122,7 +122,8 @@ forget, policy, and diagnostics. See ADR-015 and LLD §7.1.
 1. Create draft entry/recording IDs and target file.
 2. Start durable audio writer.
 3. Mark recording state active transactionally.
-4. Offer copied/bounded audio frames to Hybrid AI transcription.
+4. Offer copied/bounded audio frames to the app's `TranscriptionService`
+   (on-device engine, ADR-016). No audio goes to Hybrid AI.
 5. Render provisional segments; persist only normalized segment updates.
 6. On finish, finalize audio first, then finalize transcript state.
 7. If STT fails, record the failure state and keep the playable entry.

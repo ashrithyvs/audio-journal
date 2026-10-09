@@ -48,8 +48,7 @@ sequenceDiagram
     participant UI
     participant Repo as JournalRepository
     participant Rec as RecordingService
-    participant AI as HybridAIAdapter
-    participant SDK as Hybrid AI SDK
+    participant STT as TranscriptionService (on-device, ADR-016)
 
     User->>UI: Start recording
     UI->>Repo: createVoiceDraft()
@@ -57,17 +56,15 @@ sequenceDiagram
     Rec-->>UI: recording started
     loop while recording
         Rec-->>UI: level + timestamped audio frame
-        UI->>AI: offer bounded frame
-        AI->>SDK: transcription capability input
-        SDK-->>AI: provisional/final segment
-        AI-->>UI: normalized transcript event
+        UI->>STT: offer bounded frame
+        STT-->>UI: provisional/final segment
         UI->>Repo: batch segment update
     end
     User->>UI: Finish
     UI->>Rec: finish()
     Rec-->>UI: finalized recording
     UI->>Repo: finalizeVoice()
-    Note over UI,SDK: STT failure never cancels or deletes recording
+    Note over UI,STT: STT failure never cancels or deletes recording. Only transcript text ever reaches Hybrid AI.
 ```
 
 ## 4. Organization sequence

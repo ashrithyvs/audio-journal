@@ -43,7 +43,8 @@ initialization, and device smoke remain open, so AJ-0 is not accepted yet.
   entry detail, startup reconciliation, and storage-pressure behavior.
 - Implement the accepted portable encrypted backup format, create/save flow,
   verified empty-vault restore, and cross-platform round-trip fixtures.
-- Integrate the approved live transcription capability with independent cancellation.
+- Integrate the app-owned on-device transcription engine (ADR-016) with
+  independent cancellation.
 - Add transcript correction and source timestamps.
 
 Exit: voice/written capture, pause/resume, restart, playback, transcript, recovery,
@@ -101,7 +102,8 @@ to the Hybrid AI SDK release evidence where required.
 - [ ] PIN KDF, retry/backoff, biometric invalidation, and reset semantics accepted.
 - [ ] Recording format/library, interruptions, duration, and storage limits accepted.
 - [ ] Portable backup AEAD/KDF/container/chunking and restore activation ADR accepted.
-- [ ] Transcription capability and frame contract accepted against packaged SDK.
+- [x] Transcription engine boundary decided: app-owned, on-device (ADR-016).
+- [ ] Live-transcription frame chunking and reconciliation accepted.
 - [ ] `journal.organize@1` schemas and provenance rules accepted before AJ-2.
 - [x] Android minimum API 26 reconciled with the SDK; compile API 36 is required
       by React Native 0.87 while target API remains 35.

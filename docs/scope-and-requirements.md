@@ -13,7 +13,8 @@ material into useful views and tasks through Hybrid AI.
 3. Preserve original material and provenance for every derived item.
 4. Provide raw Diary mode and explicit Organized mode.
 5. Work offline for capture, browsing, playback, editing, and local unlock.
-6. Use Hybrid AI public APIs for local transcription and private-node organization.
+6. Transcribe on-device with an app-owned engine (ADR-016), and use Hybrid AI
+   public APIs for text analysis and private-node organization.
 7. Provide local PIN/passcode locking with optional biometric convenience unlock.
 8. Validate the Hybrid AI SDK as an external packaged consumer.
 
