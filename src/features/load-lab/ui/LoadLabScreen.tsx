@@ -12,7 +12,9 @@ import {
   Page,
   shared,
 } from '../../private-node/ui/primitives';
+import { NativeTranscriptionService } from '../../transcription/adapters/NativeTranscriptionService';
 import { type RunControl, runWorkload } from '../domain/runner';
+import { runSpeechPlan, type SpeechPlan } from '../domain/speechPlan';
 import type { WorkloadResult } from '../domain/stats';
 import {
   localSuite,
@@ -51,6 +53,15 @@ export function LoadLabScreen() {
   const control = useRef<RunControl>({ stopped: false });
   const policy = useRef(state.policy);
   policy.current = state.policy;
+
+  const transcriber = useRef(new NativeTranscriptionService()).current;
+  const evalDirectory = useRef('');
+  useEffect(() => {
+    // Creating the directory lets the harness push fixtures into it.
+    evalDirectory.current = transcriber.available
+      ? transcriber.evalDirectory()
+      : '';
+  }, [transcriber]);
 
   // Leaving the screen (or locking the app) stops the run.
   useEffect(
@@ -123,6 +134,57 @@ export function LoadLabScreen() {
     [gateway],
   );
 
+  const runSpeech = useCallback(async () => {
+    control.current = { stopped: false };
+    const current = control.current;
+    setResults([]);
+    let plan: SpeechPlan;
+    try {
+      plan = JSON.parse(await transcriber.readEvalFile('plan.json'));
+    } catch {
+      setStatus({ phase: 'stopped', label: 'speech: no plan.json' });
+      emit('AJ_SPEECH_DONE', { error: 'NO_PLAN' });
+      return;
+    }
+    emit('AJ_SPEECH_START', {
+      runId: plan.runId,
+      model: plan.model,
+      items: plan.items.length,
+      concurrency: plan.concurrency,
+      sdkStage: plan.sdkStage,
+    });
+    const summary = await runSpeechPlan(plan, {
+      transcriber,
+      gateway,
+      evalDirectory: evalDirectory.current,
+      now,
+      control: current,
+      // Full results (with fixture transcripts) stay in the eval directory only.
+      record: result =>
+        transcriber.appendEvalFile(
+          `results/${plan.runId}.jsonl`,
+          JSON.stringify(result),
+        ),
+      onProgress: (done, total) => {
+        setStatus({
+          phase: 'running',
+          label: 'speech',
+          workload: plan.model,
+          done,
+          total,
+        });
+        if (done % 10 === 0) emit('AJ_SPEECH_PROGRESS', { done, total });
+      },
+    });
+    // Numbers only: the summary carries no transcript text.
+    emit('AJ_SPEECH_DONE', summary);
+    setStatus({
+      phase: 'done',
+      label: `speech ${plan.model}`,
+      passed: summary.failed === 0,
+    });
+  }, [gateway, transcriber]);
+
   const ready = state.sdk.phase === 'ready';
   const running = status.phase === 'running';
   const nodeConnected = state.link.status.state === 'connected';
@@ -180,6 +242,15 @@ export function LoadLabScreen() {
                 run('node-suite', nodeSuite);
               }}
               testID="load-run-node"
+            />
+            <PrimaryButton
+              label="Run speech plan"
+              secondary
+              disabled={!transcriber.available}
+              onPress={() => {
+                runSpeech();
+              }}
+              testID="load-run-speech"
             />
             <PrimaryButton
               label="Soak 10 min"

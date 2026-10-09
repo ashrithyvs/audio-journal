@@ -72,40 +72,6 @@ fs.mkdirSync(out, { recursive: true });
 
 // --- Suites -----------------------------------------------------------------------
 
-function suiteItems(suite) {
-  const items = manifest.items;
-  const firstPerSpeaker = (set, condition) => {
-    const seen = new Set();
-    return items.filter(item => {
-      if (
-        item.set !== set ||
-        item.condition !== condition ||
-        seen.has(item.speakerId)
-      )
-        return false;
-      seen.add(item.speakerId);
-      return true;
-    });
-  };
-  switch (suite) {
-    case 'smoke':
-      return firstPerSpeaker('test-clean', 'clean').slice(0, 20);
-    case 'standard':
-      return items.filter(
-        item =>
-          (item.set === 'test-clean' &&
-            ['clean', 'babble10', 'quiet'].includes(item.condition)) ||
-          (item.set === 'test-other' && item.condition === 'clean'),
-      );
-    case 'long':
-      return items.filter(item => item.condition.startsWith('long'));
-    case 'full':
-      return items;
-    default:
-      throw new Error(`unknown suite ${suite}`);
-  }
-}
-
 // --- Input validation -------------------------------------------------------------
 
 /** Checks a fixture is RIFF/WAVE PCM, mono, 16 kHz, 16-bit, matching its manifest. */
@@ -356,7 +322,7 @@ if (!args.whisper)
   throw new Error(
     '--whisper (or AJ_WHISPER_DIR) must point at the whisper.cpp build directory',
   );
-const items = suiteItems(args.suite);
+const items = suiteItems(manifest, args.suite);
 for (const item of items)
   validateWav(fs.readFileSync(path.join(args.dataset, item.file)), item);
 const report = {

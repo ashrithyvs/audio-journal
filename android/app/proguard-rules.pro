@@ -8,3 +8,11 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+
+# App-owned transcription JNI (ADR-016): natives and the callback are bound by name.
+-keepclasseswithmembernames,includedescriptorclasses class com.audiojournal.speech.WhisperNative {
+    native <methods>;
+}
+-keep class com.audiojournal.speech.WhisperNative { *; }
+-keep interface com.audiojournal.speech.SegmentListener { *; }
+-keep class * implements com.audiojournal.speech.SegmentListener { void onSegment(...); }

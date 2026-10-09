@@ -36,17 +36,27 @@ it('uses only the packaged Hybrid AI public entry point', () => {
   ]);
 });
 
-it('never reaches SDK internals or the native module directly', () => {
+it('never reaches SDK internals or the SDK native module directly', () => {
   const sources = sourceFiles(path.join(__dirname, '..', 'src'));
   for (const file of sources) {
     const text = fs.readFileSync(file, 'utf8');
     expect([file, text]).not.toEqual([
       file,
       expect.stringMatching(
-        /@hybrid-ai\/react-native\/|NativeHybridAI|TurboModuleRegistry|hybridAi\//,
+        /@hybrid-ai\/react-native\/|NativeHybridAI|TurboModuleRegistry\.\w+(<[^>]*>)?\(\s*['"]HybridAI['"]|hybridAi\//,
       ),
     ]);
   }
+});
+
+it('keeps app-owned native specs under src/native only', () => {
+  const sources = sourceFiles(path.join(__dirname, '..', 'src'));
+  const registrants = sources.filter(file =>
+    fs.readFileSync(file, 'utf8').includes('TurboModuleRegistry'),
+  );
+  expect(
+    registrants.map(file => path.relative(path.join(__dirname, '..'), file)),
+  ).toEqual(['src/native/NativeAudioJournalSpeech.ts']);
 });
 
 it('adds no cloud, relay, account, or analytics dependency', () => {

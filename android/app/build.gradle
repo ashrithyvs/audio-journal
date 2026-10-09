@@ -106,9 +106,58 @@ android {
     }
 }
 
+// ADR-016: pinned on-device transcription models, shipped as assets and
+// verified by SHA-256 at build time (and again on device before loading).
+import java.security.MessageDigest
+
+def speechModels = [
+    'base.en-q5_1': '4baf70dd0d7c4247ba2b81fafd9c01005ac77c2f9ef064e00dcf195d0e2fdd2f',
+    'tiny.en-q5_1': 'c77c5766f1cef09b6b7d47f21b546cbddd4157886b3b5d6d4f709e91e66c7c2b',
+]
+def speechModelRevision = '5359861c739e955e79d9a303bcbc70fb988958b1'
+def speechAssets = layout.buildDirectory.dir('generated/speech-models')
+
+def fileSha256 = { File file ->
+    def digest = MessageDigest.getInstance('SHA-256')
+    file.withInputStream { input ->
+        byte[] buffer = new byte[1 << 20]
+        int read
+        while ((read = input.read(buffer)) > 0) digest.update(buffer, 0, read)
+    }
+    digest.digest().encodeHex().toString()
+}
+
+def provisionSpeechModels = tasks.register('provisionSpeechModels') {
+    def cacheDir = findProperty('audioJournal.speechModelCache')
+    outputs.dir(speechAssets)
+    doLast {
+        def target = new File(speechAssets.get().asFile, 'speech-models')
+        target.mkdirs()
+        speechModels.each { id, sha ->
+            def out = new File(target, "ggml-${id}.bin")
+            if (out.isFile() && fileSha256(out) == sha) return
+            def cached = cacheDir ? new File(cacheDir.toString(), "ggml-${id}.bin") : null
+            if (cached?.isFile()) {
+                out.bytes = cached.bytes
+            } else {
+                def url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/${speechModelRevision}/ggml-${id}.bin"
+                new URL(url).withInputStream { input -> out.withOutputStream { it << input } }
+            }
+            if (fileSha256(out) != sha) {
+                out.delete()
+                throw new GradleException("speech model ${id} SHA-256 mismatch")
+            }
+        }
+    }
+}
+android.sourceSets.main.assets.srcDirs += speechAssets
+tasks.named('preBuild') { dependsOn provisionSpeechModels }
+
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+    // App-owned on-device transcription engine (ADR-016).
+    implementation(project(':speech-engine'))
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
