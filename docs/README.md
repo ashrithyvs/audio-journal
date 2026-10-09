@@ -8,8 +8,10 @@
 - **Future:** deliberately outside v0.1; not an implied commitment.
 - **Implemented:** reserved for behavior supported by repository and validation evidence.
 
-This repository is currently documentation-only, so no product behavior is
-described as implemented.
+AJ-0 scaffold behavior may be described as implemented only when backed by
+[AJ-0 validation evidence](validation/AJ0-progress.md). Production credential
+storage, biometrics, journal persistence, recording, and AI journeys remain
+targets rather than implemented behavior.
 
 ## Canonical documents
 
@@ -28,6 +30,7 @@ described as implemented.
 - [UML and behavioral diagrams](uml-diagrams.md) — visual trace of the architecture and lifecycle.
 - [Implementation roadmap](implementation-roadmap.md) — milestone order and acceptance gates.
 - [Agent coordination](AGENT_COORDINATION.md) — temporary shared operational memory.
+- [AJ-0 validation](validation/AJ0-progress.md) — current build/test evidence and blockers.
 
 ## Change rule
 

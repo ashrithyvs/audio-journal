@@ -122,3 +122,11 @@ Implementation is blocked until a decision freezes:
 - destructive reset flow and any separate human-readable export format;
 - portable archive AEAD/KDF/container/chunking, recovery-key encoding, metadata
   exposure, and cross-platform version fixtures.
+
+## 11. AJ-0 implementation boundary
+
+The AJ-0 scaffold implements the lock state machine, fail-closed error paths,
+PIN fallback UI, lifecycle relock, background privacy curtain, and Android
+`FLAG_SECURE`. It does not implement persistent credentials or production
+biometrics. The included volatile verifier is process-local, non-cryptographic,
+clearly labelled, and must be replaced—not promoted—after this ADR is resolved.

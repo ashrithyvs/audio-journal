@@ -25,7 +25,18 @@ time range where applicable.
 
 ## Status
 
-**Design-only repository.** No application implementation has started.
+**AJ-0 foundation in progress.** The repository now contains a React Native
+0.87 TypeScript/New-Architecture application, navigation shell, replaceable
+app-lock ports, a volatile development lock adapter, privacy curtain, Android
+screenshot protection, a public Hybrid AI package adapter, and separated test
+suites.
+
+The current lock adapter is intentionally not persistent and makes no
+production security claim. PIN KDF/key wrapping, secure storage, biometric
+invalidation, retry/backoff, and reset behavior remain blocked on the security
+ADR. The SDK native Android graph compiles, but the SDK package currently lacks
+a resolvable JavaScript entry point, so Metro bundling and device smoke remain
+open. See [AJ-0 validation](docs/validation/AJ0-progress.md).
 
 The documents under `docs/` define the intended v0.1 product, architecture,
 security posture, UX, data model, integration boundary, and delivery gates.
@@ -58,3 +69,15 @@ The sibling SDK repository is expected at:
 
 That path is a development convenience, not a runtime dependency or permission
 to import SDK source directly.
+
+## Development
+
+```text
+npm install --install-links
+npm run test:baseline
+source ../hybridAi/tools/android-env.sh
+cd android && ./gradlew :app:assembleDebug --console=plain
+```
+
+The local SDK package link is development-only and must be replaced by a
+versioned publishable artifact before release.

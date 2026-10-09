@@ -1,6 +1,7 @@
 # High-Level Design
 
-**Status:** Target v0.1 design; implementation has not started.
+**Status:** Target v0.1 design; AJ-0 application/privacy shell implemented with
+the limitations recorded in `validation/AJ0-progress.md`.
 
 ## 1. Architecture principles
 

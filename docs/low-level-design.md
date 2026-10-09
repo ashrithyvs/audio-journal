@@ -207,6 +207,13 @@ UNCONFIGURED -> LOCKED -> UNLOCKING -> UNLOCKED
   configurable timeout; the initial target default is a short grace period.
 - Lockout/backoff and reset semantics are blocked on the security ADR.
 
+AJ-0 implements this state machine and lifecycle relock behind
+`LockCredentialStore` and `BiometricAuthenticator` ports. Its default
+`VolatileCredentialStore` retains only a non-cryptographic verifier for the
+current process and is explicitly test/scaffold code—not the implementation of
+the frozen production security properties. Android applies `FLAG_SECURE`; a JS
+privacy curtain covers inactive/background lifecycle states.
+
 ## 9. Startup and recovery
 
 1. Enter locked shell and obscure protected content.

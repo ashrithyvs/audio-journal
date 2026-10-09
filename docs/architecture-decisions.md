@@ -170,6 +170,27 @@ validation. The logical contract and UX are in `backup-and-restore.md`; exact
 container, AEAD, KDF, chunking, and version fixtures require an accepted ADR
 amendment before implementation.
 
+## ADR-014: AJ-0 scaffold and replaceable lock adapters
+
+**Status:** Frozen for the AJ-0 foundation; production security mechanisms Open.
+
+**Decision:** Scaffold with React 19.2.3, React Native 0.87.0 New Architecture,
+React Navigation 7, TypeScript, Jest 29, and React Native Testing Library 14.
+Android keeps min API 26 and target API 35; compile API 36 is required by React
+Native 0.87's AndroidX dependencies and does not change runtime support.
+
+Implement the lock/navigation/privacy shell behind `LockCredentialStore` and
+`BiometricAuthenticator` ports. AJ-0 may use an explicitly named volatile
+process-memory verifier for UI/state testing only. It may not persist a PIN,
+claim cryptographic protection, enable production biometric unlock, or settle
+KDF/backoff/reset semantics before the security ADR. Android applies
+`FLAG_SECURE`, and the cross-platform JS shell obscures background snapshots.
+
+Consume Hybrid AI only through `@hybrid-ai/react-native`'s public root API. The
+development workspace may use a local package link pinned by its declared
+version; this is not a releasable artifact. A publishable package with a valid
+Metro entry point is required before AJ-0 acceptance.
+
 ## Open decisions before implementation
 
 1. Database and recording encryption, key hierarchy, KDF parameters, biometric

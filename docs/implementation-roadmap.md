@@ -1,6 +1,7 @@
 # Implementation Roadmap
 
-**Status:** Target staged plan. Development has not started.
+**Status:** Target staged plan. AJ-0 is in progress; see
+`validation/AJ0-progress.md` for the current gate evidence.
 
 ## 1. Delivery rules
 
@@ -16,7 +17,10 @@
 
 ## 2. AJ-0 — Repository and application scaffold
 
-Prerequisite: design review plus accepted security/audio decisions needed by the scaffold.
+Prerequisite: design review plus accepted security/audio decisions needed by
+production adapters. UI/state/test scaffolding may proceed behind replaceable
+ports, but must not claim unresolved credential/audio mechanisms are secure or
+complete.
 
 - Create React Native TypeScript app with New Architecture and native builds.
 - Add navigation, feature boundaries, testing infrastructure, and public SDK package.
@@ -27,6 +31,10 @@ Prerequisite: design review plus accepted security/audio decisions needed by the
 Exit: clean install launches locked, creates/unlocks with PIN, exercises biometric
 fallback on supported devices, initializes the packaged SDK, and contains no
 account flow or SDK-private import.
+
+Current checkpoint: the JS lock/navigation/privacy/test foundation and Android
+debug assembly pass. Persistent PIN storage, a real biometric adapter, Metro SDK
+initialization, and device smoke remain open, so AJ-0 is not accepted yet.
 
 ## 3. AJ-1 — Durable local journal capture
 
@@ -95,4 +103,6 @@ to the Hybrid AI SDK release evidence where required.
 - [ ] Portable backup AEAD/KDF/container/chunking and restore activation ADR accepted.
 - [ ] Transcription capability and frame contract accepted against packaged SDK.
 - [ ] `journal.organize@1` schemas and provenance rules accepted before AJ-2.
-- [ ] Android/iOS minimum versions reconciled with the SDK's supported matrix.
+- [x] Android minimum API 26 reconciled with the SDK; compile API 36 is required
+      by React Native 0.87 while target API remains 35.
+- [ ] iOS minimum version reconciled and built on macOS/Xcode.

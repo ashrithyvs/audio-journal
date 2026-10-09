@@ -8,9 +8,11 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 - **Phase:** AJ-0 documentation and repository foundation.
 - **Branch:** `main` after Git initialization.
 - **Last agent:** Codex.
-- **Last updated:** 2026-10-08.
+- **Last updated:** 2026-10-09.
 - **Active claim:** none after this handoff.
-- **Implementation status:** not started; documentation only.
+- **Implementation status:** AJ-0 checkpoint implemented but not accepted.
+  JavaScript tests and Android native assembly pass; SDK Metro packaging,
+  device smoke, production credentials/biometrics, and iOS remain open.
 
 ## Completed
 
@@ -34,18 +36,38 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 - Marked encryption mechanics, exact audio/STT integration, capability schemas,
   portable-backup cryptographic/container details, retention, and destructive
   recovery details as open where not yet approved.
+- Generated the React Native 0.87 TypeScript/New-Architecture native scaffold
+  without modifying the sibling SDK repository.
+- Added lock-gated Diary/Organized/Tasks/Settings navigation, replaceable lock
+  and biometric ports, a volatile scaffold verifier, lifecycle relock, privacy
+  curtain, Android `FLAG_SECURE`, and a public-root Hybrid AI adapter.
+- Added separate unit, component-smoke, integration, and performance Jest
+  projects plus one-command baseline validation.
+- Reconciled React Native's compile API 36 requirement with SDK min API 26 and
+  target API 35, and recorded the exact AJ-0 dependency profile in canonical docs.
 
 ## Next work
 
-1. Review and approve or amend the frozen decisions and open questions.
-2. Resolve the pre-implementation security ADR covering database and recording
+1. Have the SDK M5.2 work expose a valid Metro/public package entry and correct
+   the CLI-invalid iOS autolinking metadata, then reinstall the package.
+2. Rerun the Metro bundle and API 35 emulator smoke, including real SDK initialization.
+3. Resolve the pre-implementation security ADR covering database and recording
    encryption, PIN KDF/key wrapping, biometric key invalidation, and local reset.
-3. Resolve the audio/STT pipeline ADR and freeze `journal.organize@1` schemas.
-4. Begin AJ-0 scaffolding only after the design review is accepted.
+4. Replace the volatile credential and unavailable-biometric adapters only after
+   that security decision, then complete AJ-0 device lock tests.
+5. Resolve the audio/STT pipeline ADR and freeze `journal.organize@1` schemas before AJ-1/AJ-2.
 
 ## Validation
 
-- Documentation-only change; no application build or runtime tests exist yet.
+- `npm run test:baseline` passed: typecheck, zero-warning lint, 12 unit,
+  1 component smoke, 4 integration, and 1 performance test.
+- Android `:app:assembleDebug` passed against the SDK native binding after API
+  36 was installed; it produced a debug APK but did not prove JS runtime startup.
+  The native module came from live SDK HEAD `27cc99c` plus uncommitted M5.2 work,
+  so this is compatibility evidence rather than an accepted SDK baseline.
+- Production-style Metro bundling failed because `@hybrid-ai/react-native`
+  0.1.0-m4 has no resolvable JS package entry. Full evidence and the exact
+  rerun commands are in `docs/validation/AJ0-progress.md`.
 - Documentation validation passed for 17 Markdown files: balanced code fences,
   existing relative link targets, and 46 unique requirement/business-rule IDs.
 - Trailing-whitespace scan passed. Git root and branch resolve to this repository
@@ -59,5 +81,9 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 ## Known constraints
 
 - Hybrid AI SDK v0.1 is still progressing in the sibling repository.
+- The local Hybrid AI dependency is a development file link, not a releasable
+  pinned artifact. Its native Android graph assembles, but its JS package does not bundle.
+- The AJ-0 credential verifier is deliberately volatile and non-cryptographic;
+  it must never be described or shipped as production app-lock storage.
 - iOS validation requires macOS/Xcode and remains a future execution dependency.
 - No remote is configured for this repository unless a later task explicitly adds one.

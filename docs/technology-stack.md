@@ -1,7 +1,7 @@
 # Technology Stack
 
-**Status:** Foundation frozen; concrete packages and versions marked Open require
-verification before the first implementation commit.
+**Status:** Foundation frozen. AJ-0 packages below are pinned and validated;
+persistence, credential, biometric, audio, and device-E2E packages remain Open.
 
 ## 1. Frozen foundation
 
@@ -41,6 +41,22 @@ These are candidates, not approvals:
 No candidate package is frozen merely because it appears here. Pin exact versions
 and licenses only after compatibility/security spikes against the supported
 Android/iOS and Hybrid AI package matrix.
+
+### AJ-0 pinned application profile
+
+| Concern | Pinned version | AJ-0 evidence |
+|---|---:|---|
+| React / React Native | 19.2.3 / 0.87.0 | Typecheck, Jest suites, Android debug assembly |
+| React Navigation | native 7.5.0; bottom-tabs/native-stack 7.20.0 | Lock-gated four-tab integration test |
+| Screens / safe area | 4.28.0 / 5.10.1 | New-Architecture Android compilation |
+| TypeScript | template-compatible 6.0.x | Strict no-emit check |
+| Jest / RN Testing Library | 29.6.x / 14.1.0 | Separate unit, smoke, integration, and performance projects |
+| Hybrid AI React Native | public package 0.1.0-m4 via local development link | Native Android modules compile; Metro entry-point blocker remains |
+
+Android uses min API 26 and target API 35 to match the accepted SDK profile.
+React Native 0.87's AndroidX Core dependency requires compile API 36; compile SDK
+is therefore 36 without raising the runtime floor or target behavior. The SDK
+library itself retains its configured compile API 35.
 
 ## 3. Dependency rules
 
