@@ -123,7 +123,24 @@ unless the approved format documents a necessary bounded exception.
 - Wrong/spoofed/revoked node scenarios through the Hybrid AI acceptance matrix.
 - Dependency and native permission review on both platforms.
 
-## 10. Open security ADR
+## 10. Security ADR status
+
+ADR-017 decides:
+
+- database and recording encryption;
+- the key hierarchy, with an Argon2id PIN KEK and a device-bound Keystore
+  wrap;
+- independent biometric and PIN copies of the master key, using
+  `BIOMETRIC_STRONG` with a cryptographic `BiometricPrompt`;
+- the attempt policy, PIN change, and destructive reset;
+- the AJB1 envelope encryption.
+
+Still open, and required before the affected implementation:
+
+- Argon2id cost parameters, from a lowest-supported-device benchmark;
+- the AJB1 binary layout with hostile and cross-platform vectors.
+
+### Originally open items
 
 Implementation is blocked until a decision freezes:
 

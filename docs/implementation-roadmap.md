@@ -98,13 +98,19 @@ to the Hybrid AI SDK release evidence where required.
 
 ## 8. Pre-implementation approval checklist
 
-- [ ] Database and recording encryption/key ADR accepted.
-- [ ] PIN KDF, retry/backoff, biometric invalidation, and reset semantics accepted.
-- [ ] Recording format/library, interruptions, duration, and storage limits accepted.
-- [ ] Portable backup AEAD/KDF/container/chunking and restore activation ADR accepted.
+- [x] Database and recording encryption/key ADR accepted (ADR-017).
+- [x] PIN KDF (Argon2id), retry/backoff, biometric dual-wrap/invalidation, and
+      reset semantics accepted (ADR-017).
+- [x] Recording format/library, interruptions, duration, and storage limits
+      accepted for Android (ADR-017).
+- [x] Portable backup envelope cryptography and restore activation accepted (ADR-017).
+- [ ] AJB1 binary layout and hostile/cross-platform vectors frozen (before implementation).
+- [ ] Argon2id parameters benchmarked on the lowest-supported Android device.
 - [x] Transcription engine boundary decided: app-owned, on-device (ADR-016).
-- [ ] Live-transcription frame chunking and reconciliation accepted.
-- [ ] `journal.organize@1` schemas and provenance rules accepted before AJ-2.
+- [ ] Live-transcription window/overlap/cadence frozen from device measurements
+      (live UX approved, ADR-017).
+- [x] `journal.organize@1` ownership and runtime decided (ADR-018); schemas frozen
+      with the AJ-2 change.
 - [x] Android minimum API 26 reconciled with the SDK; compile API 36 is required
       by React Native 0.87 while target API remains 35.
 - [ ] iOS minimum version reconciled and built on macOS/Xcode.

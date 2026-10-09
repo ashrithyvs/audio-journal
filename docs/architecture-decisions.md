@@ -291,15 +291,186 @@ SDK") is superseded for this application; that change is recorded here, not
 in the SDK repository. Speech accuracy is the app's responsibility and is
 evaluated with the real-speech suite (`e2e/speech`).
 
+## ADR-017: Encrypted vault, persistent PIN, biometrics, recording, and AJB1 backup (AJ-1)
+
+**Status:** Frozen (owner decisions, 2026-10-09). It resolves the parts of
+ADR-005, ADR-007, ADR-008, ADR-009, and ADR-013 that block AJ-1.
+
+Two items stay open until measurements exist:
+
+- the Argon2id cost parameters, which are frozen only after a benchmark on
+  the lowest-supported Android device (see the **Argon2id** section);
+- the live-transcription window length and overlap.
+
+Implementation of AJB1 waits until its binary format and its hostile and
+cross-platform vectors are frozen in `backup-and-restore.md`.
+
+### Key hierarchy
+
+- **Master key.** A random 256-bit vault master key (MK) is created at PIN
+  setup. It lives in native memory only while the journal is unlocked, is
+  zeroed on lock, and is never exposed to JavaScript.
+- **PIN copy.** The PIN key-encryption key is Argon2id(PIN, 16-byte salt) with
+  the device-benchmarked parameters below. PBKDF2-HMAC-SHA256 is allowed only
+  as a documented portability/FIPS fallback, recorded by algorithm ID. The
+  PIN-wrapped copy is `KeystoreAES-GCM(AES-GCM(PIN KEK, MK))`. The outer
+  non-exportable Keystore AES-256-GCM key binds the copy to this device. A
+  wrong PIN fails the inner GCM tag, so no PIN verifier is stored. Neither the
+  PIN nor any derived key is persisted.
+- **Biometric copy.** A second, independently usable copy of MK is wrapped by
+  a separate Keystore AES-256-GCM key. That key is created with
+  `setUserAuthenticationRequired(true)` and
+  `setInvalidatedByBiometricEnrollment(true)`, and allows only
+  `BIOMETRIC_STRONG`. It is used only through a cryptographic `BiometricPrompt`
+  (`CryptoObject`) operation. Biometrics are a convenience path; the PIN copy
+  always remains. If enrollment changes, the key and its copy become unusable:
+  the app deletes them, the user unlocks with the PIN, and biometric unlock
+  stays off until the user explicitly re-enables it (which creates a new key
+  and copy). The app receives only the platform result; no biometric data is
+  read, stored, or logged.
+- **Attempt policy.** After 5 consecutive PIN failures, unlocking is refused
+  for 30 s, doubling per further failure up to 1 h. The counter is kept in the
+  Keystore-sealed vault file.
+- **Purpose keys.** The database and recording keys are derived with
+  HKDF-SHA256 from MK, using the labels `aj-db-v1` and `aj-rec-v1`.
+- **Changing the PIN** rewraps the PIN copy atomically (write a temporary
+  file, fsync, rename). No data is re-encrypted, and the biometric copy is
+  unaffected.
+- **Forgotten PIN.** There is no recovery. The only path is **Erase
+  journal**, which needs explicit typed confirmation and deletes the vault
+  file, database, recordings, and both Keystore keys. Block-level erasure is
+  not claimed.
+
+### Argon2id (PIN copy and AJB1 KEK)
+
+- **Implementation.** The P-H-C reference libargon2, release `20190702`
+  (commit `62358ba2`, archive SHA-256 `daf972a8…442c`, CC0/Apache-2.0),
+  compiled into the app's native library. Algorithm Argon2id, version `0x13`.
+  One C implementation serves Android now and iOS later, so backups are
+  byte-identical across platforms.
+- **Parameters.** Memory `m` (KiB), time `t`, and parallelism `p` are chosen
+  by a benchmark on the lowest-supported Android device; the emulator alone is
+  not enough. They are stored with the algorithm ID, version, and salt in an
+  authenticated record: the vault file, or the AJB1 header.
+- **Rejection.** Readers reject unknown versions, downgrades below the
+  accepted floor, malformed parameters, and memory or time beyond accepted
+  ceilings before allocating anything.
+- **Handling.** Password-derived buffers are cleared after use and never
+  cross into JavaScript.
+- **Tests.** Allocation failure and low-memory behaviour are tested, and
+  Android output is cross-checked against independent host vectors (iOS
+  later).
+
+### Storage
+
+- **Database.** SQLite through SQLCipher for Android
+  (`net.zetetic:sqlcipher-android:4.19.1`), keyed with the raw HKDF database
+  key, in WAL mode, in app-private no-backup storage.
+- **Recordings.** Recordings are 16 kHz mono 16-bit PCM in the `AJR1`
+  container: a header followed by 1-second PCM chunks, each sealed with
+  AES-256-GCM. The nonce is a 4-byte per-file salt plus an 8-byte chunk
+  index, and the additional authenticated data binds the header and the chunk
+  index, so reordering is detected. After a crash, recovery keeps every
+  authenticated chunk and drops the torn tail. Recordings never exist as
+  plaintext files.
+
+### Recording (closes ADR-008 for Android)
+
+- A native `AudioRecord` writer with pause, resume, and finish.
+- Loss of audio focus (for example, a call) auto-pauses.
+- Leaving the foreground auto-pauses and seals the current chunk; a
+  foreground service is deferred.
+- Recordings are limited to 60 minutes. Recording won't start with less
+  than 200 MB free and finishes automatically below 50 MB.
+- Unfinished recordings are reconciled at startup.
+- Recording never depends on transcription: it continues whenever
+  transcription is unavailable, slow, cancelled, or failing.
+
+### Transcription in AJ-1 (ADR-016 engine)
+
+- **Engine.** Transcription runs on-device (ADR-016) on decrypted PCM in
+  native memory; audio never reaches JavaScript or Hybrid AI.
+- **Live text (frozen UX).** Provisional text appears while recording. It is
+  produced from bounded, overlapping windows of recent PCM, with provisional
+  segment revisions, cancellation, de-duplication across window overlaps,
+  and final reconciliation. The window length, overlap, and cadence are not
+  frozen; they are set from device measurements and recorded in validation
+  evidence before any performance claim.
+- **Final pass.** After Finish, a full pass over the sealed recording
+  produces transcript revision 1 (source `engine`, with the model ID). It
+  supersedes the provisional text.
+- **Corrections.** A user correction creates a new segment revision with
+  source `user`. The engine segment and the recording are never changed.
+
+### Portable backup `AJB1` (closes ADR-013's cryptography)
+
+- **Envelope encryption.** A random 256-bit archive data-encryption key
+  (DEK) encrypts bounded chunks with AES-256-GCM, each with a unique nonce.
+  An Argon2id key-encryption key (KEK), derived from the user's secret,
+  wraps the DEK. The password-derived output never encrypts chunks directly.
+- **Secret.** Either a strong user password, rejected below a documented
+  strength floor, or a generated recovery key carrying at least 128 bits of
+  randomness. It is never the app PIN.
+- **Authentication.** The header (magic, version, KDF algorithm, version,
+  `m/t/p`, salt, wrapped DEK), every chunk's position and ordering, the
+  manifest, and an explicit final chunk are all authenticated. Truncation,
+  reordering, splicing, and parameter tampering are therefore detected.
+- **Contents.** Entries, transcripts and revisions, derivations, tasks,
+  provenance, and recording PCM. It excludes the PIN, MK, Keystore keys,
+  biometric state, node pairing, logs, and caches.
+- **Saving.** The archive is saved through the system document picker,
+  then reopened and fully authenticated before success is reported.
+- **Restore.** Restore only targets an empty journal. It works in isolated
+  staging and activates atomically after complete verification. The user then
+  sets a new PIN, and the node must be re-paired.
+- **Format first.** The binary layout and its hostile vectors (tampering,
+  truncation, downgrade, excessive memory, malformed fields) and
+  cross-platform vectors are frozen in `backup-and-restore.md` before any
+  implementation.
+
+## ADR-018: `journal.organize@1` served by an Audio Journal node companion
+
+**Status:** Frozen (owner decision, 2026-10-09). It resolves Open decision 4
+for v0.1 and keeps ADR-010/011 intact.
+
+**Decision:**
+
+- **Contract.** `journal.organize@1` is owned by Audio Journal. Its
+  request, result, and event JSON Schemas and its provenance rules are frozen
+  in this repository (`schemas/journal/v1/`), with test vectors.
+- **Companion.** The capability runs on the **Audio Journal Private Node
+  companion** (`node-companion/`), a separate process in this repository.
+  It is neither part of the Hybrid AI SDK nor its reference node. To be
+  reachable through the SDK it is a Private AI Node in its own right: an
+  independent implementation of the SDK's published node protocol (ADR-021
+  jobs/streaming, ADR-022 pairing/mutual TLS). It is checked against the
+  SDK's published vectors and against the packaged SDK on device. No SDK
+  source is copied or imported.
+- **Client path.** The mobile app invokes the capability only through the
+  SDK public API (`execution: 'node'`), after an explicit user selection,
+  sending only finalized transcript or written text with segment IDs and
+  offsets (ADR-011). Audio is never sent.
+- **Engine.** The first engine is deterministic and explainable (phrase
+  rules, lexicons, sentence segmentation). It produces a summary, Work and
+  Personal sections, ideas, people, projects, and tasks. Every item cites
+  exact segment IDs, character ranges, and audio ranges. A model-backed engine
+  may replace it later behind the same contract and vectors.
+- **No substitutes.** `document.analyze@1` is not used as a substitute, and
+  the app bundles no extra inference runtime for organization.
+- **Validation.** The app validates every result (schema, bounds, provenance
+  inside the request scope) before persisting it as a new derivation
+  revision. Invalid results are discarded with `INVALID_RESULT`.
+
 ## Open decisions before implementation
 
-1. Database and recording encryption, key hierarchy, KDF parameters, biometric
-   key binding, PIN change, and destructive reset behavior.
-2. Audio capture library/native implementation, file format, interruption policy,
-   maximum duration, and storage-pressure behavior.
-3. Live (streaming) transcription chunking and reconciliation. The engine
-   boundary is decided by ADR-016.
-4. `journal.organize@1` request/result/event schemas and provenance granularity.
-5. Portable backup AEAD/KDF/container/chunking, recovery-key encoding, versioned
-   cross-platform fixtures, and non-empty-vault merge semantics.
+1. Argon2id cost parameters (from a lowest-supported-device benchmark). Key
+   hierarchy, biometrics, PIN change, and reset are decided by ADR-017.
+2. Background recording (a foreground service). Android capture, format,
+   interruptions, duration, and storage pressure are decided by ADR-017.
+3. Live-transcription window length, overlap, and cadence, set from device
+   measurements. The live UX is decided by ADR-017 and the engine by ADR-016.
+4. `journal.organize@1`: decided by ADR-018 (schemas in `schemas/journal/v1/`).
+5. The AJB1 binary layout and hostile/cross-platform vectors, which must be
+   frozen before implementation (the cryptographic design is ADR-017), and
+   non-empty-vault merge semantics (outside v0.1).
 6. Retention/deletion behavior for recordings, transcripts, derivations, and tasks.

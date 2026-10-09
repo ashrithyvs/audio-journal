@@ -53,6 +53,9 @@ Android/iOS and Hybrid AI package matrix.
 | Jest / RN Testing Library | 29.6.x / 14.1.0 | Separate unit, smoke, integration, and performance projects |
 | Hybrid AI React Native | `hybrid-ai-react-native-0.1.0-m5.tgz` (SDK `e0fc3c5`), SHA-256 `4761ea3b…8b74` | Metro release bundle, R8 release APK, API 35 device suite ([AJ-3](validation/AJ3-android.md)) |
 | Hybrid AI Android AAR | `hybrid-ai-android-release.aar` (SDK `e0fc3c5`), SHA-256 `ed8ee30c…3579`, via `android/hybrid-ai-android` wrapper | Build-time SHA-256 check; `arm64-v8a` and `x86_64` only |
+| Argon2id | P-H-C reference libargon2 `20190702` (`62358ba2`, archive SHA-256 `daf972a8…442c`), native (ADR-017) | Planned for AJ-1; parameters pending a low-end device benchmark |
+| Encrypted database | `net.zetetic:sqlcipher-android:4.19.1` + `androidx.sqlite:sqlite:2.7.0` (ADR-017) | AJ-1 |
+| On-device transcription | whisper.cpp v1.9.5 (`d1be6fde`), archive SHA-256 `ff1a9053…dc1720`; `base.en-q5_1` default, `tiny.en-q5_1` option (ADR-016) | Speech suite (`e2e/speech`) |
 | Android device E2E | Node.js 22 driver over `adb` + `uiautomator` (`e2e/android/`), no third-party framework | AJ-3 device suite (ADR-015) |
 
 Android uses min API 26 and target API 35 to match the accepted SDK profile.
