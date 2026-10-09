@@ -119,6 +119,10 @@ JNIEXPORT jstring JNICALL Java_com_audiojournal_speech_WhisperNative_transcribe(
                     env->GetMethodID(listenerClass, "onSegment", "(JJLjava/lang/String;)V")};
 
   whisper_full_params params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
+  // The library default runs best_of = 5 greedy decoders on every request
+  // (whisper.cpp v1.9.5), five times the decode work for identical text. One
+  // decoder matches the evaluated configuration (whisper-cli -bs 1 -bo 1).
+  params.greedy.best_of = 1;
   params.n_threads = threads;
   params.language = "en";
   params.translate = false;

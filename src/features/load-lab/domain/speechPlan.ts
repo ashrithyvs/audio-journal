@@ -94,7 +94,10 @@ export interface SpeechSummary {
   rtf?: ReturnType<typeof summarizeLatency>;
   firstSegmentMs?: ReturnType<typeof summarizeLatency>;
   inferenceMs?: ReturnType<typeof summarizeLatency>;
+  /** cancel() to the request settling as cancelled. */
   cancelLatencyMs?: ReturnType<typeof summarizeLatency>;
+  /** cancel() to native compute released (engine abort point). */
+  cancelReleaseMs?: ReturnType<typeof summarizeLatency>;
   peakRssKb?: number;
   sdk?: {
     requests: number;
@@ -208,6 +211,7 @@ export async function runSpeechPlan(
 ): Promise<SpeechSummary> {
   const results: SpeechItemResult[] = [];
   const cancelLatencies: number[] = [];
+  const releaseLatencies: number[] = [];
   const started = deps.now();
   let pass = 0;
   let sequence = 0;
@@ -232,6 +236,16 @@ export async function runSpeechPlan(
     const outcome = await pending;
     if (outcome.status === 'cancelled')
       cancelLatencies.push(deps.now() - cancelledAt);
+    // Wait for the engine to release the CPU so probes don't skew the run.
+    if (deps.transcriber.activeCount) {
+      while (
+        deps.transcriber.activeCount() > 0 &&
+        deps.now() - cancelledAt < 60_000
+      ) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      releaseLatencies.push(deps.now() - cancelledAt);
+    }
   }
 
   do {
@@ -313,13 +327,14 @@ export async function runSpeechPlan(
     deps.now() - started < plan.soakMinutes * 60_000
   );
 
-  return summarizeSpeech(
+  const summary = summarizeSpeech(
     plan,
     results,
     cancelLatencies,
     pass,
     deps.now() - started,
   );
+  return { ...summary, cancelReleaseMs: summarizeLatency(releaseLatencies) };
 }
 
 export function summarizeSpeech(

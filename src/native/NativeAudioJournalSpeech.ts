@@ -18,6 +18,8 @@ export interface Spec extends TurboModule {
     threads: number,
   ) => Promise<string>;
   readonly cancel: (requestId: string) => void;
+  /** Native transcriptions still computing, including early-cancelled ones. */
+  readonly activeTranscriptions: () => number;
   /** Development fixtures directory (app-scoped external files), or ''. */
   readonly evalDirectory: () => string;
   readonly readEvalFile: (relativePath: string) => Promise<string>;

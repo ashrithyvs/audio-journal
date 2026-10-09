@@ -9,6 +9,7 @@ import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -22,6 +23,10 @@ class AudioJournalSpeechModule(private val context: ReactApplicationContext) :
 
   private val executor = Executors.newFixedThreadPool(4)
   private val cancels = ConcurrentHashMap<String, Long>()
+  // Requests whose promise was settled early by cancel(); native work may
+  // still be finishing until whisper's next abort point.
+  private val pending = ConcurrentHashMap<String, Pair<Promise, Long>>()
+  private val active = AtomicInteger(0)
   private val models = ConcurrentHashMap<String, Long>()
   private val loadMs = ConcurrentHashMap<String, Double>()
   // Reused decoder states per model (at most one per executor thread).
@@ -83,7 +88,13 @@ class AudioJournalSpeechModule(private val context: ReactApplicationContext) :
   ) {
     val cancel = WhisperNative.newCancel()
     cancels[requestId] = cancel
+    pending[requestId] = promise to SystemClock.elapsedRealtimeNanos()
+    // Settles the promise exactly once, whether by completion or early cancel.
+    fun settle(block: (Promise) -> Unit) {
+      pending.remove(requestId)?.let { (settled, _) -> block(settled) }
+    }
     executor.execute {
+      active.incrementAndGet()
       val queuedMs = 0.0
       val started = SystemClock.elapsedRealtimeNanos()
       fun elapsed() = (SystemClock.elapsedRealtimeNanos() - started) / 1e6
@@ -131,20 +142,38 @@ class AudioJournalSpeechModule(private val context: ReactApplicationContext) :
             .put("totalMs", elapsed())
             .put("audioMs", pcm.size / 16.0)
         result.put("model", model).put("memory", memory())
-        promise.resolve(result.toString())
+        settle { it.resolve(result.toString()) }
       } catch (error: Throwable) {
         // Error class only: messages could carry paths.
-        promise.reject("TRANSCRIPTION_FAILED", error.javaClass.simpleName)
+        settle { it.reject("TRANSCRIPTION_FAILED", error.javaClass.simpleName) }
       } finally {
         cancels.remove(requestId)
         WhisperNative.freeCancel(cancel)
+        active.decrementAndGet()
       }
     }
   }
 
+  /**
+   * whisper.cpp checks its abort callback only between encoder and decoder
+   * passes, so compute can run for up to one encoder pass after a cancel. The
+   * request is acknowledged as cancelled immediately; the native work is
+   * released at the next abort point and its result is discarded.
+   */
   override fun cancel(requestId: String) {
     cancels[requestId]?.let { WhisperNative.cancel(it) }
+    pending.remove(requestId)?.let { (promise, _) ->
+      promise.resolve(
+          JSONObject()
+              .put("status", "cancelled")
+              .put("segments", JSONArray())
+              .put("acknowledgedEarly", true)
+              .toString())
+    }
   }
+
+  /** Native transcriptions still computing, including early-cancelled ones. */
+  override fun activeTranscriptions(): Double = active.get().toDouble()
 
   override fun evalDirectory(): String = evalRoot()?.absolutePath ?: ""
 

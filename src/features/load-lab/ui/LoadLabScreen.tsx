@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '../../../theme/colors';
 import { PrimaryButton } from '../../app-lock/ui/PrimaryButton';
@@ -214,7 +214,9 @@ export function LoadLabScreen() {
         </Text>
         {running ? (
           <View style={[shared.row, shared.action]}>
-            <ActivityIndicator color={colors.moss} />
+            {/* Static while running: an animated spinner keeps the compositor busy
+                and skews on-device benchmarks. */}
+            <Text style={styles.meta}>Running…</Text>
             <PrimaryButton
               label="Stop"
               secondary

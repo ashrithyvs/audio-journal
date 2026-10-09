@@ -44,6 +44,19 @@ function battery() {
   };
 }
 
+/**
+ * Low-overhead process sampling for use *during* runs. It reads /proc only.
+ * `dumpsys meminfo` makes the target app walk its own heap and smaps, which
+ * stalled on-device inference several-fold, so it is used only before and
+ * after a run (see `memory()`).
+ */
+function procStatus(processId) {
+  const text = d.shell('cat', `/proc/${processId}/status`);
+  const kb = key =>
+    Number(new RegExp(`${key}:\\s+(\\d+)`).exec(text)?.[1] ?? NaN);
+  return { rssKb: kb('VmRSS'), hwmKb: kb('VmHWM'), threads: kb('Threads') };
+}
+
 export function startSampler(label, intervalMs = 3_000) {
   const samples = [];
   const processId = pid();
@@ -63,7 +76,7 @@ export function startSampler(label, intervalMs = 3_000) {
         t: at,
         cpuPercent: Math.round(cpuPercent),
         cores,
-        ...memory(),
+        ...procStatus(processId),
         thermal: thermal(),
       });
     } catch {
@@ -93,9 +106,9 @@ export function summarizeSamples(samples) {
       : undefined;
   return {
     count: samples.length,
-    pssKb: stats(pick('totalPssKb')),
-    nativeHeapKb: stats(pick('nativeHeapKb')),
-    javaHeapKb: stats(pick('javaHeapKb')),
+    rssKb: stats(pick('rssKb')),
+    hwmKb: stats(pick('hwmKb')),
+    threads: stats(pick('threads')),
     cpuPercent: stats(pick('cpuPercent')),
     thermalMax: Math.max(...pick('thermal'), 0),
   };

@@ -48,7 +48,10 @@ export interface TranscriptionService {
     },
     onSegment?: (segment: TranscriptSegment) => void,
   ): Promise<TranscriptionResult>;
+  /** Acknowledged immediately; native compute stops at the engine's next abort point. */
   cancel(requestId: string): void;
+  /** Native transcriptions still computing (for releasing CPU before new work). */
+  activeCount?(): number;
 }
 
 export const transcriptText = (result: TranscriptionResult) =>

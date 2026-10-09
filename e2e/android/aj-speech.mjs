@@ -69,7 +69,10 @@ const EVAL = `/sdcard/Android/data/${d.PACKAGE}/files/speech-eval`;
 const manifest = JSON.parse(
   fs.readFileSync(path.join(args.dataset, 'manifest.json'), 'utf8'),
 );
-const items = suiteItems(manifest, args.suite).slice(0, args.limit ? Number(args.limit) : undefined);
+const items = suiteItems(manifest, args.suite).slice(
+  0,
+  args.limit ? Number(args.limit) : undefined,
+);
 const audioSec = items.reduce((sum, item) => sum + item.durationSec, 0);
 const soakMinutes =
   args['soak-minutes'] === undefined ? undefined : Number(args['soak-minutes']);
@@ -370,8 +373,8 @@ function markdown(r) {
       `| Process peak RSS (VmHWM) | ${Math.round(
         (r.appSummary?.peakRssKb ?? 0) / 1024,
       )} MB |`,
-      `| PSS max / CPU mean % / thermal max | ${Math.round(
-        (r.resources?.pssKb?.max ?? 0) / 1024,
+      `| RSS max / CPU mean % / thermal max | ${Math.round(
+        (r.resources?.rssKb?.max ?? 0) / 1024,
       )} MB / ${r.resources?.cpuPercent?.mean} / ${r.resources?.thermalMax} |`,
       `| Wall time | ${r.harnessWallSec} s |`,
       `| In-app vs host WER mismatches | ${r.crossCheck?.scoreMismatches} |`,

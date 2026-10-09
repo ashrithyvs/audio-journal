@@ -57,6 +57,10 @@ export class NativeTranscriptionService implements TranscriptionService {
     this.native.cancel(requestId);
   }
 
+  activeCount(): number {
+    return this.native.activeTranscriptions();
+  }
+
   /** Development-only fixture I/O, confined to the app's `speech-eval` directory. */
   evalDirectory(): string {
     return this.native.evalDirectory();
