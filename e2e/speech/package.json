@@ -1,0 +1,18 @@
+{
+  "name": "audio-journal-speech-eval",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Development-only real-speech dataset preparation and accuracy collectors. Not part of the app bundle.",
+  "type": "module",
+  "engines": {
+    "node": ">= 22.11.0"
+  },
+  "scripts": {
+    "prepare-dataset": "node prepare-dataset.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@wasm-audio-decoders/flac": "0.2.11",
+    "hyparquet": "1.31.3"
+  }
+}
