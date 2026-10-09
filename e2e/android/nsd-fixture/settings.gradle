@@ -1,0 +1,11 @@
+// Standalone AJ-3 test fixture: advertises `_privateai._tcp` services through
+// Android's public NsdManager so the app's SDK discovery can be exercised on an
+// emulator. It contains no Hybrid AI SDK code and is never shipped.
+pluginManagement {
+  repositories { google(); mavenCentral(); gradlePluginPortal() }
+  plugins { id 'com.android.application' version '9.2.1' }
+}
+dependencyResolutionManagement {
+  repositories { google(); mavenCentral() }
+}
+rootProject.name = 'aj-nsd-fixture'
