@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
 
 import { AppLockProvider } from '../features/app-lock/application/AppLockContext';
+import { BackupProvider } from '../features/backup/application/BackupContext';
 import { PrivateNodeProvider } from '../features/private-node/application/PrivateNodeContext';
 import { colors } from '../theme/colors';
 import { createDefaultAppServices, type AppServices } from './AppServices';
@@ -33,10 +34,12 @@ export function AppRoot({
           gateway={appServices.hybridAI}
           options={appServices.privateNode}
         >
-          <View style={styles.root}>
-            <RootNavigator openJournal={appServices.openJournal} />
-            <PrivacyCurtain />
-          </View>
+          <BackupProvider service={appServices.backup}>
+            <View style={styles.root}>
+              <RootNavigator openJournal={appServices.openJournal} />
+              <PrivacyCurtain />
+            </View>
+          </BackupProvider>
         </PrivateNodeProvider>
       </AppLockProvider>
     </SafeAreaProvider>

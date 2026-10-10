@@ -1,5 +1,6 @@
 package com.audiojournal
 
+import com.audiojournal.backup.AudioJournalBackupModule
 import com.audiojournal.recording.AudioJournalRecordingsModule
 import com.audiojournal.store.AudioJournalStoreModule
 import com.audiojournal.vault.AudioJournalVaultModule
@@ -11,7 +12,7 @@ import com.facebook.react.module.model.ReactModuleInfoProvider
 
 /**
  * App-owned AJ-1 TurboModules (ADR-017): the vault, the encrypted journal
- * store, and AJR1 capture and playback.
+ * store, AJR1 capture and playback, and AJB1 backup and restore.
  */
 class AudioJournalCorePackage : BaseReactPackage() {
   override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? =
@@ -19,6 +20,7 @@ class AudioJournalCorePackage : BaseReactPackage() {
         AudioJournalVaultModule.NAME -> AudioJournalVaultModule(reactContext)
         AudioJournalStoreModule.NAME -> AudioJournalStoreModule(reactContext)
         AudioJournalRecordingsModule.NAME -> AudioJournalRecordingsModule(reactContext)
+        AudioJournalBackupModule.NAME -> AudioJournalBackupModule(reactContext)
         else -> null
       }
 
@@ -26,7 +28,8 @@ class AudioJournalCorePackage : BaseReactPackage() {
     listOf(
             AudioJournalVaultModule.NAME,
             AudioJournalStoreModule.NAME,
-            AudioJournalRecordingsModule.NAME)
+            AudioJournalRecordingsModule.NAME,
+            AudioJournalBackupModule.NAME)
         .associateWith {
       ReactModuleInfo(it, it, false, false, false, true)
     }

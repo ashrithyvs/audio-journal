@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { useAppLock } from '../../features/app-lock/application/AppLockContext';
 import { PrimaryButton } from '../../features/app-lock/ui/PrimaryButton';
+import { useBackup } from '../../features/backup/application/BackupContext';
 import { usePrivateNode } from '../../features/private-node/application/PrivateNodeContext';
 import { presentConnection } from '../../features/private-node/domain/connectionPresentation';
 import { SDK_PACKAGE_VERSION } from '../../platform/hybrid-ai/PackagedHybridAiGateway';
@@ -11,10 +12,13 @@ import { colors } from '../../theme/colors';
 export function SettingsScreen({
   onOpenNode,
   onOpenDiagnostics,
+  onOpenBackup,
 }: {
   onOpenNode(): void;
   onOpenDiagnostics(): void;
+  onOpenBackup?(): void;
 }) {
+  const backup = useBackup();
   const { lock, state: lockState, setBiometricEnabled } = useAppLock();
   const { state, focus } = usePrivateNode();
   const { sdk } = state;
@@ -62,6 +66,22 @@ export function SettingsScreen({
           />
         </View>
       </View>
+      {backup && onOpenBackup ? (
+        <View style={styles.card}>
+          <Text style={styles.label}>Backup & restore</Text>
+          <Text style={styles.meta}>
+            An encrypted copy of your journal, saved where you choose.
+          </Text>
+          <View style={styles.action}>
+            <PrimaryButton
+              label="Backup & restore"
+              onPress={onOpenBackup}
+              secondary
+              testID="open-backup"
+            />
+          </View>
+        </View>
+      ) : null}
       <View style={styles.card}>
         <Text style={styles.label}>App lock</Text>
         <Text style={styles.meta}>

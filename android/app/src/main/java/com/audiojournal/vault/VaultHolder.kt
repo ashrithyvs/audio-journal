@@ -1,6 +1,7 @@
 package com.audiojournal.vault
 
 import android.content.Context
+import com.audiojournal.backup.RestoreActivation
 import java.io.File
 
 /** One vault per process, shared by the vault and store modules. */
@@ -20,6 +21,9 @@ object VaultHolder {
   fun get(context: Context): Vault =
       vault
           ?: synchronized(this) {
+            // Before the vault is first used: finish a marked restore
+            // activation, or delete restore leftovers (§9.10).
+            if (vault == null) RestoreActivation.recover(context.noBackupFilesDir)
             vault
                 ?: Vault(
                         vaultFile(context),

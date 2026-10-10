@@ -1,4 +1,8 @@
 import type { AppLockServices } from '../features/app-lock/application/AppLockContext';
+import type { BackupService } from '../features/backup/ports/BackupService';
+import NativeAudioJournalBackup from '../native/NativeAudioJournalBackup';
+import NativeAudioJournalStore from '../native/NativeAudioJournalStore';
+import { NativeBackupService } from '../platform/backup/NativeBackupService';
 import type { PrivateNodeOptions } from '../features/private-node/application/PrivateNodeContext';
 import type { HybridAiGateway } from '../platform/hybrid-ai/HybridAiGateway';
 import { PackagedHybridAiGateway } from '../platform/hybrid-ai/PackagedHybridAiGateway';
@@ -15,6 +19,17 @@ export interface AppServices {
   privateNode?: PrivateNodeOptions;
   /** Opens the journal after each unlock (ADR-017); closed on lock. */
   openJournal: (context: JournalOpenContext) => Promise<OpenedJournal>;
+  /** Encrypted backup and restore; absent without the native codec. */
+  backup?: BackupService;
+}
+
+/** Platform CSPRNG bytes from the native store module. */
+function nativeRandomBytes(count: number): Uint8Array {
+  const hex = NativeAudioJournalStore?.randomBytesHex(count) ?? '';
+  if (hex.length !== count * 2) {
+    throw new Error('RANDOM_UNAVAILABLE');
+  }
+  return Uint8Array.from(hex.match(/../g) ?? [], byte => parseInt(byte, 16));
 }
 
 /**
@@ -27,5 +42,8 @@ export function createDefaultAppServices(modelDirectory?: string): AppServices {
     appLock: { vault: new NativeVaultService() },
     hybridAI: new PackagedHybridAiGateway(modelDirectory),
     openJournal: openProductionJournal,
+    backup: NativeAudioJournalBackup
+      ? new NativeBackupService(NativeAudioJournalBackup, nativeRandomBytes)
+      : undefined,
   };
 }

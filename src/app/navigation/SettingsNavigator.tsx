@@ -1,6 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import { BackupScreen } from '../../features/backup/ui/BackupScreen';
 import { LoadLabScreen } from '../../features/load-lab/ui/LoadLabScreen';
 import { DiagnosticsScreen } from '../../features/private-node/ui/DiagnosticsScreen';
 import { PairNodeScreen } from '../../features/private-node/ui/PairNodeScreen';
@@ -14,6 +15,7 @@ export type SettingsStackParamList = {
   PairNode: undefined;
   Diagnostics: undefined;
   LoadLab: undefined;
+  Backup: undefined;
 };
 
 const Stack = createNativeStackNavigator<SettingsStackParamList>();
@@ -33,6 +35,7 @@ export function SettingsNavigator() {
           <SettingsScreen
             onOpenNode={() => navigation.navigate('PrivateNode')}
             onOpenDiagnostics={() => navigation.navigate('Diagnostics')}
+            onOpenBackup={() => navigation.navigate('Backup')}
           />
         )}
       </Stack.Screen>
@@ -56,6 +59,11 @@ export function SettingsNavigator() {
           />
         )}
       </Stack.Screen>
+      <Stack.Screen
+        name="Backup"
+        component={BackupScreen}
+        options={{ title: 'Backup & restore' }}
+      />
       <Stack.Screen
         name="LoadLab"
         component={LoadLabScreen}

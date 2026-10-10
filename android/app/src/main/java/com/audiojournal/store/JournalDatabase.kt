@@ -116,6 +116,9 @@ object JournalDatabase {
     return out
   }
 
+  /** Runs [block] with the open database on its own thread (backup only). */
+  fun <T> withDatabase(block: (SQLiteDatabase) -> T): T = submit { block(requireOpen()) }
+
   fun begin() = submit { requireOpen().beginTransaction() }
 
   fun commit() = submit {

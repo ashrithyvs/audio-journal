@@ -6,6 +6,7 @@ import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.audiojournal.specs.NativeAudioJournalVaultSpec
+import com.audiojournal.backup.AudioJournalBackupModule
 import com.audiojournal.recording.ActiveAudio
 import com.audiojournal.recording.RecordingFiles
 import com.audiojournal.speech.RecordingJobs
@@ -124,6 +125,7 @@ class AudioJournalVaultModule(private val context: ReactApplicationContext) :
     executor.execute {
       runCatching { ActiveAudio.closeAll() }
       runCatching { RecordingJobs.cancelAll() }
+      runCatching { AudioJournalBackupModule.onLock() }
       JournalDatabase.close()
       vault.lock()
       promise.resolve(null)
@@ -138,6 +140,7 @@ class AudioJournalVaultModule(private val context: ReactApplicationContext) :
       }
       runCatching { ActiveAudio.closeAll() }
       runCatching { RecordingJobs.cancelAll() }
+      runCatching { AudioJournalBackupModule.onLock() }
       JournalDatabase.deleteFiles(context)
       RecordingFiles(context.noBackupFilesDir).eraseAll()
       vault.erase(biometric)

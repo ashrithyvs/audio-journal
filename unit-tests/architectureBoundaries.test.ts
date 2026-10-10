@@ -57,6 +57,7 @@ it('keeps app-owned native specs under src/native only', () => {
   expect(
     registrants.map(file => path.relative(path.join(__dirname, '..'), file)),
   ).toEqual([
+    'src/native/NativeAudioJournalBackup.ts',
     'src/native/NativeAudioJournalRecordings.ts',
     'src/native/NativeAudioJournalSpeech.ts',
     'src/native/NativeAudioJournalStore.ts',

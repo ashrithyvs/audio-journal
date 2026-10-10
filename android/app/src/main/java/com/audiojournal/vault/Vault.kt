@@ -163,6 +163,25 @@ class Vault(
     biometric?.delete()
   }
 
+  /**
+   * Restore activation (§9.10 step 6; owner decision 2026-10-10). Verifies
+   * the current PIN under the attempt policy (being unlocked is not enough),
+   * then returns a sealed vault record in which that PIN wraps
+   * [newMasterKey]. The biometric copy is not carried over. Nothing is
+   * written: activation installs the record crash-safely.
+   */
+  @Synchronized
+  fun adoptionRecord(pin: ByteArray, newMasterKey: ByteArray): Pair<PinResult, ByteArray?> {
+    val result = unlockWithPin(pin)
+    if (result != PinResult.Unlocked) return result to null
+    val inner = wrapForPin(newMasterKey, pin, base = null).encode()
+    return try {
+      result to sealer.seal(inner)
+    } finally {
+      VaultCrypto.zero(inner)
+    }
+  }
+
   /** Purpose key (HKDF-SHA256 from MK); the caller zeroes it after use. */
   @Synchronized
   fun purposeKey(label: String): ByteArray {
