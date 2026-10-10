@@ -251,6 +251,9 @@ async function openSettingsHome() {
   await d.tap({ text: 'Settings' });
   for (let attempt = 0; attempt < 4; attempt += 1) {
     if (d.find(d.dump(), { id: 'open-private-node' })) return;
+    // AJ-1's Settings scrolls; its first card may be above the viewport.
+    await d.scrollToTop();
+    if (d.find(d.dump(), { id: 'open-private-node' })) return;
     d.back();
     await d.sleep(500);
     await d.tap({ text: 'Settings' });
