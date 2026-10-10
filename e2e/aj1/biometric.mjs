@@ -171,6 +171,13 @@ try {
     },
   );
 } finally {
+  // Leave no device PIN behind: after a cold boot it keeps the user's storage
+  // locked until someone enters it, and later runs then hang.
+  try {
+    shell('locksettings', 'clear', '--old', DEVICE_PIN);
+  } catch {
+    // No device lock was set.
+  }
   for (const result of results) {
     process.stdout.write(`AJ1_BIOMETRIC ${JSON.stringify(result)}\n`);
   }

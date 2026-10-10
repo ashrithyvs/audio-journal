@@ -94,8 +94,13 @@ try {
     await sleep(5_000);
     await liveTap({ id: 'recording-pause' });
     await liveWaitFor({ id: 'recording-resume' });
+    // Native progress events and the pause result reach JS separately, so
+    // the capture thread's last progress event (audio sealed before the pause
+    // took effect) can land just after the paused UI appears. Let it settle,
+    // then require that the paused timer does not move.
+    await sleep(1_000);
     const paused = seconds(liveTextOf({ id: 'recording-timer' }));
-    await sleep(2_000);
+    await sleep(2_500);
     // A paused capture does not advance.
     if (seconds(liveTextOf({ id: 'recording-timer' })) !== paused) {
       throw new Error('timer advanced while paused');

@@ -942,16 +942,20 @@ try {
     report.journalScreen = journal.selector.id ?? journal.selector.text;
     note('journal usable without node');
     node = await startNode({ name: 'AJ Study Node', stateDir, port });
-    await openNodeScreen();
-    const reconnect = d.find(d.dump(), { id: 'reconnect' });
-    if (reconnect) await d.tap({ id: 'reconnect' });
+    // No Reconnect tap: a node request must complete on its own once the
+    // node is back, and that result alone must bring the status back to
+    // Connected (UX §7.1).
     const back = await requestUntil('completed', {
       target: 'node',
       input: 'Node restarted check entry.',
       timeoutMs: 120_000,
     });
-    expect(back.phase === 'completed', `no reconnect: ${JSON.stringify(back)}`);
-    note('reconnected after node restart');
+    expect(
+      back.phase === 'completed',
+      `no node result without a tap: ${JSON.stringify(back)}`,
+    );
+    report.nodeBackWithoutTap = true;
+    note('node result after restart, no tap');
     const backLabel = await labelAfterRecovery();
     report.nodeBackLabel = backLabel.label;
     if (!backLabel.connected)
