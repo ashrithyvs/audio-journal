@@ -51,9 +51,56 @@ Exit: voice/written capture, pause/resume, restart, playback, transcript, recove
 offline use, verified backup, app-data-clear restore, and byte-identical recording
 round-trip pass without a node; STT failure never loses audio.
 
+**AJ-1 exit evidence** (owner, 2026-10-10). AJ-1's exit gate is its own work
+and suites:
+
+- recording with pause/resume and interruption handling;
+- AJR1 playback;
+- transcription directly from encrypted recordings;
+- startup recording reconciliation and storage-pressure enforcement;
+- AJB1 export, empty-vault restore, and their UI;
+- the biometric unlock emulator test;
+- voice-entry end-to-end, long-recording, and repeated-session tests;
+- unit, smoke, integration, recovery, load, and performance baselines.
+
+With emulator-only evidence, the Android implementation can be called
+**provisionally complete**. Final acceptance still needs the
+physical-device Argon2id and performance gate, which is deferred, not
+waived. iOS needs macOS and Xcode.
+
+**Merge gate: AJ-3 regression.** The AJ-3 secure-node suite (S00–S19) is not
+part of AJ-1's exit gate. It runs against AJ-1 builds to answer one question:
+did the persistent vault, navigation, storage, or lifecycle changes break the
+implemented AJ-3 workflow?
+
+- A failure caused by an AJ-1 regression blocks merging AJ-1 into `main`.
+- An outdated AJ-3 harness assumption is fixed in the harness, without
+  weakening its assertions.
+- Each failure is classified as an application regression, an SDK
+  regression, an outdated harness assumption, or a test-environment failure.
+- An interim run against `app-release-94604ca.apk` is an early compatibility
+  check. The full suite runs again against the final AJ-1 APK before the
+  merge.
+
+**Order** (owner, 2026-10-10):
+
+1. Interim AJ-3 S00–S19 run against `app-release-94604ca.apk`.
+2. The AJ-1 recorder.
+3. Playback and startup reconciliation.
+4. Transcription directly from AJR1.
+5. AJB1 export/restore and its UI.
+6. The biometric emulator test.
+7. The voice-entry, load, and performance suites.
+8. The final AJ-1 APK.
+9. A full AJ-3 regression against that APK.
+10. AJ-2 begins in `node-companion/` and the mobile integration layer.
+
 ## 4. AJ-2 — Application-owned organization
 
-- Freeze and version `journal.organize@1` request/result/event JSON schemas.
+- Freeze and version `journal.organize@1` request/result/event JSON schemas,
+  provenance rules, and vectors (`schemas/journal/v1/`) before implementation.
+- Build the node companion as a separately deployed subproject,
+  `node-companion/`, in this repository (ADR-018).
 - Implement explicit selection/consent, SDK streaming adapter, terminal validation,
   derivation revisions, tasks, and source-reference navigation.
 - Cover malformed output, provenance escape, timeout, cancellation, retry, and

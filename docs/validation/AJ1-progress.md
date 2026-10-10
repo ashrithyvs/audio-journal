@@ -27,7 +27,11 @@ neither uses nor changes it.
 - superseded live rows are kept, frozen, hidden, and bounded at 4 000;
 - AJR1 per-recording keys and indexed frames;
 - AJB1 §9 frozen for implementation once its conditions passed;
-- the physical-device gates are deferred, not waived.
+- the physical-device gates are deferred, not waived;
+- AJ-1's exit gate is its own suites. AJ-3 S00–S19 is a merge gate, not part
+  of AJ-1's exit gate (roadmap §3);
+- the node companion stays in this repository as `node-companion/`, a
+  separate deployable (ADR-018 clarified).
 
 ## 1. Implemented
 
@@ -108,7 +112,7 @@ budgets.
 | AJ-1 requirement | Status |
 |---|---|
 | Encrypted SQLite and migrations | **Done.** Host, emulator, and device smoke pass. |
-| Vault, persistent PIN, independent PIN and biometric copies | **Done** on the emulator. The `BiometricPrompt` flow has no emulator test yet (no enrolled biometric). |
+| Vault, persistent PIN, independent PIN and biometric copies | **Done** on the emulator. The `BiometricPrompt` flow has no test yet. It **can** run on the emulator with an enrolled fingerprint, so it is scheduled, not deferred (roadmap §3, step 6). |
 | Argon2id parameters, memory/latency acceptance, AJB1 production profile | **Deferred.** They need the lowest-supported **physical** Android device, and none is available. Not waived and not reported as passed. |
 | AJR1 container | **Codec done** (JVM and cross-implementation). Next: native `AudioRecord` writer, playback, and pause, resume, and interruption handling. |
 | whisper.cpp on decrypted AJR1 PCM; live provisional text | **Not started.** The port change is next; window parameters stay Open. |
@@ -117,3 +121,13 @@ budgets.
 | AJB1 backup and restore | Format frozen; production codec and UI are next. |
 | Device load and performance (long recordings, repeated sessions, RTF, RSS, thermal) | After the recorder; in exclusive runs. |
 | iOS | No evidence. Needs macOS and Xcode. |
+
+**AJ-3 compatibility (merge gate).** The AJ-3 track has an interim S00–S19
+run going against `app-release-94604ca.apk` on `emulator-5556`, writing to
+a new evidence directory:
+
+- SHA-256 `98d3ee40a87a6f928b703acc17c043523fe786247d6dabb85b54760482b3d1ab`;
+- built from the content committed at `94604ca`.
+
+The APK has no recording, playback, backup, or recording-based
+transcription, so the full suite runs again against the final AJ-1 APK.

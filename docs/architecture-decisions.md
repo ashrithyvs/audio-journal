@@ -471,6 +471,15 @@ for v0.1 and keeps ADR-010/011 intact.
   jobs/streaming, ADR-022 pairing/mutual TLS). It is checked against the
   SDK's published vectors and against the packaged SDK on device. No SDK
   source is copied or imported.
+- **What "separate" means** (owner clarification, 2026-10-10). The companion
+  is a separately built and deployed process, kept as a subproject of this
+  repository (`node-companion/`). It is not a separate Git repository: Audio
+  Journal owns `journal.organize@1`, so its server lives here.
+  - It is not bundled into the Android or iOS application.
+  - It is not part of the Hybrid AI SDK repository or its reference node.
+  - It imports no SDK-private source.
+  - It communicates only through the SDK's published node protocol.
+  - It uses the authoritative schemas and vectors in `schemas/journal/v1/`.
 - **Client path.** The mobile app invokes the capability only through the
   SDK public API (`execution: 'node'`), after an explicit user selection,
   sending only finalized transcript or written text with segment IDs and
