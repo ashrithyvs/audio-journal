@@ -179,6 +179,44 @@ describe('connection presentation', () => {
     });
   });
 
+  it('offers Reconnect exactly where it applies, and repair only for trust (F3)', () => {
+    const active = one();
+    const offers = (
+      state: Parameters<typeof presentConnection>[0],
+      focus = active,
+      connecting = false,
+    ) => {
+      const shown = presentConnection(state, focus, connecting);
+      return [shown.label, shown.canReconnect, shown.repairNodeId ?? null];
+    };
+    expect(offers('connected')).toEqual(['Connected', false, null]);
+    expect(offers('connected', active, true)).toEqual([
+      'Connecting securely…',
+      false,
+      null,
+    ]);
+    expect(offers('reconnecting')).toEqual(['Reconnecting…', true, null]);
+    expect(offers('unavailable')).toEqual(['Unavailable', true, null]);
+    expect(offers('authentication_failed')).toEqual([
+      'Identity check failed',
+      true,
+      null,
+    ]);
+    expect(offers('none')).toEqual(['Not connected', true, null]);
+    expect(offers('revoked')).toEqual(['Trust revoked', false, NODE_ID]);
+    expect(
+      offers(
+        'connected',
+        one(pairedRecord({ state: 'credential_unavailable' })),
+      ),
+    ).toEqual(['Pairing key unavailable', false, NODE_ID]);
+    expect(offers('none', focusStatus([], undefined))).toEqual([
+      'No node paired',
+      false,
+      null,
+    ]);
+  });
+
   it('never keeps showing Connected after a node request failed (AJ3-REV-003)', () => {
     const active = one();
     const mark = (code: string) => ({ nodeId: NODE_ID, code });

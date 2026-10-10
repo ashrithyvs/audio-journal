@@ -349,6 +349,79 @@ describe('connection and forget', () => {
   });
 });
 
+describe('link failure after recovery (AJ-3 report F3)', () => {
+  const failedConnect = run(
+    [
+      {
+        type: 'SNAPSHOT',
+        status: { state: 'unavailable', nodeId: NODE_ID },
+        paired: [pairedRecord()],
+      },
+      { type: 'CONNECT_STARTED', at: 0 },
+      {
+        type: 'CONNECT_FINISHED',
+        at: 9,
+        failure: { code: 'NODE_UNAVAILABLE' },
+      },
+    ],
+    ready,
+  );
+
+  it('clears the failed connect once the SDK reconnects by itself', () => {
+    expect(failedConnect.link.failure).toEqual({ code: 'NODE_UNAVAILABLE' });
+    const recovered = run(
+      [
+        { type: 'STATUS', status: { state: 'reconnecting', nodeId: NODE_ID } },
+        { type: 'STATUS', status: { state: 'connected', nodeId: NODE_ID } },
+      ],
+      failedConnect,
+    );
+    expect(recovered.link.mark).toBeUndefined();
+    expect(recovered.link.failure).toBeUndefined();
+  });
+
+  it('keeps it while the only "connected" seen is stale', () => {
+    const stale = run(
+      [{ type: 'STATUS', status: { state: 'connected', nodeId: NODE_ID } }],
+      run(
+        [
+          {
+            type: 'SNAPSHOT',
+            status: { state: 'connected', nodeId: NODE_ID },
+            paired: [pairedRecord()],
+          },
+          { type: 'CONNECT_STARTED', at: 0 },
+          {
+            type: 'CONNECT_FINISHED',
+            at: 9,
+            failure: { code: 'NODE_UNAVAILABLE' },
+          },
+        ],
+        ready,
+      ),
+    );
+    expect(stale.link.failure).toEqual({ code: 'NODE_UNAVAILABLE' });
+    expect(stale.link.mark).toBeDefined();
+  });
+
+  it('keeps a failed forget, which no contact resolves', () => {
+    const kept = run(
+      [
+        { type: 'FORGET_STARTED', at: 20 },
+        {
+          type: 'FORGET_FINISHED',
+          nodeId: NODE_ID,
+          failure: { code: 'CREDENTIAL_UNAVAILABLE' },
+        },
+        { type: 'STATUS', status: { state: 'reconnecting', nodeId: NODE_ID } },
+        { type: 'STATUS', status: { state: 'connected', nodeId: NODE_ID } },
+      ],
+      failedConnect,
+    );
+    expect(kept.link.failure).toEqual({ code: 'CREDENTIAL_UNAVAILABLE' });
+  });
+});
+
 describe('capability request', () => {
   const running = run(
     [

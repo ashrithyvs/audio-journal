@@ -182,4 +182,8 @@ it('clears a stale failure after the next successful node request', async () => 
   expect(view.getByTestId('node-connection-state')).toHaveTextContent(
     'Connected',
   );
+  // The reconciling connect's failure is history once the node answered:
+  // no stale notice, and no Reconnect beside Connected (AJ-3 report F3).
+  expect(view.queryByTestId('link-failure')).toBeNull();
+  expect(view.queryAllByText('Reconnect')).toHaveLength(0);
 });

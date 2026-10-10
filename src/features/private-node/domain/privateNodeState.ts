@@ -102,6 +102,30 @@ function followStatus(
   return mark.sawDisconnect ? undefined : mark;
 }
 
+/**
+ * When authenticated contact clears the mark, the failed connect that set it
+ * is resolved too, so a recovered node shows no stale notice beside
+ * Connected (AJ-3 report F3). Any other failure, such as a failed forget,
+ * stays until the user acts on it.
+ */
+function failureAfter(
+  link: LinkState,
+  mark: LinkFailureMark | undefined,
+): HybridAiFailure | undefined {
+  return link.mark && !mark && link.failure?.code === link.mark.code
+    ? undefined
+    : link.failure;
+}
+
+/** A new SDK status and the mark that follows from it. */
+function followLink(
+  link: LinkState,
+  status: NodeLinkStatus,
+  mark: LinkFailureMark | undefined,
+): LinkState {
+  return { ...link, status, mark, failure: failureAfter(link, mark) };
+}
+
 interface RequestBase {
   requestId: string;
   execution: ExecutionTarget;
@@ -366,7 +390,11 @@ function reduceRequest(
         // Only a node completion is authenticated contact with the node.
         link:
           update.target === 'node'
-            ? { ...state.link, mark: undefined }
+            ? {
+                ...state.link,
+                mark: undefined,
+                failure: failureAfter(state.link, undefined),
+              }
             : state.link,
         request: {
           phase: 'completed',
@@ -448,28 +476,27 @@ export function privateNodeReducer(
         ...state,
         paired: action.paired,
         capabilities: action.capabilities ?? state.capabilities,
-        link: {
-          ...state.link,
-          status: action.status,
+        link: followLink(
+          state.link,
+          action.status,
           // The SDK reports which node revoked trust; remember it exactly.
-          mark:
-            action.status.state === 'revoked' && action.status.nodeId
-              ? {
-                  nodeId: action.status.nodeId,
-                  code: 'NODE_TRUST_REVOKED',
-                  sawDisconnect: true,
-                }
-              : followStatus(state.link.mark, action.status),
-        },
+          action.status.state === 'revoked' && action.status.nodeId
+            ? {
+                nodeId: action.status.nodeId,
+                code: 'NODE_TRUST_REVOKED',
+                sawDisconnect: true,
+              }
+            : followStatus(state.link.mark, action.status),
+        ),
       };
     case 'STATUS':
       return {
         ...state,
-        link: {
-          ...state.link,
-          status: action.status,
-          mark: followStatus(state.link.mark, action.status),
-        },
+        link: followLink(
+          state.link,
+          action.status,
+          followStatus(state.link.mark, action.status),
+        ),
       };
     case 'CONNECT_STARTED':
       return state.link.operation === 'idle'

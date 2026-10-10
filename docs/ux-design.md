@@ -169,7 +169,10 @@ missing or invalid.
   securely…, Connected, Reconnecting…, Unavailable, Identity check failed, Trust
   revoked, or Pairing key unavailable. It names the active node, shows a short
   node ID, and offers one recovery action: Reconnect, Pair a node, or Forget and
-  pair again.
+  pair again. A failure notice explains what happened but carries no action
+  of its own, so Reconnect appears once, and only where it applies
+  (Not connected, Reconnecting…, Unavailable, Identity check failed); never
+  beside Connected or while connecting (AJ-3 report F3).
 - **Status after a failed request** (AJ3-REV-001/003). A request that fails on
   the link is direct evidence, so the pill changes at once; it never keeps
   saying Connected:
@@ -183,8 +186,9 @@ missing or invalid.
   retried automatically. The status returns to Connected only after a
   later successful contact, or after an explicit recovery. Successful contact
   is a node result, a successful reconnect, or the SDK's own reconnect when
-  the network returns, which needs no tap. A stale "connected" never
-  counts. The Diary keeps working
+  the network returns, which needs no tap. That contact also clears the
+  notice of the failed connection attempt; a failed Forget stays until the
+  user acts on it. A stale "connected" never counts. The Diary keeps working
   throughout.
 - **Revoked or unusable trust.** The SDK deactivates a node whose trust
   failed, so there may be no active node.
