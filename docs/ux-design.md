@@ -160,7 +160,10 @@ missing or invalid.
   The app then makes at most one secure connection attempt, single-flight
   and debounced, so the SDK stores the real state. The request is never
   retried automatically. The status returns to Connected only after a
-  later successful contact or an explicit recovery. The Diary keeps working
+  later successful contact, or after an explicit recovery. Successful contact
+  is a node result, a successful reconnect, or the SDK's own reconnect when
+  the network returns, which needs no tap. A stale "connected" never
+  counts. The Diary keeps working
   throughout.
 - **Revoked or unusable trust.** The SDK deactivates a node whose trust
   failed, so there may be no active node.

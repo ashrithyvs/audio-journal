@@ -501,6 +501,7 @@ describe('link failure marks (AJ3-REV-001/003)', () => {
     expect(failed('NODE_TRUST_REVOKED').link.mark).toEqual({
       nodeId: NODE_ID,
       code: 'NODE_TRUST_REVOKED',
+      sawDisconnect: false, // the SDK still says "connected" (stale)
     });
     // A request-level failure says nothing about the link.
     expect(failed('INVALID_INPUT').link.mark).toBeUndefined();
@@ -562,9 +563,29 @@ describe('link failure marks (AJ3-REV-001/003)', () => {
       ],
       ready,
     );
-    expect(revoked.link.mark).toEqual({
+    expect(revoked.link.mark).toMatchObject({
       nodeId: NODE_ID,
       code: 'NODE_TRUST_REVOKED',
     });
+  });
+
+  it('ignores a stale "connected" but clears on a fresh reconnect by the SDK', () => {
+    const snapshot = (
+      state: 'connected' | 'unavailable',
+    ): PrivateNodeAction => ({
+      type: 'SNAPSHOT',
+      status: { state, nodeId: NODE_ID },
+      paired: [pairedRecord()],
+    });
+    const marked = failed('NODE_UNAVAILABLE');
+    // Polling keeps reading the stale status: the failure stays shown.
+    expect(run([snapshot('connected')], marked).link.mark).toBeDefined();
+    // The reconciling connect failed, then the network came back and the
+    // SDK reconnected by itself (no Reconnect tap).
+    const recovered = run(
+      [snapshot('unavailable'), snapshot('connected')],
+      marked,
+    );
+    expect(recovered.link.mark).toBeUndefined();
   });
 });

@@ -75,7 +75,31 @@ function markFor(
   }
   const nodeId =
     state.paired.find(node => node.active)?.nodeId ?? state.link.status.nodeId;
-  return nodeId ? { nodeId, code: failure.code } : undefined;
+  return nodeId
+    ? {
+        nodeId,
+        code: failure.code,
+        sawDisconnect: state.link.status.state !== 'connected',
+      }
+    : undefined;
+}
+
+/**
+ * Follows the SDK status: a "connected" that comes after a non-connected
+ * status seen since the failure is fresh authenticated contact and clears
+ * the mark; a stale "connected" never does (AJ3-REV-003).
+ */
+function followStatus(
+  mark: LinkFailureMark | undefined,
+  status: NodeLinkStatus,
+): LinkFailureMark | undefined {
+  if (!mark || (status.nodeId && status.nodeId !== mark.nodeId)) {
+    return mark;
+  }
+  if (status.state !== 'connected') {
+    return mark.sawDisconnect ? mark : { ...mark, sawDisconnect: true };
+  }
+  return mark.sawDisconnect ? undefined : mark;
 }
 
 interface RequestBase {
@@ -430,12 +454,23 @@ export function privateNodeReducer(
           // The SDK reports which node revoked trust; remember it exactly.
           mark:
             action.status.state === 'revoked' && action.status.nodeId
-              ? { nodeId: action.status.nodeId, code: 'NODE_TRUST_REVOKED' }
-              : state.link.mark,
+              ? {
+                  nodeId: action.status.nodeId,
+                  code: 'NODE_TRUST_REVOKED',
+                  sawDisconnect: true,
+                }
+              : followStatus(state.link.mark, action.status),
         },
       };
     case 'STATUS':
-      return { ...state, link: { ...state.link, status: action.status } };
+      return {
+        ...state,
+        link: {
+          ...state.link,
+          status: action.status,
+          mark: followStatus(state.link.mark, action.status),
+        },
+      };
     case 'CONNECT_STARTED':
       return state.link.operation === 'idle'
         ? {

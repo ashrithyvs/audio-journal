@@ -23,6 +23,12 @@ export interface ConnectionPresentation {
 export interface LinkFailureMark {
   nodeId: string;
   code: string;
+  /**
+   * The SDK has reported a non-connected status since the failure. A later
+   * "connected" then means a fresh authenticated connect (for example the
+   * SDK's own reconnect when the network returns), not the stale status.
+   */
+  sawDisconnect?: boolean;
 }
 
 /** Failure codes that describe the node link rather than one request. */
