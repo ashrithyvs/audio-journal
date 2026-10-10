@@ -59,8 +59,9 @@ export type TranscriptRejection =
 
 // C0 controls except tab/newline, DEL, C1 controls, and bidi embeddings,
 // overrides, and isolates. Zero-width joiners stay: user text may use emoji.
-// eslint-disable-next-line no-control-regex -- removing controls is the point.
-const UNSAFE_CHARS = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f‪-‮⁦-⁩]/g;
+const UNSAFE_CHARS =
+  // eslint-disable-next-line no-control-regex -- removing controls is the point.
+  /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g;
 
 export function normalizeSegmentText(text: string): string {
   return text.replace(UNSAFE_CHARS, '').replace(/\s+/g, ' ').trim();

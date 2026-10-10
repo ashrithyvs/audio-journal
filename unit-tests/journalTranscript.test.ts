@@ -54,7 +54,7 @@ describe('engine segment validation', () => {
         [
           { t0Ms: 0, t1Ms: 500, text: '  hello\n\tworld ' },
           { t0Ms: 500, t1Ms: 900, text: '   ' },
-          { t0Ms: 900, t1Ms: 1_000, text: 'a‮b\u0007c' },
+          { t0Ms: 900, t1Ms: 1_000, text: 'a\u202eb\u0007c' },
         ],
         1_000,
       ),
@@ -121,7 +121,7 @@ describe('engine segment validation', () => {
   });
 
   it('strips control and bidi-override characters', () => {
-    expect(normalizeSegmentText('⁦a\u0000b⁩')).toBe('ab');
+    expect(normalizeSegmentText('\u2066a\u0000b\u2069')).toBe('ab');
   });
 });
 

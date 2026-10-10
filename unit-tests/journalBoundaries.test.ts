@@ -78,3 +78,25 @@ it('never logs from domain or storage code', () => {
     }
   }
 });
+
+it('keeps invisible control, format, and bidi characters out of AJ-1 source', () => {
+  // Escapes such as "\\u202e" are fine; the literal characters are not, because
+  // they render invisibly or reorder code in review (Trojan Source).
+  const invisible = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u;
+  const testFiles = [
+    'unit-tests',
+    'integration-tests',
+    'smoke-tests',
+    'performance-tests',
+    'test',
+  ]
+    .flatMap(directory => files(path.join(root, directory)))
+    .filter(file => /journal|backup/i.test(path.basename(file)));
+  for (const file of [
+    ...layers.flatMap(layer => files(path.join(root, layer))),
+    ...testFiles,
+  ]) {
+    const text = fs.readFileSync(file, 'utf8').replace(/\n/g, '');
+    expect([file, invisible.test(text)]).toEqual([file, false]);
+  }
+});
