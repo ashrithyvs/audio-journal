@@ -1,10 +1,12 @@
 # AJ-3 Android Validation: Secure Private AI Node Workflow
 
-**Status: the AJ-3 node workflow passes on Android with the fix build
-`72ee323`. The AJ-3 milestone is not accepted yet.**
+**Status: the AJ-3 node workflow passes on Android on the final AJ-1 build
+`6f2b36b`, which is the merge-gate regression. The AJ-3 milestone is not
+accepted yet.**
 
 | Build | What it is | Fresh S00–S19 | Notes |
 |---|---|---|---|
+| `6f2b36b` | Final AJ-1 APK: the fix plus recorder, playback, transcription, AJB1 backup/restore, and a scrolling Settings screen | **20 / 20 pass** | Merge-gate run, 2026-10-10 23:18–23:58 (§8.3) |
 | `72ee323` | AJ-1 (`94604ca`, `dc300cd`) plus the status fixes `0ced9a6` and `72ee323`; branch `aj1/domain-core` | **20 / 20 pass** | One non-resumed run; full-run log scan; persistent PIN (§8) |
 | `94604ca` | AJ-1 checkpoint 2, before the fix | 17 / 20 | S12, S13, S17 failed (F1, F2); no AJ-1 regression |
 | `52cb23d` | `main` today | 17 / 20 (composite run, §3) | The same three failures |
@@ -26,8 +28,9 @@
   - an explicit target never switched;
   - no PIN, pairing secret, or typed input appeared in the device log.
 - **Not accepted yet, because:**
-  - the fix is on `aj1/domain-core` and is not on `main`; the merge is gated
-    and not part of this work;
+  - the fix is on `aj1/domain-core` and is not on `main`. The merge-gate
+    regression has passed (§8.3), but the merge itself is not part of this
+    work;
   - the roadmap exit ("pair, organize, reconnect, forget the node, and
     continue using the local journal without developer tools or content
     loss", roadmap §5) and the "minimum transcript content" check also need
@@ -383,11 +386,46 @@ Timings for the full `72ee323` run (development figures, not budgets):
 Step times: S02 74.2 s, S08 249.3 s, S12 248.7 s, S13 247.8 s, S17 237.8 s.
 The others range from 0.7 s to 186.8 s.
 
+### 8.3 Final AJ-1 APK `6f2b36b`: merge-gate regression, 20 of 20
+
+- **APK:** `app-release-6f2b36b.apk`, SHA-256
+  `cb4ff897c085e3aef2364c760c1c243df35258a0794b7ed7e0b9f3fa477f4b7d`.
+  `hybridai-81` built it from a clean checkout of `aj1/domain-core` `6f2b36b`;
+  it is not merged and not pushed.
+- **Contents:** the validated status fixes (`0ced9a6`, `72ee323`) plus the
+  AJ-1 recorder, playback, transcription, AJB1 backup and restore, and a
+  Settings screen that now scrolls.
+- **Run:**
+  - one fresh, non-resumed run with `--expect-persistent-pin`, 2026-10-10
+    23:18–23:58 IST;
+  - `emulator-5556`, headless;
+  - harness `84d3b4c`, whose only change since `ccef770` scrolls Settings to
+    the top before navigating;
+  - attempt 1, no resumed steps, provenance complete.
+- **Evidence:** `e2e/speech/results/aj3-final-6f2b36b/`.
+- **Result: 20 of 20 pass.**
+  - S12: "Unavailable" (`NODE_UNAVAILABLE` / `node_unreachable`), then
+    "Connected" after recovery.
+  - S13: "Unavailable" with the node stopped, then "Connected"; the Diary
+    stayed usable.
+  - S15: the persistent PIN asks to unlock after process death.
+  - S17: "Trust revoked" with "Forget and pair again".
+  - S18: "Identity check failed".
+  - S19: 11.6 MB scanned, coverage "run", clean.
+- **Timings (development figures):**
+  - cold launch 634 ms;
+  - SDK start 33 ms;
+  - discovery first result 31 ms;
+  - connect 52 ms;
+  - first event / response 27 / 80 ms;
+  - process restart 636 ms, reconnect 85 ms.
+
 ## 9. Limitations and remaining work
 
-- Run S00–S19 once more, fresh, on the final AJ-1 APK that is merged
-  (`aj1/domain-core`, including the F3 change). `main` keeps F1 and F2 until
-  then.
+- `main` keeps F1 and F2 until `aj1/domain-core` is merged. The merge-gate
+  regression on `6f2b36b` has passed (§8.3).
+- F3 (duplicate "Reconnect") is to be re-checked when `hybridai-81`'s change
+  lands.
 - AJ-3 milestone exit: needs AJ-1 and AJ-2 (organize through
   `journal.organize@1`, minimum transcript content sent).
 - Camera QR scanning is deferred (ADR-015).
