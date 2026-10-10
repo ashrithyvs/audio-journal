@@ -190,6 +190,7 @@ export async function tap(selector, { timeoutMs = 20_000 } = {}) {
 export async function typeInto(selector, value) {
   await tap(selector);
   // `input text` needs spaces escaped; pairing codes are URL-safe base64.
+  // 80 characters per `input text`: longer strings drop characters under injection.
   const chunks = value.match(/.{1,80}/g) ?? [];
   for (const chunk of chunks) {
     shell(
@@ -210,11 +211,19 @@ export async function typeInto(selector, value) {
 }
 
 export async function clearField(selector) {
-  await tap(selector);
-  shell('input', 'keyevent', 'KEYCODE_MOVE_END');
-  for (let index = 0; index < 4; index += 1) {
-    shell('input', 'keyevent', ...Array(80).fill('KEYCODE_DEL'));
+  // MOVE_END/HOME only reach the end of the *visual* line in a wrapping
+  // multiline field, so delete backward and then forward, and verify.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await tap(selector);
+    shell('input', 'keyevent', 'KEYCODE_MOVE_END');
+    shell('input', 'keyevent', ...Array(150).fill('KEYCODE_DEL'));
+    shell('input', 'keyevent', ...Array(150).fill('KEYCODE_FORWARD_DEL'));
+    await sleep(300);
+    const node = find(dump(), selector);
+    // An empty field may report its placeholder (e.g. 'hybrid-ai-pair:…').
+    if (node && (node.text === '' || node.text.endsWith('…'))) return;
   }
+  throw new Error(`could not clear ${describe(selector)}`);
 }
 
 export function textOf(selector) {
@@ -341,4 +350,25 @@ export function quietKeyboard() {
       // keyboard not installed on this image
     }
   }
+}
+
+/**
+ * Pastes `value` into a field via the test fixture's clipboard receiver
+ * (a background broadcast, so the app does not relock). Returns false if the
+ * field did not end up holding exactly `value`, so callers can fall back.
+ */
+export async function pasteInto(selector, value) {
+  // -f 32 (FLAG_INCLUDE_STOPPED_PACKAGES) reaches the fixture even if idle.
+  shell(
+    `am broadcast -f 32 -n ${NSD_FIXTURE}/.ClipReceiver --es clip '${value}'`,
+  );
+  await tap(selector);
+  shell('input', 'keyevent', 'KEYCODE_PASTE');
+  const deadline = Date.now() + 8_000;
+  while (Date.now() < deadline) {
+    const node = find(dump(), selector);
+    if (node && node.text === value) return true;
+    await sleep(300);
+  }
+  return false;
 }

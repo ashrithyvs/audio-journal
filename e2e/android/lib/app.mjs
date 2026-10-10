@@ -57,7 +57,11 @@ export async function pairWithNode(node, { lifetimeSeconds = 300 } = {}) {
     : { text: 'Pair another node' };
   await d.tap(pairButton);
   const { qr } = await node.bootstrap(lifetimeSeconds);
-  await d.typeInto({ id: 'pairing-code-input' }, qr);
+  // Paste via the test fixture when installed; otherwise type the code.
+  if (!(await d.pasteInto({ id: 'pairing-code-input' }, qr))) {
+    await d.clearField({ id: 'pairing-code-input' });
+    await d.typeInto({ id: 'pairing-code-input' }, qr);
+  }
   d.shell('input', 'keyevent', 'KEYCODE_ENTER');
   await d.tap({ id: 'begin-pairing' });
   await d.waitFor({ id: 'verification-code' }, { timeoutMs: 30_000 });

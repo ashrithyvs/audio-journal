@@ -30,15 +30,56 @@ const { values: args } = parseArgs({
     },
     only: { type: 'string' },
     'no-install': { type: 'boolean', default: false },
+    // Resume from <out>/checkpoint.json: same node identity and port, app data
+    // kept, already-passed steps skipped.
+    resume: { type: 'boolean', default: false },
   },
 });
 fs.mkdirSync(args.out, { recursive: true });
 
 const PIN = '482915';
 const results = [];
-const metrics = {};
 const evidence = [];
 let node;
+
+const checkpointFile = path.join(args.out, 'checkpoint.json');
+const checkpoint =
+  args.resume && fs.existsSync(checkpointFile)
+    ? JSON.parse(fs.readFileSync(checkpointFile, 'utf8'))
+    : undefined;
+if (args.resume && !checkpoint) throw new Error(`no checkpoint in ${args.out}`);
+const resumed = new Set((checkpoint?.passed ?? []).filter(id => id !== 'S00'));
+const metrics = { ...(checkpoint?.metrics ?? {}) };
+const state = { usedCode: checkpoint?.usedCode };
+
+function saveCheckpoint() {
+  const passed = results.filter(r => r.result === 'pass').map(r => r.id);
+  fs.writeFileSync(
+    checkpointFile,
+    JSON.stringify(
+      {
+        savedAt: new Date().toISOString(),
+        passed,
+        node: node
+          ? {
+              stateDir: node.stateDir,
+              port: node.port,
+              nodeId: report.node?.nodeId,
+            }
+          : undefined,
+        usedCode: state.usedCode,
+        metrics,
+        report: Object.fromEntries(
+          Object.entries(report).filter(
+            ([key]) => !['results', 'metrics', 'counts'].includes(key),
+          ),
+        ),
+      },
+      null,
+      2,
+    ),
+  );
+}
 
 function note(label) {
   const text = d.snapshot();
@@ -49,6 +90,11 @@ function note(label) {
 let current = '';
 async function step(id, title, body) {
   if (args.only && !args.only.split(',').includes(id)) return;
+  if (resumed.has(id)) {
+    results.push({ id, title, result: 'pass', ms: 0, resumed: true });
+    process.stdout.write(`↷ ${id} ${title} (passed earlier; resumed)\n`);
+    return;
+  }
   current = `${id} ${title}`;
   const started = Date.now();
   process.stdout.write(`▶ ${current}\n`);
@@ -56,6 +102,7 @@ async function step(id, title, body) {
     await body();
     results.push({ id, title, result: 'pass', ms: Date.now() - started });
     process.stdout.write(`  ✓ pass (${Date.now() - started} ms)\n`);
+    saveCheckpoint();
   } catch (error) {
     const cause = error.cause
       ? ` (cause: ${error.cause.code ?? error.cause.message ?? error.cause})`
@@ -175,13 +222,19 @@ async function waitForConnection(label, timeoutMs = 45_000) {
 }
 
 async function enterCode(qr) {
-  await d.typeInto({ id: 'pairing-code-input' }, qr);
+  // Paste the full code through the fixture's clipboard helper; type it only
+  // if pasting did not produce the exact code.
+  const field = { id: 'pairing-code-input' };
+  if (!(await d.pasteInto(field, qr))) {
+    await d.clearField(field);
+    await d.typeInto(field, qr);
+  }
   d.shell('input', 'keyevent', 'KEYCODE_ENTER');
 }
 
 async function pairWithNode(
   target,
-  { confirm = true, lifetimeSeconds = 120 } = {},
+  { confirm = true, lifetimeSeconds = 300 } = {},
 ) {
   await openNodeScreen();
   const pairButton = d.find(d.dump(), { id: 'pair-node' })
@@ -215,7 +268,15 @@ async function runRequest({ target = 'auto', deadline = 30_000, input } = {}) {
   await d.scrollToTop();
   if (input !== undefined) {
     await d.clearField({ id: 'diag-input' });
-    await d.typeInto({ id: 'diag-input' }, input);
+    // Paste the exact text: key injection turned a leading '_' into 'V_'.
+    if (!(await d.pasteInto({ id: 'diag-input' }, input))) {
+      await d.clearField({ id: 'diag-input' });
+      await d.typeInto({ id: 'diag-input' }, input);
+    }
+    expect(
+      d.textOf({ id: 'diag-input' }) === input,
+      `diagnostic input is ${JSON.stringify(d.textOf({ id: 'diag-input' }))}`,
+    );
     await d.hideKeyboard();
     // Blur the field: a blinking cursor keeps uiautomator from idling.
     await d.tap({ text: 'INPUT' });
@@ -258,16 +319,32 @@ const report = {
   apk: args.apk,
 };
 try {
-  if (!args['no-install']) {
-    d.adb('install', '-r', args.fixture);
+  d.adb('install', '-r', args.fixture);
+  // Never uninstall when resuming: the app's pairing must survive.
+  if (!args['no-install'] && !checkpoint)
     d.adb('uninstall', d.PACKAGE).toString();
-  }
 } catch {
   // not installed yet
 }
 
 try {
   await step('S00', 'clean install and reference node', async () => {
+    if (checkpoint) {
+      // Resume: same node identity and port; keep app data and pairing.
+      d.stopAdvertising();
+      d.quietKeyboard();
+      node = await startNode({
+        name: 'AJ Study Node',
+        stateDir: checkpoint.node.stateDir,
+        port: checkpoint.node.port,
+      });
+      report.node = { port: node.port, nodeId: await node.nodeId() };
+      expect(
+        report.node.nodeId === checkpoint.node.nodeId,
+        'checkpoint node identity changed',
+      );
+      return;
+    }
     if (!args['no-install']) {
       expect(args.apk && fs.existsSync(args.apk), '--apk is required');
       d.adb('install', '-r', args.apk);
@@ -420,14 +497,15 @@ try {
     },
   );
 
-  let usedCode;
   await step(
     'S06',
     'QR pairing with verification-code confirmation',
     async () => {
       const started = Date.now();
       // Long-lived so the replay below reaches the node instead of the expiry guard.
-      ({ qr: usedCode } = await pairWithNode(node, { lifetimeSeconds: 300 }));
+      ({ qr: state.usedCode } = await pairWithNode(node, {
+        lifetimeSeconds: 300,
+      }));
       metrics.pairingObservedMs = Date.now() - started;
       await openNodeScreen();
       await waitForConnection('Connected');
@@ -446,7 +524,7 @@ try {
   await step('S07', 'a used pairing code cannot be replayed', async () => {
     await openNodeScreen();
     await d.tap({ text: 'Pair another node' });
-    await enterCode(usedCode);
+    await enterCode(state.usedCode);
     const { selector } = await d.waitForAny([
       { id: 'begin-pairing' },
       { id: 'pairing-failure' },
@@ -519,7 +597,12 @@ try {
       `cancel: ${JSON.stringify(cancelled)}`,
     );
     note('cancelled');
-    await runRequest({ target: 'node', deadline: 5_000 });
+    // Re-enter the hold input: navigation can re-mount Diagnostics and reset it.
+    await runRequest({
+      target: 'node',
+      deadline: 5_000,
+      input: '__fixture_hold__',
+    });
     const expired = await requestOutcome(30_000);
     note('deadline');
     expect(

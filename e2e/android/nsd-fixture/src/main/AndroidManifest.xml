@@ -2,5 +2,7 @@
   <uses-permission android:name="android.permission.INTERNET" />
   <application android:label="AJ NSD fixture">
     <activity android:name=".AdvertiseActivity" android:exported="true" />
+    <!-- Test-only clipboard helper for the device harness. -->
+    <receiver android:name=".ClipReceiver" android:exported="true" />
   </application>
 </manifest>
