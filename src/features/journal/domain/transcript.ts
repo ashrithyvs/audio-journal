@@ -67,10 +67,21 @@ export function normalizeSegmentText(text: string): string {
   return text.replace(UNSAFE_CHARS, '').replace(/\s+/g, ' ').trim();
 }
 
+// whisper.cpp marks stretches without speech with a bracketed annotation
+// ("[BLANK_AUDIO]", "[ Silence ]", "(wind blowing)"). A segment that is only
+// such an annotation holds no words, so it is dropped like an empty one; the
+// recording itself is unchanged.
+const NON_SPEECH = /^(?:\[[^[\]]*\]|\([^()]*\))$/;
+
+/** Whether normalized segment text holds words worth keeping. */
+export function isSpokenText(normalized: string): boolean {
+  return normalized !== '' && !NON_SPEECH.test(normalized);
+}
+
 /**
  * Validates one engine pass against the finalized recording duration. Empty
- * segments are dropped; anything else malformed rejects the whole pass so a
- * partial transcript is never stored as if it were complete.
+ * and non-speech segments are dropped; anything else malformed rejects the
+ * whole pass so a partial transcript is never stored as if it were complete.
  */
 export function validateEngineSegments(
   raw: readonly RawEngineSegment[],
@@ -107,7 +118,7 @@ export function validateEngineSegments(
     if (normalized.length > TRANSCRIPT_LIMITS.maxSegmentChars) {
       return { ok: false, reason: 'TEXT_TOO_LONG', index };
     }
-    if (normalized) {
+    if (isSpokenText(normalized)) {
       segments.push({
         startMs: t0Ms,
         endMs: Math.min(t1Ms, durationMs),
@@ -171,7 +182,8 @@ export interface TranscriptLine {
 }
 
 export interface TranscriptView {
-  kind: 'none' | 'provisional' | 'final';
+  /** `empty`: a full pass ran and found no speech. */
+  kind: 'none' | 'provisional' | 'final' | 'empty';
   engineRevision: number;
   modelId?: string;
   lines: TranscriptLine[];
@@ -181,6 +193,21 @@ export interface TranscriptView {
  * The transcript to show: the newest full engine pass with corrections applied,
  * or live provisional text until a full pass exists.
  */
+/** A logged full pass with no segments (for example, silence). */
+export function withEmptyPass(
+  view: TranscriptView,
+  lastPass: { engineRevision: number; modelId: string } | undefined,
+): TranscriptView {
+  return view.kind === 'none' && lastPass
+    ? {
+        kind: 'empty',
+        engineRevision: lastPass.engineRevision,
+        modelId: lastPass.modelId,
+        lines: [],
+      }
+    : view;
+}
+
 export function currentTranscript(
   records: readonly TranscriptSegmentRecord[],
 ): TranscriptView {

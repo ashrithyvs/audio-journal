@@ -1,16 +1,31 @@
+import NativeAudioJournalRecordings from '../native/NativeAudioJournalRecordings';
+import NativeAudioJournalSpeech from '../native/NativeAudioJournalSpeech';
 import NativeAudioJournalStore from '../native/NativeAudioJournalStore';
 import type { JournalServices } from '../features/journal/application/JournalContext';
 import { reconcileRecordings } from '../features/journal/application/startupReconciliation';
 import { UnavailableRecordingService } from '../features/journal/adapters/UnavailableRecordingService';
 import { createIdSource } from '../features/journal/domain/ids';
+import { NativeLiveTranscriber } from '../features/transcription/adapters/NativeLiveTranscriber';
+import { NativeRecordingTranscriber } from '../features/transcription/adapters/NativeRecordingTranscriber';
 import { migrate } from '../platform/storage/migrationRunner';
 import { openNativeJournalDatabase } from '../platform/storage/NativeSqlDriver';
 import { SqliteJournalRepository } from '../platform/storage/SqliteJournalRepository';
 import { SqliteTranscriptRepository } from '../platform/storage/SqliteTranscriptRepository';
+import { NativePlaybackService } from '../platform/recording/NativePlaybackService';
+import {
+  NativeRecordingService,
+  requestAndroidMicrophone,
+} from '../platform/recording/NativeRecordingService';
 
 export interface OpenedJournal {
   services: JournalServices;
   close(): Promise<void>;
+}
+
+/** What the unlocked shell lends the journal while it is open. */
+export interface JournalOpenContext {
+  /** Lock grace while the app's own system UI is open (ADR-017). */
+  expectSystemUi(): () => void;
 }
 
 /**
@@ -18,7 +33,9 @@ export interface OpenedJournal {
  * migrations, then startup reconciliation. A migration failure rejects with
  * MIGRATION_FAILED and changes nothing; the gate shows a recoverable error.
  */
-export async function openProductionJournal(): Promise<OpenedJournal> {
+export async function openProductionJournal(
+  context: JournalOpenContext,
+): Promise<OpenedJournal> {
   const store = NativeAudioJournalStore;
   if (!store) {
     throw new Error('STORE_UNAVAILABLE');
@@ -36,16 +53,35 @@ export async function openProductionJournal(): Promise<OpenedJournal> {
     ),
   );
   const journal = new SqliteJournalRepository(db);
-  const recorder = new UnavailableRecordingService();
-  // Skipped while there is no recorder: an absent scanner is not missing files.
-  await reconcileRecordings(journal, recorder, Date.now).catch(() => undefined);
+  const audio = NativeAudioJournalRecordings;
+  const native = audio
+    ? new NativeRecordingService(audio, () =>
+        requestAndroidMicrophone(context.expectSystemUi),
+      )
+    : undefined;
+  const recorder = native ?? new UnavailableRecordingService();
+  const playback = audio ? new NativePlaybackService(audio) : undefined;
+  const speech = audio ? NativeAudioJournalSpeech : null;
+  if (native) {
+    // A failure leaves rows as they were; the next unlock plans again.
+    await reconcileRecordings(journal, native, Date.now).catch(() => undefined);
+  }
   return {
     services: {
       journal,
       transcripts: new SqliteTranscriptRepository(db, ids),
       recorder,
+      playback,
+      // On-device transcription (ADR-016, ADR-017): final passes over sealed
+      // recordings, and live text while capturing.
+      transcriber: speech ? new NativeRecordingTranscriber(speech) : undefined,
+      live: speech ? new NativeLiveTranscriber(speech) : undefined,
       ids,
     },
-    close: () => db.close(),
+    close: async () => {
+      native?.detach();
+      await playback?.stop().catch(() => undefined);
+      await db.close();
+    },
   };
 }

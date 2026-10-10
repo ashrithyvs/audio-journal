@@ -10,24 +10,50 @@ import {
 // say about each recording. It never deletes: malformed or unknown files are
 // quarantined, and any authenticated audio stays recoverable.
 
-export interface RecordingFileScan {
+interface ScannedFile {
   relativePath: string;
-  /** Header authenticated with the recording key. */
+  /** The AJR1 header decodes (it is authenticated by every frame's AAD). */
   headerValid: boolean;
+  /** Current file length. */
+  fileBytes: number;
+}
+
+/** An unfinished capture, authenticated frame by frame. */
+export interface AuthenticatedFileScan extends ScannedFile {
+  check: 'authenticated';
   /** Leading chunks that authenticate in order. */
   authenticatedChunks: number;
   /** Audio covered by those chunks. */
   authenticatedMs: number;
   /** Bytes after the last authenticated chunk (a torn or corrupt tail). */
   trailingBytes: number;
-  /** Ciphertext bytes covered by the authenticated chunks. */
+  /**
+   * What follows the authenticated chunks: nothing, a torn final frame (a
+   * write cut short by a crash), or damage (an authentication or ordering
+   * failure, after which authentic frames may still exist).
+   */
+  tail: 'none' | 'torn' | 'damaged';
+  /** File length up to the end of the last authenticated chunk. */
   byteCount: number;
-  /** SHA-256 of the authenticated plaintext PCM, when every chunk was read. */
+  /** SHA-256 of the authenticated plaintext PCM, unless the file is damaged. */
   contentSha256?: string;
 }
 
+/**
+ * Any other file: header and length only, so the cost of each unlock does
+ * not grow with the archive. A finalized recording's stored `byteCount` is
+ * its exact file length; frames are authenticated when they are read
+ * (playback, transcription, backup).
+ */
+export interface HeaderFileScan extends ScannedFile {
+  check: 'header';
+}
+
+export type RecordingFileScan = AuthenticatedFileScan | HeaderFileScan;
+
 export type ReconciliationAction =
   | {
+      /** Completes as a ready recording with finish reason 'recovered'. */
       type: 'promote';
       recordingId: string;
       entryId: string;
@@ -35,6 +61,8 @@ export type ReconciliationAction =
       sealedChunks: number;
       byteCount: number;
       contentSha256: string;
+      /** Native code first truncates the torn final frame. */
+      dropTornTail: boolean;
     }
   | {
       type: 'mark_recoverable';
@@ -85,6 +113,10 @@ export function planReconciliation(
     const ids = { recordingId: recording.id, entryId: recording.entryId };
 
     if (NONTERMINAL.has(recording.state)) {
+      if (file?.check === 'header') {
+        // Not authenticated, so nothing about its audio can be decided.
+        continue;
+      }
       if (!file) {
         // A row written before the native file existed: nothing was captured.
         actions.push({ type: 'mark_failed', ...ids, cause: 'FILE_MISSING' });
@@ -93,12 +125,13 @@ export function planReconciliation(
       } else if (file.authenticatedChunks === 0) {
         actions.push({ type: 'mark_failed', ...ids, cause: 'NO_AUDIO' });
       } else if (
-        recording.state === 'finalizing' &&
-        file.trailingBytes === 0 &&
+        file.tail !== 'damaged' &&
         file.authenticatedChunks >= recording.sealedChunks &&
         isSha256Hex(file.contentSha256)
       ) {
-        // Finish was requested and every byte authenticates: complete it.
+        // Finished, interrupted by a lock, or cut short by a crash: every
+        // authenticated chunk is kept as a ready recording (ADR-017, owner
+        // decision 2026-10-10). Only a torn final frame is dropped.
         actions.push({
           type: 'promote',
           ...ids,
@@ -106,14 +139,17 @@ export function planReconciliation(
           sealedChunks: file.authenticatedChunks,
           byteCount: file.byteCount,
           contentSha256: file.contentSha256,
+          dropTornTail: file.tail === 'torn',
         });
       } else {
+        // Damage, or chunks known to be sealed are missing: keep every byte
+        // and ask the user (needs attention).
         actions.push({
           type: 'mark_recoverable',
           ...ids,
           durationMs: file.authenticatedMs,
           sealedChunks: file.authenticatedChunks,
-          dropTornTail: file.trailingBytes > 0,
+          dropTornTail: false,
         });
       }
     } else if (recording.state === 'ready') {
@@ -130,6 +166,17 @@ export function planReconciliation(
           ...ids,
           cause: 'HEADER_INVALID',
         });
+      } else if (file.check === 'header') {
+        if (file.fileBytes !== recording.byteCount) {
+          actions.push({
+            type: 'flag_source_damaged',
+            ...ids,
+            cause:
+              file.fileBytes < recording.byteCount
+                ? 'CHUNKS_MISSING'
+                : 'TRAILING_DATA',
+          });
+        }
       } else if (file.authenticatedChunks < recording.sealedChunks) {
         actions.push({
           type: 'flag_source_damaged',

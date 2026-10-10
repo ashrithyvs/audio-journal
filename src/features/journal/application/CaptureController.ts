@@ -17,7 +17,7 @@ import { reconcileAbnormalEnd } from './startupReconciliation';
 // reducer owns the visible outcome; the repository mirrors progress with
 // bounded loss. A database error during capture never stops the recorder: the
 // sealed file is the source of truth and startup reconciliation repairs rows.
-// Transcription is a separate operation and is not started from here.
+// Transcription is a separate operation; it is not started from here.
 
 export interface CaptureDependencies {
   journal: JournalRepository;
@@ -26,6 +26,11 @@ export interface CaptureDependencies {
   now: () => number;
   /** Progress is written at most this often while capturing. */
   progressIntervalMs?: number;
+  /**
+   * The ready recording's rows are stored. Follow-up work (the final
+   * transcription pass) is wired here by the owner, never started by capture.
+   */
+  onSaved?: (recordingId: string, durationMs: number) => void;
 }
 
 export interface CaptureSnapshot {
@@ -86,6 +91,10 @@ export class CaptureController {
     if (this.current().phase !== 'preparing') {
       return this.current();
     }
+    if (!(await recorder.requestMicrophone())) {
+      this.dispatch({ type: 'PREPARE_FAILED', refusal: 'MICROPHONE_DENIED' });
+      return this.current();
+    }
     // Rows first: a crash before the file exists reconciles to "no audio".
     await journal.createVoiceDraft({ entryId, recordingId, startedAt: now() });
     const prepared = await recorder.prepare(recordingId);
@@ -94,9 +103,31 @@ export class CaptureController {
       this.dispatch({ type: 'PREPARE_FAILED', refusal: prepared.refusal });
       return this.current();
     }
-    await recorder.start(recordingId, event => {
-      this.onEvent(event);
-    });
+    try {
+      await recorder.start(recordingId, event => {
+        this.onEvent(event);
+      });
+    } catch {
+      const session = this.current();
+      if (session.phase === 'preparing') {
+        // Nothing was captured: remove the header-only file and the draft.
+        await recorder.discard(recordingId).catch(() => undefined);
+        await journal.discardDraft(recordingId, now()).catch(() => undefined);
+        this.dispatch({
+          type: 'PREPARE_FAILED',
+          refusal: 'RECORDER_UNAVAILABLE',
+        });
+      } else if (session.phase === 'recording' || session.phase === 'paused') {
+        // Started before failing: whatever was sealed is kept.
+        this.dispatch({
+          type: 'ENDED_ABNORMALLY',
+          cause: 'RECORDER_FAILED',
+          capturedMs: session.capturedMs,
+          sealedChunks: session.sealedChunks,
+        });
+        await this.reconcileQuietly();
+      }
+    }
     return this.current();
   }
 
@@ -249,6 +280,7 @@ export class CaptureController {
           contentSha256: result.contentSha256,
           finishReason: session.reason,
         })
+        .then(() => this.deps.onSaved?.(session.recordingId, result.durationMs))
         // The file is sealed; the 'finalizing' row promotes at next startup.
         .catch(() => undefined);
     } else if (session.phase === 'failed') {

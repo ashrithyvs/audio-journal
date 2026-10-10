@@ -6,11 +6,13 @@ import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.audiojournal.specs.NativeAudioJournalVaultSpec
+import com.audiojournal.recording.ActiveAudio
+import com.audiojournal.recording.RecordingFiles
+import com.audiojournal.speech.RecordingJobs
 import com.audiojournal.store.JournalDatabase
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.UiThreadUtil
-import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.crypto.Cipher
@@ -19,7 +21,9 @@ import org.json.JSONObject
 /**
  * TurboModule over the ADR-017 vault. Results carry outcomes only; the master
  * key, KEKs, and biometric material never leave native code, and nothing is
- * logged. Locking or erasing closes the journal database first.
+ * logged. Locking or erasing first seals and closes any capture or playback
+ * and cancels recording transcriptions (zeroing recording keys), then closes
+ * the journal database.
  */
 class AudioJournalVaultModule(private val context: ReactApplicationContext) :
     NativeAudioJournalVaultSpec(context) {
@@ -118,6 +122,8 @@ class AudioJournalVaultModule(private val context: ReactApplicationContext) :
 
   override fun lock(promise: Promise) {
     executor.execute {
+      runCatching { ActiveAudio.closeAll() }
+      runCatching { RecordingJobs.cancelAll() }
       JournalDatabase.close()
       vault.lock()
       promise.resolve(null)
@@ -130,8 +136,10 @@ class AudioJournalVaultModule(private val context: ReactApplicationContext) :
         promise.reject("ERASE_NOT_CONFIRMED", "ERASE_NOT_CONFIRMED")
         return@execute
       }
+      runCatching { ActiveAudio.closeAll() }
+      runCatching { RecordingJobs.cancelAll() }
       JournalDatabase.deleteFiles(context)
-      File(context.noBackupFilesDir, "recordings").deleteRecursively()
+      RecordingFiles(context.noBackupFilesDir).eraseAll()
       vault.erase(biometric)
       promise.resolve(null)
     }

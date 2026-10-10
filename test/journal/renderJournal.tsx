@@ -9,6 +9,10 @@ import type {
   PlaybackEvent,
   PlaybackService,
 } from '../../src/features/journal/ports/PlaybackService';
+import type {
+  LiveTranscriber,
+  RecordingTranscriber,
+} from '../../src/features/journal/ports/RecordingTranscriber';
 import { openJournal } from '../sqlite/journalFixtures';
 import { FakeRecordingService } from './FakeRecordingService';
 
@@ -40,7 +44,12 @@ export class FakePlaybackService implements PlaybackService {
  * keeps it.
  */
 export async function journalHarness(
-  options: { playback?: PlaybackService; clock?: () => number } = {},
+  options: {
+    playback?: PlaybackService;
+    transcriber?: RecordingTranscriber;
+    live?: LiveTranscriber;
+    clock?: () => number;
+  } = {},
 ) {
   const context = await openJournal();
   const recorder = new FakeRecordingService();
@@ -49,6 +58,8 @@ export async function journalHarness(
     transcripts: context.transcripts,
     recorder,
     playback: options.playback,
+    transcriber: options.transcriber,
+    live: options.live,
     ids: context.ids,
     now: options.clock ?? (() => 1_760_000_000_000),
   };

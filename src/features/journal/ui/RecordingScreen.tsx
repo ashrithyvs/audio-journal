@@ -3,7 +3,11 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '../../../theme/colors';
 import { PrimaryButton } from '../../app-lock/ui/PrimaryButton';
-import { useCapture, useJournal } from '../application/JournalContext';
+import {
+  useCapture,
+  useJournal,
+  useLiveTranscript,
+} from '../application/JournalContext';
 import { formatDuration } from '../domain/format';
 import {
   isTerminal,
@@ -13,8 +17,8 @@ import { journalStyles } from './journalStyles';
 
 // Recording (UX §5, visual-design §6): time, level, live text, and controls.
 // No categories, AI status, or model names while the user speaks. Live text
-// appears only once on-device transcription is integrated; capture never
-// waits for it (ADR-017).
+// is a provisional draft from the on-device engine; capture never waits for
+// it, and the full pass after Finish replaces it (ADR-017).
 
 export function RecordingScreen({
   autoStart = true,
@@ -92,14 +96,7 @@ export function RecordingScreen({
         {statusLine(session)}
       </Text>
 
-      {capturing ? (
-        <View style={journalStyles.notice} testID="live-transcript">
-          <Text style={journalStyles.muted}>
-            Live transcript appears here when on-device transcription is
-            available. Your recording does not depend on it.
-          </Text>
-        </View>
-      ) : null}
+      {capturing ? <LiveText recordingId={session.recordingId} /> : null}
 
       {capturing && !confirmDiscard ? (
         <View style={journalStyles.row}>
@@ -243,6 +240,30 @@ export function statusLine(session: RecordingSessionState): string {
 
 // visual-design.md "Record" token; the shared theme has no record color yet.
 const RECORD = '#C85D43';
+
+function LiveText({ recordingId }: { recordingId: string }) {
+  const live = useLiveTranscript();
+  const lines = live?.recordingId === recordingId ? live.lines : [];
+  return (
+    <View style={journalStyles.notice} testID="live-transcript">
+      {lines.length > 0 ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={journalStyles.body}
+          testID="live-transcript-text"
+        >
+          {lines.map(line => line.text).join(' ')}
+        </Text>
+      ) : (
+        <Text style={journalStyles.muted}>
+          {live
+            ? 'Live text appears here after a few seconds. Your recording does not depend on it.'
+            : 'Live text is not available here. Your recording does not depend on it, and a transcript can be made after you finish.'}
+        </Text>
+      )}
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   meterTrack: {

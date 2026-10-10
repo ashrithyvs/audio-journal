@@ -107,3 +107,39 @@ it('keeps invisible control, format, and bidi characters out of AJ-1 source', ()
     expect([file, invisible.test(text)]).toEqual([file, false]);
   }
 });
+
+it('keeps invisible characters and unusual spaces out of the native sources', () => {
+  // Kotlin, C, and CMake sources of the app. Besides controls, format, and
+  // bidi characters, any space other than U+0020 is refused: a no-break or
+  // other Unicode space looks like a space in review but is not one.
+  const nativeRoots = [
+    'android/app/src/main/java',
+    'android/app/src/test/java',
+    'android/app/src/androidTest/java',
+    'android/vault-crypto',
+  ];
+  const sources = nativeRoots
+    .flatMap(directory => nativeFiles(path.join(root, directory)))
+    .filter(file => /\.(kt|c|cpp|h|txt|gradle)$/.test(file));
+  expect(sources.length).toBeGreaterThan(10);
+  const hidden = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Zs}]/u;
+  for (const file of sources) {
+    const text = fs.readFileSync(file, 'utf8').replace(/[\n ]/g, '');
+    expect([file, hidden.test(text)]).toEqual([file, false]);
+  }
+});
+
+function nativeFiles(directory: string): string[] {
+  if (!fs.existsSync(directory)) {
+    return [];
+  }
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap(item => {
+    const full = path.join(directory, item.name);
+    if (item.isDirectory()) {
+      return item.name === 'build' || item.name === '.cxx'
+        ? []
+        : nativeFiles(full);
+    }
+    return [full];
+  });
+}

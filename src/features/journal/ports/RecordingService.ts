@@ -40,6 +40,12 @@ export interface FinalizedRecording {
 
 export interface RecordingService {
   freeBytes(): Promise<number>;
+  /**
+   * Asks for the microphone when recording is first invoked (UX §5); true
+   * when it is granted. Called before any journal row exists, so a refusal
+   * leaves nothing behind.
+   */
+  requestMicrophone(): Promise<boolean>;
   /** Creates the sealed AJR1 file; refuses without the microphone or space. */
   prepare(
     recordingId: string,
@@ -51,14 +57,18 @@ export interface RecordingService {
   pause(): Promise<void>;
   resume(): Promise<void>;
   finish(): Promise<FinalizedRecording>;
-  /** Discards an unfinished capture after the user confirmed (AJ-FR-003). */
+  /**
+   * Discards an unfinished capture: after the user confirmed (AJ-FR-003), or
+   * when it never started and holds no audio. Not cryptographic erasure.
+   */
   discard(recordingId: string): Promise<void>;
   /**
-   * Scans the recording root, or one recording's file. Unfinished captures are
-   * authenticated chunk by chunk; finalized ones may be checked by header and
-   * length so startup cost does not grow with the whole archive.
+   * Lists the recording root. The recordings in `authenticate` (unfinished
+   * captures) are authenticated chunk by chunk; every other file is checked
+   * by header and length, so startup cost does not grow with the archive.
+   * The capture in progress is never listed.
    */
-  scan(recordingId?: string): Promise<RecordingFileScan[]>;
+  scan(authenticate: readonly string[]): Promise<RecordingFileScan[]>;
   /** Truncates to the authenticated prefix (recoverable recordings). */
   dropTornTail(recordingId: string, sealedChunks: number): Promise<void>;
   quarantine(relativePath: string): Promise<void>;

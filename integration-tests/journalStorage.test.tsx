@@ -10,10 +10,13 @@ import {
   schemaVersion,
 } from '../src/platform/storage/migrationRunner';
 import { MIGRATIONS, type Migration } from '../src/platform/storage/migrations';
+import { SqliteJournalRepository } from '../src/platform/storage/SqliteJournalRepository';
+import { SqliteTranscriptRepository } from '../src/platform/storage/SqliteTranscriptRepository';
 import { NodeSqliteDatabase } from '../test/sqlite/NodeSqliteDatabase';
 import {
   openJournal,
   readyVoiceEntry,
+  sequentialIds,
   SHA_A,
 } from '../test/sqlite/journalFixtures';
 
@@ -32,13 +35,41 @@ afterEach(async () => {
 });
 
 describe('migrations', () => {
-  it('creates schema v1 and is idempotent', async () => {
-    expect(await schemaVersion(context.db)).toBe(1);
+  const latest = MIGRATIONS.length;
+
+  it('creates the current schema and is idempotent', async () => {
+    expect(await schemaVersion(context.db)).toBe(latest);
     expect(await migrate(context.db, 2)).toEqual({
-      from: 1,
-      to: 1,
+      from: latest,
+      to: latest,
       applied: [],
     });
+  });
+
+  it('upgrades a v1 journal and backfills its stored passes', async () => {
+    const db = new NodeSqliteDatabase();
+    await migrate(db, 1, MIGRATIONS.slice(0, 1));
+    const v1 = {
+      db,
+      journal: new SqliteJournalRepository(db),
+      transcripts: new SqliteTranscriptRepository(db, sequentialIds(500)),
+      ids: sequentialIds(900),
+    };
+    const { recordingId } = await readyVoiceEntry(v1, 3_000);
+    await db.run(
+      `INSERT INTO transcript_segments (id, entry_id, recording_id, engine_revision,
+        ordinal, start_ms, end_ms, text, state, source, model_id, created_at)
+        SELECT ?, entry_id, id, 1, 0, 0, 900, 'hi', 'final', 'engine', 'base.en-q5_1', 7
+        FROM recordings WHERE id = ?`,
+      [v1.ids.next('seg'), recordingId],
+    );
+    expect(await migrate(db, 2)).toEqual({ from: 1, to: latest, applied: [2] });
+    expect(
+      await db.get(
+        'SELECT engine_revision, segment_count FROM transcript_passes',
+      ),
+    ).toEqual({ engine_revision: 1, segment_count: 1 });
+    await db.close();
   });
 
   it('applies all pending steps atomically or not at all', async () => {
@@ -46,16 +77,17 @@ describe('migrations', () => {
     const broken: Migration[] = [
       ...MIGRATIONS,
       {
-        version: 2,
+        version: latest + 1,
         name: 'bad',
         statements: ['CREATE TABLE ok (x INTEGER)', 'NOT SQL'],
       },
     ];
     await expect(migrate(db, 1, broken)).rejects.toMatchObject({
       failure: 'STEP_FAILED',
-      version: 2,
+      version: latest + 1,
     });
-    // Version 1 was pending in the same transaction, so nothing was applied.
+    // Every earlier version was pending in the same transaction, so nothing
+    // was applied.
     expect(await schemaVersion(db)).toBe(0);
     expect(
       await db.get(
@@ -69,7 +101,7 @@ describe('migrations', () => {
     const newer: Migration[] = [
       ...MIGRATIONS,
       {
-        version: 2,
+        version: latest + 1,
         name: 'future',
         statements: ['CREATE TABLE future (x INTEGER)'],
       },
@@ -490,18 +522,25 @@ describe('startup reconciliation against the database', () => {
     const plan = planReconciliation(rows, [
       {
         relativePath: `recordings/${crashed.recordingId}.ajr`,
+        check: 'authenticated',
+        fileBytes: 64_456,
         headerValid: true,
         authenticatedChunks: 2,
         authenticatedMs: 2_000,
+        // Damage, not a torn write: the capture needs attention.
         trailingBytes: 400,
+        tail: 'damaged',
         byteCount: 64_056,
       },
       {
         relativePath: `recordings/${finishing.recordingId}.ajr`,
+        check: 'authenticated',
+        fileBytes: 96_084,
         headerValid: true,
         authenticatedChunks: 3,
         authenticatedMs: 3_000,
         trailingBytes: 0,
+        tail: 'none',
         byteCount: 96_084,
         contentSha256: SHA_A,
       },

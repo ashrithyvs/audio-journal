@@ -111,6 +111,36 @@ export const MIGRATIONS: readonly Migration[] = [
       ) STRICT`,
     ],
   },
+  {
+    version: 2,
+    name: 'aj1_transcript_passes',
+    statements: [
+      // One row per completed full pass, empty passes included, so a silent
+      // recording is not transcribed again after every unlock (ADR-017,
+      // owner decision 2026-10-10: final passes restart after unlock).
+      `CREATE TABLE transcript_passes (
+        recording_id TEXT NOT NULL REFERENCES recordings (id),
+        engine_revision INTEGER NOT NULL CHECK (engine_revision > 0),
+        model_id TEXT NOT NULL,
+        segment_count INTEGER NOT NULL CHECK (segment_count >= 0),
+        created_at INTEGER NOT NULL,
+        PRIMARY KEY (recording_id, engine_revision)
+      ) STRICT`,
+      // Passes stored before this table existed.
+      `INSERT INTO transcript_passes
+        (recording_id, engine_revision, model_id, segment_count, created_at)
+        SELECT recording_id, engine_revision, max(model_id), count(*), min(created_at)
+          FROM transcript_segments
+          WHERE engine_revision > 0 AND state = 'final'
+          GROUP BY recording_id, engine_revision`,
+      `CREATE TRIGGER transcript_passes_append_only
+        BEFORE UPDATE ON transcript_passes
+        BEGIN SELECT RAISE(ABORT, 'transcript passes are append-only'); END`,
+      `CREATE TRIGGER transcript_passes_no_delete
+        BEFORE DELETE ON transcript_passes
+        BEGIN SELECT RAISE(ABORT, 'transcript passes are append-only'); END`,
+    ],
+  },
 ];
 
 /** Deterministic, dependency-free fingerprint; detects edits, not attacks. */

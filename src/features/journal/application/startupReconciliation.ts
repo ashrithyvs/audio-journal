@@ -41,7 +41,10 @@ async function apply(
   now: () => number,
 ): Promise<void> {
   for (const action of actions) {
-    if (action.type === 'mark_recoverable' && action.dropTornTail) {
+    if (
+      (action.type === 'promote' || action.type === 'mark_recoverable') &&
+      action.dropTornTail
+    ) {
       await recorder.dropTornTail(action.recordingId, action.sealedChunks);
     } else if (action.type === 'quarantine_file') {
       await recorder.quarantine(action.relativePath);
@@ -55,19 +58,19 @@ export async function reconcileRecordings(
   recorder: RecordingService,
   now: () => number,
 ): Promise<ReconciliationSummary> {
-  const [rows, files] = await Promise.all([
-    journal.recordingsForReconciliation(),
-    recorder.scan(),
-  ]);
-  const actions = planReconciliation(rows, files);
+  const rows = await journal.recordingsForReconciliation();
+  const unfinished = rows
+    .filter(row => NONTERMINAL_RECORDING_STATES.includes(row.state))
+    .map(row => row.id);
+  const actions = planReconciliation(rows, await recorder.scan(unfinished));
   await apply(journal, recorder, actions, now);
   return summarize(actions);
 }
 
 /**
- * A capture that ended abnormally while the app was running. It is treated as
- * interrupted, never promoted, so the stored outcome matches the one the user
- * was shown: recoverable when any chunk authenticates, failed otherwise.
+ * A capture that ended abnormally while the app was running. It is planned
+ * like any unfinished capture: authenticated audio is kept as a ready
+ * recording, and only damage needs attention (ADR-017, 2026-10-10).
  */
 export async function reconcileAbnormalEnd(
   journal: JournalRepository,
@@ -81,13 +84,8 @@ export async function reconcileAbnormalEnd(
   if (!row || !NONTERMINAL_RECORDING_STATES.includes(row.state)) {
     return;
   }
-  const files = (await recorder.scan(recordingId)).filter(
+  const files = (await recorder.scan([recordingId])).filter(
     file => file.relativePath === row.relativePath,
   );
-  await apply(
-    journal,
-    recorder,
-    planReconciliation([{ ...row, state: 'recording' }], files),
-    now,
-  );
+  await apply(journal, recorder, planReconciliation([row], files), now);
 }

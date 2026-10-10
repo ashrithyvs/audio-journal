@@ -2,6 +2,7 @@ import type { IdSource } from '../../features/journal/domain/ids';
 import {
   buildEngineRevision,
   currentTranscript,
+  withEmptyPass,
   nextEngineRevision,
   normalizeSegmentText,
   planCorrection,
@@ -190,8 +191,14 @@ export class SqliteTranscriptRepository implements TranscriptRepository {
         }
         previousStart = segment.startMs;
       }
-      const engineRevision = nextEngineRevision(
-        await segmentsOf(tx, input.recordingId),
+      // Empty passes leave no segments, so the pass log counts too.
+      const lastPass = await tx.get<{ revision: number | null }>(
+        'SELECT max(engine_revision) AS revision FROM transcript_passes WHERE recording_id = ?',
+        [input.recordingId],
+      );
+      const engineRevision = Math.max(
+        nextEngineRevision(await segmentsOf(tx, input.recordingId)),
+        (lastPass?.revision ?? 0) + 1,
       );
       const records = buildEngineRevision({
         entryId: recording.entry_id,
@@ -205,6 +212,18 @@ export class SqliteTranscriptRepository implements TranscriptRepository {
       for (const record of records) {
         await insertSegment(tx, record);
       }
+      await tx.run(
+        `INSERT INTO transcript_passes
+          (recording_id, engine_revision, model_id, segment_count, created_at)
+          VALUES (?, ?, ?, ?, ?)`,
+        [
+          input.recordingId,
+          engineRevision,
+          input.modelId,
+          records.length,
+          input.createdAt,
+        ],
+      );
       // The full pass supersedes all live text in the same transaction.
       await tx.run(
         `UPDATE transcript_segments SET superseded_at = ?
@@ -214,6 +233,25 @@ export class SqliteTranscriptRepository implements TranscriptRepository {
       );
       return { engineRevision, segmentCount: records.length };
     });
+  }
+
+  async awaitingFinalPass(): Promise<
+    { recordingId: string; durationMs: number }[]
+  > {
+    // A restored journal has final segments but no pass log; both count.
+    const rows = await this.db.all<{ id: string; duration_ms: number }>(
+      `SELECT r.id, r.duration_ms FROM recordings r
+        JOIN journal_entries e ON e.id = r.entry_id
+        WHERE r.state = 'ready' AND e.status = 'ready'
+          AND NOT EXISTS (SELECT 1 FROM transcript_passes p WHERE p.recording_id = r.id)
+          AND NOT EXISTS (SELECT 1 FROM transcript_segments s
+            WHERE s.recording_id = r.id AND s.engine_revision > 0)
+        ORDER BY r.started_at, r.id`,
+    );
+    return rows.map(row => ({
+      recordingId: row.id,
+      durationMs: row.duration_ms,
+    }));
   }
 
   async correct(
@@ -254,6 +292,24 @@ export class SqliteTranscriptRepository implements TranscriptRepository {
   }
 
   async current(recordingId: string): Promise<TranscriptView> {
-    return currentTranscript(await segmentsOf(this.db, recordingId));
+    return withEmptyPass(
+      currentTranscript(await segmentsOf(this.db, recordingId)),
+      await lastPassOf(this.db, recordingId),
+    );
   }
+}
+
+/** The latest logged full pass of a recording (migration 2). */
+export async function lastPassOf(
+  db: SqlExecutor,
+  recordingId: string,
+): Promise<{ engineRevision: number; modelId: string } | undefined> {
+  const row = await db.get<{ engine_revision: number; model_id: string }>(
+    `SELECT engine_revision, model_id FROM transcript_passes
+      WHERE recording_id = ? ORDER BY engine_revision DESC LIMIT 1`,
+    [recordingId],
+  );
+  return row
+    ? { engineRevision: row.engine_revision, modelId: row.model_id }
+    : undefined;
 }

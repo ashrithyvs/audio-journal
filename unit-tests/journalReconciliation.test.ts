@@ -6,7 +6,8 @@ import {
 import { recordingRelativePath } from '../src/features/journal/domain/ids';
 import {
   planReconciliation,
-  type RecordingFileScan,
+  type AuthenticatedFileScan,
+  type HeaderFileScan,
 } from '../src/features/journal/domain/reconciliation';
 import { SHA_A, sequentialIds } from '../test/sqlite/journalFixtures';
 
@@ -23,29 +24,50 @@ function row(state: RecordingState, sealedChunks = 3): RecordingRecord {
     startedAt: 0,
     durationMs: sealedChunks * 1_000,
     sealedChunks,
-    byteCount: 0,
+    byteCount: bytesFor(sealedChunks),
   };
+}
+
+/** AJR1 file length for whole 1-second chunks (LLD §5.1). */
+function bytesFor(chunks: number) {
+  return 64 + chunks * 32_028;
 }
 
 function scan(
   recording: RecordingRecord,
   chunks: number,
-  extra: Partial<RecordingFileScan> = {},
-): RecordingFileScan {
+  extra: Partial<AuthenticatedFileScan> = {},
+): AuthenticatedFileScan {
   return {
     relativePath: recording.relativePath,
+    check: 'authenticated',
     headerValid: true,
+    fileBytes: bytesFor(chunks) + (extra.trailingBytes ?? 0),
     authenticatedChunks: chunks,
     authenticatedMs: chunks * 1_000,
     trailingBytes: 0,
-    byteCount: chunks * 32_028,
+    tail: extra.trailingBytes ? 'torn' : 'none',
+    byteCount: bytesFor(chunks),
     contentSha256: SHA_A,
     ...extra,
   };
 }
 
+function header(
+  recording: RecordingRecord,
+  fileBytes: number,
+  headerValid = true,
+): HeaderFileScan {
+  return {
+    relativePath: recording.relativePath,
+    check: 'header',
+    headerValid,
+    fileBytes,
+  };
+}
+
 describe('startup reconciliation (LLD §9)', () => {
-  it('keeps a crashed capture recoverable and drops only the torn tail', () => {
+  it('keeps a crashed capture: drops only the torn frame and promotes the rest', () => {
     const recording = row('recording', 2);
     expect(
       planReconciliation(
@@ -54,45 +76,69 @@ describe('startup reconciliation (LLD §9)', () => {
       ),
     ).toEqual([
       {
-        type: 'mark_recoverable',
+        type: 'promote',
         recordingId: recording.id,
         entryId: recording.entryId,
         durationMs: 4_000,
         sealedChunks: 4,
+        byteCount: bytesFor(4),
+        contentSha256: SHA_A,
         dropTornTail: true,
       },
     ]);
   });
 
-  it('promotes a finishing recording whose every chunk authenticates', () => {
-    const recording = row('finalizing', 3);
-    expect(planReconciliation([recording], [scan(recording, 3)])).toEqual([
+  it('promotes finishing and lock-interrupted captures whose chunks authenticate', () => {
+    const finishing = row('finalizing', 3);
+    const paused = row('paused', 2);
+    const actions = planReconciliation(
+      [finishing, paused],
+      [scan(finishing, 3), scan(paused, 2)],
+    );
+    expect(actions).toEqual([
       {
         type: 'promote',
-        recordingId: recording.id,
-        entryId: recording.entryId,
+        recordingId: finishing.id,
+        entryId: finishing.entryId,
         durationMs: 3_000,
         sealedChunks: 3,
-        byteCount: 3 * 32_028,
+        byteCount: bytesFor(3),
         contentSha256: SHA_A,
+        dropTornTail: false,
       },
+      expect.objectContaining({
+        type: 'promote',
+        recordingId: paused.id,
+        dropTornTail: false,
+      }),
     ]);
   });
 
-  it('does not promote without a digest or with a torn tail', () => {
+  it('keeps damaged or incomplete captures for the user without cutting bytes', () => {
+    const damaged = row('recording', 2);
+    const missing = row('paused', 5); // five chunks were reported sealed
     const noDigest = row('finalizing', 3);
-    const torn = row('finalizing', 3);
     const actions = planReconciliation(
-      [noDigest, torn],
+      [damaged, missing, noDigest],
       [
+        scan(damaged, 2, {
+          trailingBytes: 64_000,
+          tail: 'damaged',
+          contentSha256: undefined,
+        }),
+        scan(missing, 3),
         scan(noDigest, 3, { contentSha256: undefined }),
-        scan(torn, 3, { trailingBytes: 10 }),
       ],
     );
-    expect(actions.map(action => action.type)).toEqual([
-      'mark_recoverable',
-      'mark_recoverable',
-    ]);
+    expect(actions).toEqual(
+      [damaged, missing, noDigest].map(recording =>
+        expect.objectContaining({
+          type: 'mark_recoverable',
+          recordingId: recording.id,
+          dropTornTail: false,
+        }),
+      ),
+    );
   });
 
   it('marks captures with no authenticated audio as failed', () => {
@@ -110,14 +156,14 @@ describe('startup reconciliation (LLD §9)', () => {
 
   it('surfaces damage to finalized source instead of hiding it', () => {
     const gone = row('ready');
-    const header = row('ready');
+    const badHeader = row('ready');
     const short = row('ready', 5);
     const tail = row('ready', 2);
     const fine = row('ready', 2);
     const causes = planReconciliation(
-      [gone, header, short, tail, fine],
+      [gone, badHeader, short, tail, fine],
       [
-        scan(header, 3, { headerValid: false }),
+        scan(badHeader, 3, { headerValid: false }),
         scan(short, 4),
         scan(tail, 2, { trailingBytes: 1 }),
         scan(fine, 2),
@@ -129,6 +175,34 @@ describe('startup reconciliation (LLD §9)', () => {
       'CHUNKS_MISSING',
       'TRAILING_DATA',
     ]);
+  });
+
+  it('checks finalized recordings by header and exact length only', () => {
+    const fine = row('ready', 4);
+    const short = row('ready', 4);
+    const long = row('ready', 4);
+    const invalid = row('ready', 4);
+    const causes = planReconciliation(
+      [fine, short, long, invalid],
+      [
+        header(fine, fine.byteCount),
+        header(short, fine.byteCount - 1),
+        header(long, fine.byteCount + 28),
+        header(invalid, fine.byteCount, false),
+      ],
+    ).map(action => action.type === 'flag_source_damaged' && action.cause);
+    expect(causes).toEqual([
+      'CHUNKS_MISSING',
+      'TRAILING_DATA',
+      'HEADER_INVALID',
+    ]);
+  });
+
+  it('decides nothing about an unfinished capture it could not authenticate', () => {
+    const recording = row('recording', 2);
+    expect(
+      planReconciliation([recording], [header(recording, bytesFor(2) + 9)]),
+    ).toEqual([]);
   });
 
   it('quarantines unknown and unsafe files and never deletes', () => {

@@ -132,7 +132,7 @@ object Ajr1 {
   }
 
   /** Streams from disk so a 60-minute recording is never held in memory. */
-  class FileSource(private val file: RandomAccessFile) : Source {
+  class FileSource(private val file: RandomAccessFile) : Source, java.io.Closeable {
     override val size = file.length()
     override fun read(offset: Long, length: Int): ByteArray {
       val out = ByteArray(length)
@@ -140,6 +140,8 @@ object Ajr1 {
       file.readFully(out)
       return out
     }
+
+    override fun close() = file.close()
   }
 
   /** Result of authenticating a file from the start. */
@@ -239,6 +241,34 @@ object Ajr1 {
     return Scan(frames, last, pcmBytes, at, source.size - at, tornIndex, stop, digest.digest())
   }
 
+  /** A frame located by its header, not yet authenticated. */
+  class FrameRef(val offset: Long, val index: Long, val length: Int, val pcmOffset: Long)
+
+  /**
+   * Locates frames by their headers only, with the same structural stop rules
+   * as [scan] (order, overflow, length, torn). Nothing is decrypted, so a
+   * listed frame is still authenticated when it is opened.
+   */
+  fun frames(source: Source): List<FrameRef> {
+    val out = ArrayList<FrameRef>()
+    var at = HEADER_BYTES.toLong()
+    var last: Long? = null
+    var pcm = 0L
+    while (source.size - at >= FRAME_HEADER_BYTES) {
+      val frame = ByteBuffer.wrap(source.read(at, FRAME_HEADER_BYTES))
+      val index = frame.long
+      val length = frame.int
+      if (index < 0 || index > MAX_INDEX || (last != null && index <= last) || !validLength(length)) break
+      val end = at + FRAME_HEADER_BYTES + length + TAG_BYTES
+      if (end > source.size) break
+      out.add(FrameRef(at, index, length, pcm))
+      last = index
+      pcm += length
+      at = end
+    }
+    return out
+  }
+
   /**
    * The next index after recovery. With a torn tail, the torn write may have
    * consumed `last + 1` (or a readable larger index), so it is never reused.
@@ -264,24 +294,35 @@ class Ajr1Writer private constructor(
     private val header: ByteArray,
     private val prefix: ByteArray,
     private var nextIndex: Long,
+    private var bytes: Long,
+    /** Capture syncs each frame; restore staging syncs once, at close. */
+    private val syncEachFrame: Boolean = true,
 ) : AutoCloseable {
   private val out = FileOutputStream(file, true)
 
   val index: Long
     get() = nextIndex
 
+  /** File length after the last complete frame. */
+  val fileBytes: Long
+    get() = bytes
+
   /** Seals one chunk and forces it to storage: only complete frames count. */
   fun append(pcm: ByteArray) {
     val current = key ?: throw IllegalStateException("AJR1_CLOSED")
     if (nextIndex > Ajr1.MAX_INDEX) throw IllegalStateException("AJR1_INDEX_OVERFLOW")
-    out.write(Ajr1.sealFrame(current, header, prefix, recordingId, nextIndex, pcm))
-    out.fd.sync()
+    val frame = Ajr1.sealFrame(current, header, prefix, recordingId, nextIndex, pcm)
+    out.write(frame)
+    if (syncEachFrame) out.fd.sync()
     nextIndex += 1
+    bytes += frame.size
   }
 
   override fun close() {
+    val open = key != null
     VaultCrypto.zero(key)
     key = null
+    if (open && !syncEachFrame) out.fd.sync()
     out.close()
   }
 
@@ -296,6 +337,7 @@ class Ajr1Writer private constructor(
         recordingRootKey: ByteArray,
         random: (Int) -> ByteArray = VaultCrypto::randomBytes,
         firstIndex: Long = 0,
+        syncEachFrame: Boolean = true,
     ): Ajr1Writer {
       val header = Ajr1.Header(random(16), random(4))
       val bytes = header.encode()
@@ -306,7 +348,7 @@ class Ajr1Writer private constructor(
       }
       return Ajr1Writer(
           file, recordingId, Ajr1.fileKey(recordingRootKey, header.salt, recordingId),
-          bytes, header.noncePrefix, firstIndex)
+          bytes, header.noncePrefix, firstIndex, Ajr1.HEADER_BYTES.toLong(), syncEachFrame)
     }
 
     /** Recovery: keeps authenticated frames, drops the torn tail, skips used indices. */
@@ -325,7 +367,7 @@ class Ajr1Writer private constructor(
       val header = Ajr1.Header.decode(headerBytes)
       return Ajr1Writer(
           file, recordingId, Ajr1.fileKey(recordingRootKey, header.salt, recordingId),
-          headerBytes, header.noncePrefix, Ajr1.resumeIndex(scan))
+          headerBytes, header.noncePrefix, Ajr1.resumeIndex(scan), scan.validEnd)
     }
   }
 }

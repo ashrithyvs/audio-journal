@@ -15,7 +15,11 @@ import {
   excerptOf,
   type TimelineEntry,
 } from '../../features/journal/domain/timeline';
-import { currentTranscript } from '../../features/journal/domain/transcript';
+import {
+  currentTranscript,
+  withEmptyPass,
+} from '../../features/journal/domain/transcript';
+import { lastPassOf } from './SqliteTranscriptRepository';
 import {
   RepositoryError,
   type FinalizeVoiceInput,
@@ -232,7 +236,10 @@ export class SqliteJournalRepository implements JournalRepository {
     return {
       entry: toEntry(row),
       recording: recording ? toRecording(recording) : undefined,
-      transcript: currentTranscript(segments.map(toSegment)),
+      transcript: withEmptyPass(
+        currentTranscript(segments.map(toSegment)),
+        recording ? await lastPassOf(this.db, recording.id) : undefined,
+      ),
     };
   }
 
@@ -270,6 +277,22 @@ export class SqliteJournalRepository implements JournalRepository {
     }));
   }
 
+  async getSetting(key: string): Promise<string | undefined> {
+    const row = await this.db.get<{ value: string }>(
+      'SELECT value FROM app_settings WHERE key = ?',
+      [key],
+    );
+    return row?.value;
+  }
+
+  async setSetting(key: string, value: string): Promise<void> {
+    await this.db.run(
+      `INSERT INTO app_settings (key, value) VALUES (?, ?)
+        ON CONFLICT (key) DO UPDATE SET value = excluded.value`,
+      [key, value],
+    );
+  }
+
   async recordingsForReconciliation(): Promise<RecordingRecord[]> {
     const rows = await this.db.all<RecordingRow>(
       'SELECT * FROM recordings ORDER BY id',
@@ -285,13 +308,13 @@ export class SqliteJournalRepository implements JournalRepository {
       for (const action of actions) {
         switch (action.type) {
           case 'promote':
-            // Finish was requested before the process died and every chunk
-            // authenticates, so finalization completes as 'recovered'.
+            // An unfinished capture whose authenticated audio is intact
+            // completes as 'recovered' (ADR-017, owner decision 2026-10-10).
             await tx.run(
               `UPDATE recordings SET state = 'ready', ended_at = max(started_at, ?),
                 duration_ms = ?, sealed_chunks = ?, byte_count = ?,
                 content_sha256 = ?, finish_reason = 'recovered'
-                WHERE id = ? AND state = 'finalizing'`,
+                WHERE id = ? AND state IN (${NONTERMINAL_SQL})`,
               [
                 at,
                 action.durationMs,

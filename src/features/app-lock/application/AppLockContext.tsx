@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
 } from 'react';
 import { AppState } from 'react-native';
 
@@ -31,7 +32,20 @@ interface AppLockContextValue {
   /** Forgotten PIN (ADR-017): irreversible; needs the typed word ERASE. */
   eraseJournal(confirmation: string): Promise<boolean>;
   lock(): void;
+  /**
+   * Call just before opening the app's own system UI (permission dialog,
+   * document picker). Until the app is active again, leaving the foreground
+   * does not lock, for at most [SYSTEM_UI_GRACE_MS] from now. Returns a
+   * release to call when that UI has closed.
+   */
+  expectSystemUi(): () => void;
 }
+
+/**
+ * The longest the app's own system UI may keep it in the background without
+ * locking (ADR-017, owner decision 2026-10-10). Any other background locks at once.
+ */
+export const SYSTEM_UI_GRACE_MS = 120_000;
 
 const AppLockContext = createContext<AppLockContextValue | undefined>(
   undefined,
@@ -101,14 +115,62 @@ export function AppLockProvider({
     vault.lock().catch(() => undefined);
   }, [vault]);
 
+  // A registered expectation of the app's own system UI, and whether the app
+  // is currently away from the foreground.
+  const grace = useRef<{
+    until: number;
+    timer?: ReturnType<typeof setTimeout>;
+  } | null>(null);
+  const away = useRef(false);
+
+  const endGrace = useCallback(() => {
+    if (grace.current?.timer) {
+      clearTimeout(grace.current.timer);
+    }
+    grace.current = null;
+  }, []);
+
   useEffect(() => {
     const subscription = AppState.addEventListener('change', nextState => {
-      if (nextState !== 'active') {
+      if (nextState === 'active') {
+        away.current = false;
+        endGrace();
+        return;
+      }
+      away.current = true;
+      const current = grace.current;
+      const remaining = current ? current.until - now() : 0;
+      if (current && remaining > 0) {
+        // The app's own dialog or picker: lock only if it outlasts the grace.
+        current.timer ??= setTimeout(() => {
+          endGrace();
+          lock();
+        }, remaining);
+        return;
+      }
+      endGrace();
+      lock();
+    });
+    return () => {
+      subscription.remove();
+      endGrace();
+    };
+  }, [endGrace, lock, now]);
+
+  const expectSystemUi = useCallback(() => {
+    endGrace();
+    const token = { until: now() + SYSTEM_UI_GRACE_MS };
+    grace.current = token;
+    return () => {
+      if (grace.current !== token) {
+        return;
+      }
+      endGrace();
+      if (away.current) {
         lock();
       }
-    });
-    return () => subscription.remove();
-  }, [lock]);
+    };
+  }, [endGrace, lock, now]);
 
   const configure = useCallback(
     async (pin: string, confirmation: string) => {
@@ -266,10 +328,12 @@ export function AppLockProvider({
       setBiometricEnabled,
       eraseJournal,
       lock,
+      expectSystemUi,
     }),
     [
       configure,
       eraseJournal,
+      expectSystemUi,
       lock,
       setBiometricEnabled,
       state,

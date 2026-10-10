@@ -79,6 +79,9 @@ export interface JournalRepository {
     before?: TimelineCursor;
   }): Promise<TimelineEntry[]>;
   recordingsForReconciliation(): Promise<RecordingRecord[]>;
+  /** Non-sensitive app settings (app_settings), e.g. local backup history. */
+  getSetting(key: string): Promise<string | undefined>;
+  setSetting(key: string, value: string): Promise<void>;
   applyReconciliation(
     actions: readonly ReconciliationAction[],
     at: number,
@@ -108,6 +111,11 @@ export interface TranscriptRepository {
     segments: readonly NormalizedSegment[];
     createdAt: number;
   }): Promise<{ engineRevision: number; segmentCount: number }>;
+  /**
+   * Ready recordings of visible entries that have no full pass yet (an empty
+   * pass counts as done), oldest first: queued after each unlock.
+   */
+  awaitingFinalPass(): Promise<{ recordingId: string; durationMs: number }[]>;
   correct(
     segmentId: string,
     text: string,

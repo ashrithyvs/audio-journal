@@ -7,13 +7,13 @@ import { SetupLockScreen } from '../../features/app-lock/ui/SetupLockScreen';
 import { UnlockScreen } from '../../features/app-lock/ui/UnlockScreen';
 import { colors } from '../../theme/colors';
 import { JournalGate } from '../JournalGate';
-import type { OpenedJournal } from '../openJournal';
+import type { JournalOpenContext, OpenedJournal } from '../openJournal';
 import { MainNavigator } from './MainNavigator';
 
 export function RootNavigator({
   openJournal,
 }: {
-  openJournal: () => Promise<OpenedJournal>;
+  openJournal: (context: JournalOpenContext) => Promise<OpenedJournal>;
 }) {
   const { state } = useAppLock();
 

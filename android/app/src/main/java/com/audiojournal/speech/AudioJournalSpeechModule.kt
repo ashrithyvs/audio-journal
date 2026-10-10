@@ -1,16 +1,24 @@
 package com.audiojournal.speech
 
 import android.os.Debug
-import com.audiojournal.specs.NativeAudioJournalSpeechSpec
 import android.os.SystemClock
+import com.audiojournal.recording.Ajr1
+import com.audiojournal.recording.Ajr1Reader
+import com.audiojournal.recording.ActiveAudio
+import com.audiojournal.recording.CaptureSession
+import com.audiojournal.recording.RecordingFiles
+import com.audiojournal.specs.NativeAudioJournalSpeechSpec
+import com.audiojournal.vault.VaultHolder
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import java.io.File
+import java.io.RandomAccessFile
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
+import javax.crypto.AEADBadTagException
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -32,6 +40,7 @@ class AudioJournalSpeechModule(private val context: ReactApplicationContext) :
   private val loadMs = ConcurrentHashMap<String, Double>()
   // Reused decoder states per model (at most one per executor thread).
   private val states = ConcurrentHashMap<String, ConcurrentLinkedQueue<Long>>()
+  private val lives = ConcurrentHashMap<String, LiveTranscriber>()
 
   private fun borrowState(id: String, model: Long): Long =
       states.getOrPut(id) { ConcurrentLinkedQueue() }.poll()
@@ -156,6 +165,209 @@ class AudioJournalSpeechModule(private val context: ReactApplicationContext) :
   }
 
   /**
+   * Live provisional text for the capture in progress (ADR-017). Attaches a
+   * [LiveTranscriber] to the open capture of [recordingId]; it closes with
+   * the capture (finish, discard, lock) or on [stopLive]. Window results
+   * arrive through `onLiveWindow`; their text is never logged. Resolves
+   * false when that capture is not open.
+   */
+  override fun startLive(
+      requestId: String,
+      recordingId: String,
+      model: String,
+      threads: Double,
+      promise: Promise
+  ) {
+    executor.execute {
+      try {
+        val handle = model(model)
+        val state = borrowState(model, handle)
+        val cancel = WhisperNative.newCancel()
+        val silent =
+            object : SegmentListener {
+              override fun onSegment(t0Ms: Long, t1Ms: Long, text: String) = Unit
+            }
+        val live =
+            LiveTranscriber(
+                LiveTranscriber.PROVISIONAL_WINDOW_MS,
+                LiveTranscriber.PROVISIONAL_CADENCE_MS,
+                transcribe = { pcm ->
+                  val raw =
+                      JSONObject(
+                          WhisperNative.transcribe(
+                              handle, state, pcm, threads.toInt().coerceIn(1, 8), cancel, silent))
+                  if (raw.getString("status") != "ok") null
+                  else {
+                    val list = raw.getJSONArray("segments")
+                    (0 until list.length()).map {
+                      val segment = list.getJSONObject(it)
+                      RecordingPass.Segment(
+                          segment.getLong("t0Ms"), segment.getLong("t1Ms"), segment.getString("text"))
+                    }
+                  }
+                },
+                cancel = { WhisperNative.cancel(cancel) },
+                release = {
+                  lives.remove(requestId)
+                  returnState(model, state)
+                  WhisperNative.freeCancel(cancel)
+                },
+                onWindow = { startMs, endMs, segments ->
+                  val list = JSONArray()
+                  segments.forEach {
+                    list.put(JSONObject().put("t0Ms", it.t0Ms).put("t1Ms", it.t1Ms).put("text", it.text))
+                  }
+                  emitOnLiveWindow(
+                      Arguments.createMap().apply {
+                        putString("requestId", requestId)
+                        putDouble("startMs", startMs.toDouble())
+                        putDouble("endMs", endMs.toDouble())
+                        putString("segmentsJson", list.toString())
+                      })
+                })
+        lives[requestId] = live
+        val attached =
+            ActiveAudio.submit {
+              val capture = ActiveAudio.capture
+              val open =
+                  capture != null &&
+                      capture.recordingId == recordingId &&
+                      (capture.state == CaptureSession.State.PREPARED ||
+                          capture.state == CaptureSession.State.RECORDING ||
+                          capture.state == CaptureSession.State.PAUSED)
+              if (open) {
+                capture!!.tap?.close()
+                capture.tap = live
+              }
+              open
+            }
+        if (!attached) live.close()
+        promise.resolve(attached)
+      } catch (error: Throwable) {
+        promise.reject("TRANSCRIPTION_FAILED", error.javaClass.simpleName)
+      }
+    }
+  }
+
+  override fun stopLive(requestId: String) {
+    lives[requestId]?.close()
+  }
+
+  /**
+   * Final pass over a sealed AJR1 recording (ADR-017): decrypted natively, in
+   * bounded windows ([RecordingPass]), straight into whisper.cpp. Audio and
+   * the recording key never leave native code. Segments arrive through
+   * `onSegment` in absolute time. Locking the vault cancels the pass.
+   */
+  override fun transcribeRecording(
+      requestId: String,
+      recordingId: String,
+      model: String,
+      threads: Double,
+      promise: Promise
+  ) {
+    val cancel = WhisperNative.newCancel()
+    pending[requestId] = promise to SystemClock.elapsedRealtimeNanos()
+    fun settle(block: (Promise) -> Unit) {
+      pending.remove(requestId)?.let { (settled, _) -> block(settled) }
+    }
+    executor.execute {
+      active.incrementAndGet()
+      val started = SystemClock.elapsedRealtimeNanos()
+      fun elapsed() = (SystemClock.elapsedRealtimeNanos() - started) / 1e6
+      var job: RecordingJobs.Job? = null
+      try {
+        val file = RecordingFiles(context.noBackupFilesDir).fileFor(recordingId)
+        val key = VaultHolder.get(context).purposeKey(RECORDING_KEY_LABEL)
+        val reader =
+            try {
+              Ajr1Reader(Ajr1.FileSource(RandomAccessFile(file, "r")), key, recordingId)
+            } finally {
+              key.fill(0)
+            }
+        job = RecordingJobs.register(requestId, cancel, reader)
+        cancels[requestId] = cancel
+        val handle = model(model)
+        val state = borrowState(model, handle)
+        var inferenceMs = 0.0
+        var firstSegmentMs = -1.0
+        var status = "ok"
+        val segments =
+            try {
+              RecordingPass(reader).run { startMs, pcm ->
+                val windowStart = elapsed()
+                val raw =
+                    JSONObject(
+                        WhisperNative.transcribe(
+                            handle,
+                            state,
+                            pcm,
+                            threads.toInt().coerceIn(1, 8),
+                            cancel,
+                            object : SegmentListener {
+                              override fun onSegment(t0Ms: Long, t1Ms: Long, text: String) {
+                                if (firstSegmentMs < 0) firstSegmentMs = elapsed()
+                                emitOnSegment(
+                                    Arguments.createMap().apply {
+                                      putString("requestId", requestId)
+                                      putDouble("t0Ms", (startMs + t0Ms).toDouble())
+                                      putDouble("t1Ms", (startMs + t1Ms).toDouble())
+                                      putString("text", text)
+                                    })
+                              }
+                            }))
+                inferenceMs += elapsed() - windowStart
+                status = raw.getString("status")
+                if (status != "ok") return@run null
+                val list = raw.getJSONArray("segments")
+                (0 until list.length()).map {
+                  val segment = list.getJSONObject(it)
+                  RecordingPass.Segment(
+                      segment.getLong("t0Ms"), segment.getLong("t1Ms"), segment.getString("text"))
+                }
+              }
+            } finally {
+              returnState(model, state)
+            }
+        val json = JSONObject().put("status", if (segments == null) status else "ok")
+        val list = JSONArray()
+        segments?.forEach {
+          list.put(JSONObject().put("t0Ms", it.t0Ms).put("t1Ms", it.t1Ms).put("text", it.text))
+        }
+        json
+            .put("segments", list)
+            .put("model", model)
+            .put(
+                "timings",
+                JSONObject()
+                    .put("inferenceMs", inferenceMs)
+                    .put("firstSegmentMs", firstSegmentMs)
+                    .put("totalMs", elapsed())
+                    .put("audioMs", reader.pcmBytes / 32))
+            .put("memory", memory())
+        settle { it.resolve(json.toString()) }
+      } catch (error: Throwable) {
+        when {
+          // A lock mid-pass closes the reader; whatever failed after that is a cancel.
+          job?.cancelled == true ->
+              settle {
+                it.resolve(
+                    JSONObject().put("status", "cancelled").put("segments", JSONArray()).toString())
+              }
+          error is AEADBadTagException -> settle { it.reject("SOURCE_DAMAGED", "SOURCE_DAMAGED") }
+          // Error class only: messages could carry paths.
+          else -> settle { it.reject("TRANSCRIPTION_FAILED", error.javaClass.simpleName) }
+        }
+      } finally {
+        cancels.remove(requestId)
+        job?.let { RecordingJobs.finish(it) }
+        WhisperNative.freeCancel(cancel)
+        active.decrementAndGet()
+      }
+    }
+  }
+
+  /**
    * whisper.cpp checks its abort callback only between encoder and decoder
    * passes, so compute can run for up to one encoder pass after a cancel. The
    * request is acknowledged as cancelled immediately; the native work is
@@ -213,6 +425,7 @@ class AudioJournalSpeechModule(private val context: ReactApplicationContext) :
   }
 
   override fun invalidate() {
+    for (live in lives.values) live.close()
     for (cancel in cancels.values) WhisperNative.cancel(cancel)
     executor.shutdown()
     for (queue in states.values) queue.forEach(WhisperNative::freeState)
@@ -222,5 +435,6 @@ class AudioJournalSpeechModule(private val context: ReactApplicationContext) :
 
   companion object {
     const val NAME = "AudioJournalSpeech"
+    const val RECORDING_KEY_LABEL = "aj-rec-v1"
   }
 }

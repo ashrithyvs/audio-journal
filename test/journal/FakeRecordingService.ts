@@ -1,5 +1,8 @@
 import type { StartRefusal } from '../../src/features/journal/domain/recordingSession';
-import type { RecordingFileScan } from '../../src/features/journal/domain/reconciliation';
+import type {
+  AuthenticatedFileScan,
+  RecordingFileScan,
+} from '../../src/features/journal/domain/reconciliation';
 import type {
   FinalizedRecording,
   RecordingEvent,
@@ -8,15 +11,20 @@ import type {
 import { SHA_A } from '../sqlite/journalFixtures';
 
 const MIB = 1024 * 1024;
-/** One sealed AJR1 chunk: 1 s of PCM plus a GCM tag (header ignored). */
-export const CHUNK_BYTES = 32_000 + 16;
+/** The AJR1 header (LLD §5.1). */
+export const HEADER_BYTES = 64;
+/** One sealed frame: index and length, 1 s of PCM, and a GCM tag. */
+export const CHUNK_BYTES = 12 + 32_000 + 16;
 
 /** Scriptable stand-in for the native recorder; holds no audio. */
 export class FakeRecordingService implements RecordingService {
   free = 1_000 * MIB;
+  microphone = true;
   refusal?: StartRefusal;
+  startFails = false;
   finishFails = false;
-  files = new Map<string, RecordingFileScan>();
+  /** What a full authentication of each file would find. */
+  files = new Map<string, AuthenticatedFileScan>();
   calls: string[] = [];
   private listener?: (event: RecordingEvent) => void;
   private active?: string;
@@ -24,6 +32,11 @@ export class FakeRecordingService implements RecordingService {
 
   async freeBytes() {
     return this.free;
+  }
+
+  async requestMicrophone() {
+    this.calls.push('requestMicrophone');
+    return this.microphone;
   }
 
   async prepare(recordingId: string) {
@@ -39,6 +52,9 @@ export class FakeRecordingService implements RecordingService {
 
   async start(recordingId: string, onEvent: (event: RecordingEvent) => void) {
     this.calls.push(`start ${recordingId}`);
+    if (this.startFails) {
+      throw new Error('RECORDER_FAILED');
+    }
     this.listener = onEvent;
     onEvent({ type: 'started' });
   }
@@ -52,7 +68,7 @@ export class FakeRecordingService implements RecordingService {
       type: 'progress',
       capturedMs: this.capturedMs,
       sealedChunks: chunks,
-      byteCount: chunks * CHUNK_BYTES,
+      byteCount: HEADER_BYTES + chunks * CHUNK_BYTES,
       freeBytes: this.free,
       level,
     });
@@ -81,7 +97,7 @@ export class FakeRecordingService implements RecordingService {
     return {
       durationMs: this.capturedMs,
       sealedChunks,
-      byteCount: sealedChunks * CHUNK_BYTES,
+      byteCount: HEADER_BYTES + sealedChunks * CHUNK_BYTES,
       contentSha256: SHA_A,
     };
   }
@@ -91,10 +107,19 @@ export class FakeRecordingService implements RecordingService {
     this.files.delete(this.path(recordingId));
   }
 
-  async scan(recordingId?: string) {
-    this.calls.push(recordingId ? `scan ${recordingId}` : 'scan');
-    return [...this.files.values()].filter(
-      file => !recordingId || file.relativePath === this.path(recordingId),
+  /** Authenticates the named recordings; the rest get a header check. */
+  async scan(authenticate: readonly string[]): Promise<RecordingFileScan[]> {
+    this.calls.push(`scan ${authenticate.join(',')}`.trim());
+    const full = new Set(authenticate.map(id => this.path(id)));
+    return [...this.files.values()].map(file =>
+      full.has(file.relativePath)
+        ? file
+        : {
+            relativePath: file.relativePath,
+            check: 'header' as const,
+            headerValid: file.headerValid,
+            fileBytes: file.fileBytes,
+          },
     );
   }
 
@@ -102,7 +127,12 @@ export class FakeRecordingService implements RecordingService {
     this.calls.push(`dropTornTail ${recordingId} ${sealedChunks}`);
     const file = this.files.get(this.path(recordingId));
     if (file) {
-      this.files.set(file.relativePath, { ...file, trailingBytes: 0 });
+      this.files.set(file.relativePath, {
+        ...file,
+        trailingBytes: 0,
+        tail: 'none',
+        fileBytes: file.byteCount,
+      });
     }
   }
 
@@ -115,7 +145,12 @@ export class FakeRecordingService implements RecordingService {
   tearTail(bytes = 700) {
     const file = this.active && this.files.get(this.path(this.active));
     if (file) {
-      this.files.set(file.relativePath, { ...file, trailingBytes: bytes });
+      this.files.set(file.relativePath, {
+        ...file,
+        trailingBytes: bytes,
+        tail: 'torn',
+        fileBytes: file.byteCount + bytes,
+      });
     }
   }
 
@@ -128,13 +163,17 @@ export class FakeRecordingService implements RecordingService {
       return;
     }
     const relativePath = this.path(this.active);
+    const byteCount = HEADER_BYTES + chunks * CHUNK_BYTES;
     this.files.set(relativePath, {
       relativePath,
+      check: 'authenticated',
       headerValid: true,
+      fileBytes: byteCount,
       authenticatedChunks: chunks,
       authenticatedMs: ms,
       trailingBytes: 0,
-      byteCount: chunks * CHUNK_BYTES,
+      tail: 'none',
+      byteCount,
       contentSha256: chunks > 0 ? SHA_A : undefined,
     });
   }

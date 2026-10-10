@@ -83,6 +83,58 @@ it('marks the draft when the microphone is denied', async () => {
   expect(await context.journal.listTimeline({ limit: 5 })).toEqual([]);
 });
 
+it('asks for the microphone before writing anything', async () => {
+  recorder.microphone = false;
+  await controller.start();
+  expect(session()).toEqual({ phase: 'idle', refusal: 'MICROPHONE_DENIED' });
+  expect(await context.db.get('SELECT count(*) AS n FROM recordings')).toEqual({
+    n: 0,
+  });
+  expect(recorder.calls).toEqual(['requestMicrophone']);
+});
+
+it('removes the empty file and the draft when native start fails', async () => {
+  recorder.startFails = true;
+  await controller.start();
+  expect(session()).toEqual({
+    phase: 'idle',
+    refusal: 'RECORDER_UNAVAILABLE',
+  });
+  expect(await context.db.get('SELECT state FROM recordings')).toEqual({
+    state: 'failed',
+  });
+  expect(recorder.files.size).toBe(0);
+  expect(await context.journal.listTimeline({ limit: 5 })).toEqual([]);
+});
+
+it('authenticates only unfinished captures at startup and still finds damage', async () => {
+  await controller.start();
+  recorder.capture(3_000);
+  await controller.finish();
+  const ready = session();
+  controller.acknowledge();
+  await controller.start();
+  recorder.capture(2_000);
+  await flush();
+  const crashed = session();
+  if (!('recordingId' in ready) || !('recordingId' in crashed)) {
+    throw new Error('expected two captures');
+  }
+  recorder.calls.length = 0;
+  expect(
+    await reconcileRecordings(context.journal, recorder, () => clock),
+  ).toMatchObject({ promoted: 1, recoverable: 0, damaged: 0 });
+  expect(recorder.calls).toEqual([`scan ${crashed.recordingId}`]);
+
+  // The finalized file loses bytes: its length no longer matches.
+  const path = `recordings/${ready.recordingId}.ajr`;
+  const file = recorder.files.get(path)!;
+  recorder.files.set(path, { ...file, fileBytes: file.fileBytes - 100 });
+  expect(
+    await reconcileRecordings(context.journal, recorder, () => clock),
+  ).toMatchObject({ damaged: 1 });
+});
+
 it('auto-pauses on audio focus loss and stays paused until the user resumes', async () => {
   await controller.start();
   recorder.capture(1_000);
@@ -124,7 +176,7 @@ it('throttles progress writes to bound database work', async () => {
   });
 });
 
-it('stores the same recoverable outcome the user sees when native finish fails', async () => {
+it('keeps the audio as a ready recording when native finish fails', async () => {
   await controller.start();
   recorder.capture(2_000);
   recorder.finishFails = true;
@@ -133,10 +185,16 @@ it('stores the same recoverable outcome the user sees when native finish fails',
     phase: 'recoverable',
     cause: 'RECORDER_FAILED',
   });
-  // Even though every chunk authenticates, the row is not promoted.
+  // Every chunk authenticates, so the audio is kept as a ready recording
+  // (ADR-017, owner decision 2026-10-10).
   expect(await entryOf()).toMatchObject({
-    entry: { status: 'recovery_required' },
-    recording: { state: 'recoverable', durationMs: 2_000, sealedChunks: 2 },
+    entry: { status: 'ready' },
+    recording: {
+      state: 'ready',
+      finishReason: 'recovered',
+      durationMs: 2_000,
+      sealedChunks: 2,
+    },
   });
   // Only this recording's file is rescanned, not the whole archive.
   expect(recorder.calls.filter(call => call.startsWith('scan'))).toEqual([
@@ -144,7 +202,7 @@ it('stores the same recoverable outcome the user sees when native finish fails',
   ]);
 });
 
-it('stores a native interruption as recoverable', async () => {
+it('keeps a native interruption as a ready recovered recording', async () => {
   await controller.start();
   recorder.capture(3_000);
   recorder.emit({
@@ -156,7 +214,10 @@ it('stores a native interruption as recoverable', async () => {
   await flush();
   await flush();
   expect(session()).toMatchObject({ phase: 'recoverable', sealedChunks: 3 });
-  expect((await entryOf())?.recording?.state).toBe('recoverable');
+  expect(await entryOf()).toMatchObject({
+    entry: { status: 'ready' },
+    recording: { state: 'ready', finishReason: 'recovered', durationMs: 3_000 },
+  });
 });
 
 it('discards only after confirmation and keeps the rows', async () => {
@@ -184,19 +245,22 @@ it('recovers a capture after process death on the next startup', async () => {
     () => clock + 60_000,
   );
   expect(summary).toEqual({
-    promoted: 0,
-    recoverable: 1,
+    promoted: 1,
+    recoverable: 0,
     failed: 0,
     damaged: 0,
     quarantined: 0,
   });
+  // Only the torn final frame is cut; every authenticated chunk is kept.
   expect(recorder.calls.some(call => call.startsWith('dropTornTail'))).toBe(
     true,
   );
   const [entry] = await context.journal.listTimeline({ limit: 5 });
-  expect(entry).toMatchObject({
-    status: 'recovery_required',
-    durationMs: 4_000,
+  expect(entry).toMatchObject({ status: 'ready', durationMs: 4_000 });
+  expect((await entryOf())?.recording).toMatchObject({
+    state: 'ready',
+    finishReason: 'recovered',
+    contentSha256: expect.stringMatching(/^[0-9a-f]{64}$/),
   });
   // Reconciling again is a no-op: the plan is idempotent.
   expect(
@@ -213,10 +277,13 @@ it('recovers a capture after process death on the next startup', async () => {
 it('quarantines an unknown file without deleting journal rows', async () => {
   recorder.files.set('recordings/stray.ajr', {
     relativePath: 'recordings/stray.ajr',
+    check: 'authenticated',
+    fileBytes: 10,
     headerValid: false,
     authenticatedChunks: 0,
     authenticatedMs: 0,
     trailingBytes: 10,
+    tail: 'damaged',
     byteCount: 0,
   });
   const summary = await reconcileRecordings(

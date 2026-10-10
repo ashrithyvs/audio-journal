@@ -4,6 +4,8 @@
 
 export type PlaybackEvent =
   | { type: 'position'; positionMs: number }
+  /** Stopped at a position: by pause(), focus loss, or leaving the app. */
+  | { type: 'paused'; positionMs: number }
   | { type: 'ended' }
   | { type: 'failed'; code: 'PLAYBACK_UNAVAILABLE' | 'SOURCE_DAMAGED' };
 

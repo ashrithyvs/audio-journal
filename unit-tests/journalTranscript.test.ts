@@ -67,6 +67,34 @@ describe('engine segment validation', () => {
     });
   });
 
+  it('drops segments that are only a non-speech annotation', () => {
+    expect(
+      validateEngineSegments(
+        [
+          { t0Ms: 0, t1Ms: 8_000, text: ' [BLANK_AUDIO]' },
+          { t0Ms: 8_000, t1Ms: 9_000, text: '[ Silence ]' },
+          { t0Ms: 9_000, t1Ms: 9_500, text: '(wind blowing)' },
+          { t0Ms: 9_500, t1Ms: 9_800, text: '[Music] then we left' },
+          { t0Ms: 9_800, t1Ms: 10_000, text: 'call [Sam] back' },
+        ],
+        10_000,
+      ),
+    ).toEqual({
+      ok: true,
+      segments: [
+        { startMs: 9_500, endMs: 9_800, text: '[Music] then we left' },
+        { startMs: 9_800, endMs: 10_000, text: 'call [Sam] back' },
+      ],
+    });
+    // Silence alone is a valid pass with no words: an "empty" transcript.
+    expect(
+      validateEngineSegments(
+        [{ t0Ms: 0, t1Ms: 900, text: '[BLANK_AUDIO]' }],
+        900,
+      ),
+    ).toEqual({ ok: true, segments: [] });
+  });
+
   it('clamps a small end overshoot and rejects a large one', () => {
     const tolerance = TRANSCRIPT_LIMITS.endOvershootToleranceMs;
     expect(

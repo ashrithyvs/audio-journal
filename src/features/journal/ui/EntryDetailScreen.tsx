@@ -10,7 +10,10 @@ import {
 
 import { colors } from '../../../theme/colors';
 import { PrimaryButton } from '../../app-lock/ui/PrimaryButton';
-import { useJournal } from '../application/JournalContext';
+import {
+  useJournal,
+  useTranscriptionStatus,
+} from '../application/JournalContext';
 import type { RecordingRecord } from '../domain/entry';
 import {
   formatDayHeading,
@@ -111,11 +114,18 @@ export function EntryDetailScreen({ entryId }: { entryId: string }) {
       )}
 
       {entry.kind === 'voice' ? (
-        <View style={journalStyles.section}>
+        <View
+          style={journalStyles.section}
+          testID={`transcript-kind-${transcript.kind}`}
+        >
           <Text accessibilityRole="header" style={styles.sectionTitle}>
             Transcript
           </Text>
-          {transcript.kind === 'none' ? (
+          {transcript.kind === 'empty' ? (
+            <Text style={journalStyles.muted} testID="transcript-empty">
+              No speech was found in this recording.
+            </Text>
+          ) : transcript.kind === 'none' ? (
             <Text style={journalStyles.muted} testID="transcript-none">
               No transcript yet. The recording is safe; a transcript can be
               created later.
@@ -131,18 +141,68 @@ export function EntryDetailScreen({ entryId }: { entryId: string }) {
                   finishes.
                 </Text>
               ) : null}
-              {transcript.lines.map(line => (
+              {transcript.lines.map((line, position) => (
                 <TranscriptRow
                   key={line.originSegmentId}
                   editable={transcript.kind === 'final'}
                   line={line}
+                  position={position}
                 />
               ))}
             </>
           )}
+          {transcript.kind === 'final' || transcript.kind === 'empty' ? null : (
+            <TranscriptAction recording={recording} />
+          )}
         </View>
       ) : null}
     </ScrollView>
+  );
+}
+
+/** Starts, follows, or retries the on-device final pass (ADR-017). */
+function TranscriptAction({ recording }: { recording?: RecordingRecord }) {
+  const { transcription } = useJournal();
+  const status = useTranscriptionStatus(recording?.id);
+  if (!transcription || recording?.state !== 'ready') {
+    return null;
+  }
+  if (status?.phase === 'queued' || status?.phase === 'running') {
+    return (
+      <View style={journalStyles.row} testID="transcript-running">
+        <Text style={[journalStyles.muted, styles.grow]}>
+          Making the transcript on this device…
+        </Text>
+        <PrimaryButton
+          label="Cancel"
+          onPress={() => transcription.cancel(recording.id)}
+          secondary
+          testID="transcript-cancel"
+        />
+      </View>
+    );
+  }
+  return (
+    <View testID="transcript-action">
+      {status?.phase === 'failed' ? (
+        <Text
+          accessibilityRole="alert"
+          style={journalStyles.error}
+          testID="transcript-failed"
+        >
+          {status.reason === 'SOURCE_DAMAGED'
+            ? 'The recording could not be read in full, so no transcript was made. The recording has not been changed.'
+            : 'The transcript could not be made. The recording is safe.'}
+        </Text>
+      ) : null}
+      <PrimaryButton
+        label={status?.phase === 'failed' ? 'Try again' : 'Transcribe'}
+        onPress={() =>
+          transcription.request(recording.id, recording.durationMs)
+        }
+        testID="transcript-start"
+      />
+    </View>
   );
 }
 
@@ -180,9 +240,16 @@ function RecordingSource({ recording }: { recording?: RecordingRecord }) {
     }
     if (event.type === 'position') {
       setPositionMs(event.positionMs);
+    } else if (event.type === 'paused') {
+      // Paused by the user, by losing audio focus, or by leaving the app.
+      setPositionMs(event.positionMs);
+      setPlaying(false);
     } else {
       setPlaying(false);
       setFailed(event.type === 'failed');
+      if (event.type === 'ended') {
+        setPositionMs(0); // the next Play starts from the beginning
+      }
     }
   }, []);
 
@@ -210,6 +277,11 @@ function RecordingSource({ recording }: { recording?: RecordingRecord }) {
       <Text style={journalStyles.meta}>
         Voice · {formatDuration(recording.durationMs)} · Saved on this device
       </Text>
+      {recording.finishReason === 'recovered' ? (
+        <Text style={journalStyles.muted} testID="entry-recovered">
+          Recording was interrupted; everything captured up to then was saved.
+        </Text>
+      ) : null}
       {playback && playable ? (
         <View style={journalStyles.row}>
           <PrimaryButton
@@ -238,9 +310,12 @@ function RecordingSource({ recording }: { recording?: RecordingRecord }) {
 function TranscriptRow({
   line,
   editable,
+  position,
 }: {
   line: TranscriptLine;
   editable: boolean;
+  /** Display order; provisional rows repeat engine ordinals per window. */
+  position: number;
 }) {
   const { transcripts, now, changed } = useJournal();
   const [draft, setDraft] = useState<string>();
@@ -270,7 +345,7 @@ function TranscriptRow({
   };
 
   return (
-    <View style={styles.line} testID={`transcript-line-${line.ordinal}`}>
+    <View style={styles.line} testID={`transcript-line-${position}`}>
       <Text style={journalStyles.meta}>{formatDuration(line.startMs)}</Text>
       {draft === undefined ? (
         <Pressable
@@ -278,7 +353,7 @@ function TranscriptRow({
           accessibilityRole={editable ? 'button' : 'text'}
           disabled={!editable}
           onPress={() => setDraft(line.text)}
-          testID={`transcript-text-${line.ordinal}`}
+          testID={`transcript-text-${position}`}
         >
           <Text style={journalStyles.body}>{line.text}</Text>
         </Pressable>
@@ -290,14 +365,14 @@ function TranscriptRow({
             multiline
             onChangeText={setDraft}
             style={journalStyles.input}
-            testID={`transcript-edit-${line.ordinal}`}
+            testID={`transcript-edit-${position}`}
             value={draft}
           />
           <View style={journalStyles.row}>
             <PrimaryButton
               label="Save correction"
               onPress={save}
-              testID={`transcript-save-${line.ordinal}`}
+              testID={`transcript-save-${position}`}
             />
             <PrimaryButton
               label="Cancel"
@@ -335,4 +410,5 @@ const styles = StyleSheet.create({
   noticeTitle: { color: colors.ink, fontSize: 15, fontWeight: '700' },
   line: { paddingVertical: 10 },
   position: { alignSelf: 'center' },
+  grow: { alignSelf: 'center', flex: 1 },
 });

@@ -3,14 +3,18 @@ import type { PrivateNodeOptions } from '../features/private-node/application/Pr
 import type { HybridAiGateway } from '../platform/hybrid-ai/HybridAiGateway';
 import { PackagedHybridAiGateway } from '../platform/hybrid-ai/PackagedHybridAiGateway';
 import { NativeVaultService } from '../platform/vault/NativeVaultService';
-import { openProductionJournal, type OpenedJournal } from './openJournal';
+import {
+  openProductionJournal,
+  type JournalOpenContext,
+  type OpenedJournal,
+} from './openJournal';
 
 export interface AppServices {
   appLock: AppLockServices;
   hybridAI: HybridAiGateway;
   privateNode?: PrivateNodeOptions;
   /** Opens the journal after each unlock (ADR-017); closed on lock. */
-  openJournal: () => Promise<OpenedJournal>;
+  openJournal: (context: JournalOpenContext) => Promise<OpenedJournal>;
 }
 
 /**
