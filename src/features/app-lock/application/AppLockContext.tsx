@@ -172,6 +172,22 @@ export function AppLockProvider({
     };
   }, [endGrace, lock, now]);
 
+  const refreshBiometric = useCallback(async () => {
+    try {
+      const status = await vault.status();
+      if (status.state === 'unlocked') {
+        dispatch({
+          type: 'BIOMETRIC_REFRESHED',
+          available: status.biometric !== 'not_available',
+          enabled: status.biometric === 'on',
+          invalidated: status.biometric === 'invalidated',
+        });
+      }
+    } catch {
+      // Keep what is shown; the PIN path is unaffected.
+    }
+  }, [vault]);
+
   const configure = useCallback(
     async (pin: string, confirmation: string) => {
       const validation = validateScaffoldPin(pin);
@@ -189,6 +205,7 @@ export function AppLockProvider({
       try {
         await vault.setupPin(pin);
         dispatch({ type: 'UNLOCKED' });
+        await refreshBiometric();
         return true;
       } catch {
         dispatch({
@@ -198,7 +215,7 @@ export function AppLockProvider({
         return false;
       }
     },
-    [vault],
+    [refreshBiometric, vault],
   );
 
   const unlockWithPin = useCallback(
@@ -209,6 +226,7 @@ export function AppLockProvider({
         switch (outcome.result) {
           case 'unlocked':
             dispatch({ type: 'UNLOCKED' });
+            await refreshBiometric();
             return true;
           case 'wrong_pin':
             dispatch({
@@ -247,7 +265,7 @@ export function AppLockProvider({
         return false;
       }
     },
-    [now, vault],
+    [now, refreshBiometric, vault],
   );
 
   const unlockWithBiometrics = useCallback(async () => {
@@ -256,6 +274,7 @@ export function AppLockProvider({
       const outcome = await vault.unlockWithBiometric();
       if (outcome.result === 'unlocked') {
         dispatch({ type: 'UNLOCKED' });
+        await refreshBiometric();
         return true;
       }
       if (outcome.result === 'invalidated') {
@@ -277,7 +296,7 @@ export function AppLockProvider({
       });
       return false;
     }
-  }, [vault]);
+  }, [refreshBiometric, vault]);
 
   const setBiometricEnabled = useCallback(
     async (enabled: boolean) => {

@@ -253,6 +253,8 @@ describe('paired node status, recovery, and trust', () => {
     await openNodeScreen(view);
     expect(await view.findByText('Private AI Node unavailable')).toBeTruthy();
     expect(view.getByText('Unavailable')).toBeTruthy();
+    // One Reconnect, not one per notice and status (AJ-3 report F3).
+    expect(view.getAllByText('Reconnect')).toHaveLength(1);
     gateway.connectFailure = undefined;
     await fireEvent.press(view.getByTestId('reconnect'));
     expect(await view.findByText('Connected')).toBeTruthy();

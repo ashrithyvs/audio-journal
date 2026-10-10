@@ -30,6 +30,13 @@ export type AppLockAction =
   | { type: 'AUTH_FAILED'; message: string; retryAt?: number }
   | { type: 'BIOMETRIC_INVALIDATED' }
   | { type: 'BIOMETRIC_CHANGED'; enabled: boolean }
+  /** The vault's biometric state, re-read once unlocked. */
+  | {
+      type: 'BIOMETRIC_REFRESHED';
+      available: boolean;
+      enabled: boolean;
+      invalidated: boolean;
+    }
   | { type: 'ERASED' }
   | { type: 'LOCK' }
   | { type: 'FAIL_CLOSED'; message: string };
@@ -78,6 +85,18 @@ export function appLockReducer(
     case 'BIOMETRIC_CHANGED':
       return state.phase === 'unlocked'
         ? { ...state, biometricEnabled: action.enabled, notice: undefined }
+        : state;
+    case 'BIOMETRIC_REFRESHED':
+      // First-run setup bootstraps with no vault to probe, and enrollment can
+      // change while the app is away (which locks it), so availability is
+      // re-read after setup and after each unlock.
+      return state.phase === 'unlocked'
+        ? {
+            ...state,
+            biometricAvailable: action.available,
+            biometricEnabled: action.enabled,
+            notice: action.invalidated ? 'biometric_invalidated' : state.notice,
+          }
         : state;
     case 'ERASED':
       // Back to first-run setup; nothing of the old journal remains reachable.

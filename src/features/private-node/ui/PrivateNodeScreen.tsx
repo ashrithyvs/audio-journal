@@ -103,10 +103,12 @@ export function PrivateNodeScreen({ onPair }: { onPair(): void }) {
           </Body>
         ) : null}
         {linkFailure && !revoked ? (
+          // One Reconnect only: the status action below offers it when it
+          // applies (AJ-3 report F3).
           <FailureNotice
             presentation={linkFailure}
-            actionLabel="Reconnect"
-            onAction={node.reconnect}
+            actionLabel={connection.canReconnect ? undefined : 'Reconnect'}
+            onAction={connection.canReconnect ? undefined : node.reconnect}
             testID="link-failure"
           />
         ) : null}

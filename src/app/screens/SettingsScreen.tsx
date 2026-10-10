@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAppLock } from '../../features/app-lock/application/AppLockContext';
 import { PrimaryButton } from '../../features/app-lock/ui/PrimaryButton';
@@ -35,8 +35,10 @@ export function SettingsScreen({
     state.link.mark,
   );
 
+  // Scrolls: with biometric unlock offered, or a larger font size, the cards
+  // outgrow the screen and "Lock now" must stay reachable.
   return (
-    <View style={styles.page}>
+    <ScrollView contentContainerStyle={styles.content} style={styles.page}>
       <Text style={styles.title}>Settings</Text>
       <View style={styles.card}>
         <Text style={styles.label}>Private AI Node</Text>
@@ -112,12 +114,13 @@ export function SettingsScreen({
           <PrimaryButton label="Lock now" onPress={lock} testID="lock-now" />
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.background, padding: 24 },
+  page: { flex: 1, backgroundColor: colors.background },
+  content: { padding: 24 },
   title: {
     color: colors.ink,
     fontFamily: 'serif',

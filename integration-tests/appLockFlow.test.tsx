@@ -34,3 +34,17 @@ it('keeps PIN fallback available after biometric cancellation', async () => {
   ).toBeTruthy();
   expect(view.getByLabelText('PIN')).toBeTruthy();
 });
+
+it('offers biometric unlock right after first-run setup, without a restart', async () => {
+  const view = await render(
+    <AppRoot services={makeTestServices({ biometricResult: 'success' })} />,
+  );
+
+  await fireEvent.changeText(await view.findByTestId('pin'), '482915');
+  await fireEvent.changeText(view.getByTestId('pin-confirmation'), '482915');
+  await fireEvent.press(view.getByText('Protect my journal'));
+
+  expect(await view.findByText('What do you want to remember?')).toBeTruthy();
+  await fireEvent.press(view.getByText('Settings'));
+  expect(await view.findByText('Turn on biometric unlock')).toBeTruthy();
+});

@@ -39,8 +39,9 @@ export function SetupLockScreen() {
         onPress={() => configure(pin, confirmation)}
       />
       <Text style={styles.prototypeNote}>
-        AJ-0 uses a temporary in-memory verifier. Persistent secure storage and
-        recovery behavior arrive only after the security design is approved.
+        Your PIN unlocks an encrypted vault on this device. A forgotten PIN
+        cannot be recovered; only an encrypted backup can bring your journal
+        back.
       </Text>
     </LockLayout>
   );
