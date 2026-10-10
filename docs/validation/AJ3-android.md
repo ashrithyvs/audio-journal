@@ -1,11 +1,13 @@
 # AJ-3 Android Validation: Secure Private AI Node Workflow
 
-**Status: the AJ-3 node workflow passes on Android on the final AJ-1 build
-`6f2b36b`, which is the merge-gate regression. The AJ-3 milestone is not
-accepted yet.**
+**Status: AJ-1 is merged into `main`, and the AJ-3 node workflow passes on
+Android on the merged `main` (`f294c87`), including a tap-free S13 (§8.5).
+The AJ-3 milestone is not accepted yet.**
 
 | Build | What it is | Fresh S00–S19 | Notes |
 |---|---|---|---|
+| `f294c87` | Merged `main` with the F3 and status-recovery fixes (`78a9295`, `57f316c`) | **20 / 20 pass** | Final merged baseline; S13 takes no Reconnect tap (§8.5) |
+| `a759db8` | The merge of `aj1/domain-core` into `main`, before the status-recovery fix | **20 / 20 pass** | Pre-fix evidence only (§8.4) |
 | `6f2b36b` | Final AJ-1 APK: the fix plus recorder, playback, transcription, AJB1 backup/restore, and a scrolling Settings screen | **20 / 20 pass** | Merge-gate run, 2026-10-10 23:18–23:58 (§8.3) |
 | `72ee323` | AJ-1 (`94604ca`, `dc300cd`) plus the status fixes `0ced9a6` and `72ee323`; branch `aj1/domain-core` | **20 / 20 pass** | One non-resumed run; full-run log scan; persistent PIN (§8) |
 | `94604ca` | AJ-1 checkpoint 2, before the fix | 17 / 20 | S12, S13, S17 failed (F1, F2); no AJ-1 regression |
@@ -116,7 +118,7 @@ gives `52cb23d` / `72ee323`; both runs are reported in §3 and §8.
 | 6 | Expired QR | S04: `PAIRING_BOOTSTRAP_EXPIRED`, with no way to continue. An invalid code gives `PAIRING_BOOTSTRAP_INVALID`. | **Pass / Pass** |
 | 7 | Verification-code confirmation | S05/S06: the app's 6-digit code equals the node's pending code. "Codes don't match" gives `PAIRING_REJECTED`, and the node keeps no pairing. | **Pass / Pass** |
 | 8 | Paired / active status | S06, as above. | **Pass / Pass** |
-| 9 | Secure reconnect | S13: after the node restarts, a request completes again. S15: a process restart reconnects (41 ms) to the same node identity. On `52cb23d` the status during the outage is wrong (F2); on `72ee323` it shows "Unavailable", then "Connected". | **Pass / Pass** |
+| 9 | Secure reconnect | S13: after the node restarts, a request completes again. S15: a process restart reconnects (41 ms) to the same node identity. On `52cb23d` the status during the outage is wrong (F2); on `72ee323` it shows "Unavailable", then "Connected". From `f294c87`, S13 takes no Reconnect tap: the node result alone must restore "Connected" (F5). | **Pass / Pass** |
 | 10 | Forget and re-pair | S16: "Node forgotten. The node confirmed it removed this device." The node lists no pairing, and the next `auto` request fails with `CAPABILITY_NOT_FOUND`. Pairing again gives Connected. | **Pass / Pass** |
 | 11 | Revoked trust | S17: the request fails with `NODE_TRUST_REVOKED`, which is correct. The status stays "Connected", then shows "No node paired" after a restart, with no "Forget and pair again". Recovery is possible only through the paired row's Forget. On `72ee323`: "Trust revoked", "Affected node", "Forget and pair again", then re-paired and Connected. | **Fail (F1) / Pass** |
 | 12 | Spoofed / hostile candidates | S03 hides the malformed advertisement. S07 replays a used code and gets `PAIRING_SESSION_UNAVAILABLE`. S11 flags look-alikes as "Unverified · Possible impersonation" and trust is unchanged. S18 swaps an impostor onto the paired endpoint: "Identity check failed", `NODE_AUTHENTICATION_FAILED`, and the impostor obtains no pairing. | **Pass / Pass** |
@@ -243,9 +245,20 @@ device (§8). It is not on `main` until the gated merge.
 
 **F3: duplicate "Reconnect" (S12, S13, S18).** Severity: low. The Unavailable
 and identity-failure screens show two "Reconnect" buttons: the notice's own,
-and the status action. It is still present in `72ee323`. `hybridai-81` will
-hide the status action while the notice offers Reconnect, in a separate
-commit; the final AJ-1 APK's AJ-3 regression covers it.
+and the status action. It is still present in `72ee323`. **Closed:**
+`e632240` removed the duplicate, and `78a9295` (on `main` since `a759db8`)
+makes the notice explanatory only, so Reconnect appears once and only where
+it applies, and clears the failed connect after recovery. Evidence: the
+S12, S13, and S18 screens of the `6f2b36b` run (exactly one Reconnect) and
+`e2e/aj1/node-f3.mjs` 3/3 on `f294c87` (AJ-1 progress, merge section).
+
+**F5: "Unavailable" after a node result, with no tap.** Severity: medium
+(status truthfulness). Found 2026-10-11 by `e2e/aj1/node-f3.mjs` on the merged
+build `a759db8`: after the node restarted, a node request completed, but the
+status stayed "Unavailable". The SDK updates `node.status()` only on connect,
+refresh, and rotation (converse of SDK-AJ-2), and the app reconciled only
+after failures. S13 missed it because it tapped Reconnect. Fixed in `57f316c`
+(UX §7.1, LLD §7.1); S13 is now tap-free (`f294c87`).
 
 **F4: local requests ignore their deadline (SDK-FR-19).** Found by the load
 suite; see the
@@ -420,12 +433,48 @@ The others range from 0.7 s to 186.8 s.
   - first event / response 27 / 80 ms;
   - process restart 636 ms, reconnect 85 ms.
 
+### 8.4 Merged `main` `a759db8`: pre-fix baseline, 20 of 20
+
+- **APK:** `app-release-main-a759db8.apk`, SHA-256
+  `02aaf5723b65fa772ba1c99c10dab52c5f9199eefc16c98a4f30451d98e8a4ce`, built
+  by `hybridai-81` in the `main` worktree after the merge.
+- **Run:** one fresh, non-resumed run with `--expect-persistent-pin`,
+  2026-10-11 01:16–01:56 IST, `emulator-5554`, harness as merged (`84d3b4c`
+  content). Evidence: `e2e/speech/results/aj3-main-a759db8/`.
+- **Result: 20 of 20 pass.** It is pre-fix evidence only: F5 was found on
+  this build, and the APK was superseded by `f294c87`.
+
+### 8.5 Final merged `main` `f294c87`
+
+- **APK:** `app-release-main-f294c87.apk`, SHA-256
+  `c4b61818fbd56b88dbe7af6fbe203216ff26d3a343f5ae46b311f835dba90e22`, built by
+  `hybridai-81` in the `main` worktree at `f294c87` (clean tree). It contains
+  the merged AJ-1 work plus `78a9295` (F3) and `57f316c` (F5).
+- **Run:** one fresh, non-resumed run with `--expect-persistent-pin`,
+  2026-10-11 02:17–02:56 IST, `emulator-5554`, headless, harness at
+  `f294c87`: S13 no longer taps Reconnect after the node restarts. Attempt 1,
+  no resumed steps, provenance complete.
+- **Evidence:** `e2e/speech/results/aj3-main-f294c87/`.
+- **Result: 20 of 20 pass.**
+  - S12: "Unavailable" with the network cut, then "Connected" with no tap.
+  - S13: "Unavailable" with the node stopped; after its restart a node
+    request completed with no tap, and the status returned to "Connected".
+    The Diary stayed usable.
+  - S17: "Trust revoked" with "Forget and pair again".
+  - S18: "Identity check failed".
+  - S19: 9.6 MB scanned, coverage "run", clean.
+- **Timings (development figures):** cold launch 611 ms; SDK start 19 ms;
+  discovery first result 62 ms; first reconnect 41 ms; first event /
+  response 15 / 62 ms; process restart 623 ms.
+- **Step times (s):** S00 3.0, S01 7.0, S02 74.5, S03 114.6, S04 59.5,
+  S05 65.9, S06 62.4, S07 98.5, S08 250.1, S09 251.9, S10 146.9, S11 80.6,
+  S12 250.4, S13 233.3, S14 85.8, S15 63.0, S16 194.9, S17 237.9, S18 60.7,
+  S19 0.6.
+
 ## 9. Limitations and remaining work
 
-- `main` keeps F1 and F2 until `aj1/domain-core` is merged. The merge-gate
-  regression on `6f2b36b` has passed (§8.3).
-- F3 (duplicate "Reconnect") is to be re-checked when `hybridai-81`'s change
-  lands.
+- F1 and F2 are fixed on `main` since the AJ-1 merge (`a759db8`); F3 and F5
+  are fixed (`78a9295`, `57f316c`).
 - AJ-3 milestone exit: needs AJ-1 and AJ-2 (organize through
   `journal.organize@1`, minimum transcript content sent).
 - Camera QR scanning is deferred (ADR-015).

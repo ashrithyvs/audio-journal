@@ -190,6 +190,13 @@ missing or invalid.
   notice of the failed connection attempt; a failed Forget stays until the
   user acts on it. A stale "connected" never counts. The Diary keeps working
   throughout.
+- **Status after a node result** (2026-10-11). A request completed by the
+  node shows Connected at once, even when the SDK still reports its last
+  connect result, which it updates only when it connects (SDK-AJ-2). The
+  app then makes one catch-up connection attempt so the SDK agrees; it waits
+  out the debounce above rather than being dropped, happens once however
+  many results arrive, and never retries the request. If it fails, that
+  newer failure is shown. A local result never changes the node status.
 - **Revoked or unusable trust.** The SDK deactivates a node whose trust
   failed, so there may be no active node.
   - The pill then describes that exact node, labelled "Affected node": the

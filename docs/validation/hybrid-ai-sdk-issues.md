@@ -134,6 +134,14 @@ need a documented way to re-check.
 **Interim app workaround:** after `NODE_UNAVAILABLE`, call `node.connect()` and
 show its outcome.
 
+**Also observed (2026-10-11, `hybridai-81`):** the converse holds too. After a
+failed connect left the status `unavailable`, and the node came back, explicit
+node requests completed while `node.status()` kept returning `unavailable`
+until the next `connect()`. Found by `e2e/aj1/node-f3.mjs` on the merged AJ-1
+build (evidence `aj1-artifacts/evidence/f3-merge-20261011/main-a759db8/`). App
+workaround (`57f316c`): a node result shows Connected at once, and one
+catch-up `node.connect()` lets the SDK agree (UX §7.1).
+
 ## SDK-AJ-3: local requests ignore their deadline (SDK-FR-19)
 
 **Affected:** the same SDK version and artifacts as SDK-AJ-1.

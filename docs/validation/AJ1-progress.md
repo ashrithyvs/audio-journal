@@ -1,21 +1,105 @@
-# AJ-1 Progress Validation (checkpoint 3)
+# AJ-1 Progress Validation
 
-**Date:** 2026-10-10
+**Date:** 2026-10-11
 **Status:** AJ-1's Android implementation is **provisionally complete on
-emulator evidence**: every AJ-1 feature is implemented on `aj1/domain-core`
-and has passed host tests and emulator device journeys. AJ-1 is **not
-accepted**:
+emulator evidence** and is **merged into `main`**. AJ-1 is **not accepted**:
 
-- the physical-device gates (Argon2id parameters, memory/latency, the AJB1
-  production profile) are deferred, not passed;
-- iOS is deferred, not passed (no macOS/Xcode evidence);
-- the live-text parameters stay PROVISIONAL (Open decision 3).
+- the physical-device gates (Argon2id parameters, memory and latency, the
+  AJB1 production profile) are deferred, not passed;
+- live-transcription window, overlap, and cadence stay PROVISIONAL until
+  measured on a physical device (Open decision 3);
+- iOS is deferred, not passed (no macOS/Xcode evidence).
 
-The AJ-3 S00–S19 merge gate **passed 20/20** on the final AJ-1 APK
-(§0.2). The branch is not merged and not pushed; the merge waits for the
-owner.
+Nothing is pushed or released. AJ-2 has not started.
 
-## 0. Checkpoint 3 summary
+## Merge into `main` (2026-10-11)
+
+**Commits on `main`:**
+
+- `c0938c3`: the shared coordination file as both tracks left it
+  (coordination only);
+- `a759db8`: merge of `aj1/domain-core` (`78a9295`) into `main` (`c0938c3`).
+  No file had changed on both sides since `6383209`, so there were no
+  conflicts. The diff was reviewed: no APKs, evidence, secrets, local
+  configuration, or `.claude/`; the AJB1/AJR1 vectors and reference tools are
+  unchanged since their freeze (`94604ca`); no SDK or protocol change;
+- `57f316c`: a node result restores Connected without a tap (below);
+- `f294c87`: test-script changes (tap-free S13, settled pause timer, the F3
+  node check, biometric cleanup);
+- the documentation commit that adds this section.
+
+On `aj1/domain-core` before the merge: `78a9295` (F3, below), after
+`5e29d27`.
+
+**F3 (duplicate "Reconnect"): closed.** `e632240` had removed the
+duplicate, but the failure notice still offered its own Reconnect wherever
+the status did not, so after a failed connect and a later recovery the
+stale notice offered Reconnect beside "Connected". `78a9295` makes the notice
+explanatory only (the status row carries the one recovery action, and
+Reconnect only for Not connected, Reconnecting…, Unavailable, and Identity
+check failed) and clears the failed connect once authenticated contact
+clears its mark. "Forget and pair again" is unchanged for revoked trust and
+an unavailable key. Tests: a reducer case that failed before the fix, a
+state-to-action table, and screen-level action counts per status. Device:
+`e2e/aj1/node-f3.mjs` 3/3 on the final APK (below).
+
+**Status after recovery without a tap: fixed.** Found by the new F3 device
+check on `a759db8`: after the node restarted, a node request completed but
+the status stayed "Unavailable", because the SDK updates `node.status()` only
+on connect, refresh, and rotation (SDK-AJ-2). `57f316c` treats a node result
+as authenticated contact: the active node shows Connected at once, its
+matching mark and failed connect are cleared, and one catch-up connect lets
+the SDK agree. That connect is coalesced, waits out the debounce instead of
+being dropped, is skipped when not needed, and never retries the request; if
+it fails, the newer failure is shown. A local result changes nothing. Tests:
+seven reducer cases and five integration cases (UX §7.1, LLD §7.1).
+
+**Capture timer check (test script, owner option A).** On `a759db8` the
+capture journey failed once with "timer advanced while paused": the native
+pause result and the capture thread's last progress event reach JS
+separately, so that event (audio sealed before the pause took effect) can
+land just after the paused UI appears. The app still accepts it. The journey
+now waits one second, then asserts the timer does not move for 2.5 s.
+
+**Environment issues (not product failures):** a device PIN left by an
+earlier biometric run kept the emulator's user storage locked after a cold
+boot (the biometric journey now clears it), and a "System UI isn't
+responding" dialog blocked one smoke attempt. Both runs were repeated.
+
+### Validation of the final `main`
+
+**APK:** `/home/igdclt0603/Desktop/Ash/aj1-artifacts/app-release-main-f294c87.apk`,
+SHA-256 `c4b61818fbd56b88dbe7af6fbe203216ff26d3a343f5ae46b311f835dba90e22`,
+built in the `main` worktree at `f294c87` (clean tree). Emulator
+`emulator-5554`, API 35, headless; `.aj-exclusive-run` held throughout.
+Evidence: `aj1-artifacts/evidence/f3-merge-20261011/main-f294c87/`.
+
+| Check | Command | Result |
+|---|---|---|
+| JS baseline | `npm run test:baseline` | Pass: format, typecheck, lint with 0 warnings, unit 244/244, smoke 3/3, integration 128/128, performance 6/6 |
+| JVM | `./gradlew :app:testDebugUnitTest` | 58/58 |
+| Builds | `./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :app:assembleRelease` | Pass |
+| Instrumented | `ANDROID_SERIAL=emulator-5554 ./gradlew connectedDebugAndroidTest` (speech sample pushed) | App 6/6 (`VaultDeviceTest` 5, `RecordingSpeechDeviceTest` 1); packaged SDK module 18 run, 0 failures, 6 skipped |
+| AJ-1 smoke | `node e2e/aj1/smoke.mjs <apk>` | 7/7 |
+| AJ-1 capture | `node e2e/aj1/capture.mjs <apk>` | 6/6 (settled pause timer, playback, final pass, interrupted capture kept, discard) |
+| F3 and recovery | `node e2e/aj1/node-f3.mjs <apk>` | 3/3: Connected with 0 Reconnect; Unavailable after a failed Reconnect with exactly 1 Reconnect and the notice; Connected again after a node result with no tap, 0 Reconnect, no stale notice |
+| AJ-3 S00–S19 | `node e2e/android/aj3-e2e.mjs --apk <apk> --expect-persistent-pin --out e2e/speech/results/aj3-main-f294c87` | **20/20**, one fresh, non-resumed run (attempt 1), 02:17–02:56 IST, on this exact APK; S13 recovered with no Reconnect tap ("Unavailable", then "Connected"); log scan 9.6 MB, clean (AJ-3 report §8.5) |
+
+Backup/restore (8/8, including a voice entry) and biometric (5/5) ran on the
+merged APK `a759db8` (`02aaf572…a4ce`, evidence `main-a759db8/`); the later
+change touches only the Private AI Node code, so they were not repeated.
+
+**Pre-fix merged baseline (evidence only).** On `a759db8` (APK
+`02aaf5723b65fa772ba1c99c10dab52c5f9199eefc16c98a4f30451d98e8a4ce`): JS
+baseline unit 237, smoke 3, integration 123, performance 6; JVM 58/58;
+instrumented app 6/6; smoke 7/7; capture 1/2 (the timer check above);
+backup 8/8; biometric 5/5; F3 check 2/3 (the recovery finding above); a
+fresh S00–S19 20/20 (`e2e/speech/results/aj3-main-a759db8/`). That APK is
+superseded, so its S00–S19 is not the acceptance evidence.
+
+## Checkpoint 3 (kept for history)
+
+### 0. Checkpoint 3 summary
 
 **Owner decisions applied (2026-10-10 afternoon).** These are in ADR-017
 "Owner decisions of 2026-10-10", backup-and-restore §2/§9.10, ux-design,
@@ -65,7 +149,7 @@ recording timer, the playback position), so the AJ-1 journeys read those
 screens through `e2e/aj1/tools/LiveDump.java` (LLD §12). The first capture
 attempt failed for that reason only: the recorder had run for 12 minutes.
 
-## 0.1 Validation
+### 0.1 Validation
 
 **Host:** Linux 7.0.0-38, Intel Core Ultra 7 155U, Node 22.22.1, JDK 17.0.20.
 
@@ -147,7 +231,7 @@ above covers real speech through AJR1 and the production windowing instead.
 None of these numbers is a budget, and none stands in for the physical
 device gates.
 
-## 0.2 Exit-gate status
+### 0.2 Exit-gate status
 
 | AJ-1 requirement | Status |
 |---|---|

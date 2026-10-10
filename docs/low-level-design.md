@@ -367,6 +367,24 @@ calls only the `@hybrid-ai/react-native` 0.1.0-m5 public root:
 | `connect`, `setActive`, `forget` | `node.connect`, `node.setActive`, `node.forget` |
 | `run`, `cancel` | `stream(request)` and `cancel(requestId)` |
 
+**Link status after requests** (UX §7.1). The SDK's `node.status()` changes
+only on connect, refresh, and rotation (SDK-AJ-2), so the reducer keeps two
+marks beside it:
+
+- a failure mark (`LinkFailureMark`) set by a link-code failure; it
+  overrides a stale "connected" until fresh authenticated contact, and
+  `PrivateNodeContext` makes one debounced, single-flight reconciling
+  connect;
+- a contact mark (`LinkContact`) set by a request the node completed, with
+  the SDK status at that time; the node shows Connected while the SDK
+  repeats that status. One catch-up connect follows: coalesced, scheduled
+  after the remaining debounce instead of being dropped, skipped when a
+  connect is in flight or the SDK already reports connected, and cancelled
+  on lock.
+
+Each mark supersedes the other for the same node, and clearing a failure
+mark also clears the failed connect that set it. Requests are never retried.
+
 Failures surface as `HybridAiFailure {code, localReason?, nodeReason?}`.
 Codes are public SDK codes, plus the app-only `SDK_INITIALIZATION_FAILED`,
 `SDK_NOT_INITIALIZED`, and `INVALID_RESULT`. `run` delivers exactly one

@@ -95,6 +95,15 @@ implemented AJ-3 workflow?
 9. A full AJ-3 regression against that APK.
 10. AJ-2 begins in `node-companion/` and the mobile integration layer.
 
+**Status (2026-10-11):** steps 1–9 are done. The AJ-3 merge gate passed
+20/20 on the final AJ-1 APK (`6f2b36b`), and `aj1/domain-core` is merged into
+`main` (`a759db8`), followed by the F3 and status-recovery fixes and a fresh
+S00–S19 on the merged build (see
+[AJ-1 progress](validation/AJ1-progress.md#merge-into-main-2026-10-11)).
+AJ-1 is provisionally complete on emulator evidence, not accepted: the
+physical-device, live-timing, and iOS gates stay deferred. AJ-2 has not
+started.
+
 ## 4. AJ-2 — Application-owned organization
 
 - Freeze and version `journal.organize@1` request/result/event JSON schemas,
