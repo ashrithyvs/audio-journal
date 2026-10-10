@@ -65,7 +65,11 @@ credentials, content-rich logs, or unprotected exports.
 
 - Node use is optional and explicit for organized mode.
 - Send finalized transcript text and selected provenance references by default,
-  not original audio.
+  not original audio. The exact `journal.organize@1` input is fixed in
+  `journal-organize.md` §2: the selected entries' finalized text, opaque IDs,
+  creation times, segment timings, and per-unit digests; never audio, paths,
+  keys, or other entries. The companion keeps job content in memory only,
+  within the protocol's retention, and logs no journal content (§10).
 - Do not expose local absolute paths, encryption keys, or unrelated entries.
 - Treat SDK discovery as untrusted until the SDK reports paired/authenticated state.
 - Forgetting the node removes node access but does not delete local content.

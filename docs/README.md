@@ -31,6 +31,7 @@ targets rather than implemented behavior.
 - [Implementation roadmap](implementation-roadmap.md) — milestone order and acceptance gates.
 - [Agent coordination](AGENT_COORDINATION.md) — temporary shared operational memory.
 - [AJ-0 validation](validation/AJ0-progress.md) — current build/test evidence and blockers.
+- [`journal.organize@1` contract](journal-organize.md) — the frozen AJ-2 organization contract (ADR-019): input, result, provenance, validation order, events, persistence, and open questions.
 - [AJ-1 progress](validation/AJ1-progress.md) — AJ-1 evidence: the Android implementation is provisionally complete on emulator evidence and merged into `main`; not accepted (physical-device and iOS gates deferred).
 
 ## Change rule

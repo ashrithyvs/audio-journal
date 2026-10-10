@@ -136,7 +136,8 @@ groups derived material under human-readable sections such as **Work** and
 views over the diary, never alternative storage buckets. Each organized item
 shows how many source entries support it and offers a source action.
 
-Before the first node-assisted organization, explain:
+Before every node-assisted organization (ADR-019; `journal-organize.md`
+§11), explain:
 
 - which selected transcript content will leave the phone;
 - that it goes only to the paired private node through Hybrid AI;

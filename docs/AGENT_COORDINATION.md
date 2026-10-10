@@ -128,6 +128,18 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
   - **Emulator:** `emulator-5554` is shut down after the run;
     `.aj-exclusive-run` is released.
   - **Next:** AJ-2 has not started; it waits for the owner.
+- **AJ-2 track: Claude Code session `hybridai-81`.** Started 2026-10-11.
+  - **Where:** worktree `../audio-journal-aj2`, branch `aj2/organize`, from
+    `main` `c5fb510`. Not merged, not pushed.
+  - **Scope now:** AJ-2.0 (the `journal.organize@1` contract, schemas,
+    vectors, independent verifier) and AJ-2.1 (`node-companion/`, the
+    deterministic engine, and the minimum app integration through the
+    public SDK). The full Organized/Tasks UI is the next stage.
+  - **Touches:** `docs/` (contract, ADR-019, synced design docs),
+    `schemas/journal/v1/`, `tools/journal-organize/`, `node-companion/`,
+    `src/features/organize/`, `src/platform/hybrid-ai/`, storage migration 3,
+    and their tests. The Hybrid AI SDK repository is read only.
+  - **Open questions:** `docs/journal-organize.md` §12 (O-1 to O-7).
 - **Exclusive runs.** Benchmarks, emulator suites, Gradle/CMake builds, and
   Jest baselines never overlap. Create
   `/home/igdclt0603/Desktop/Ash/.aj-exclusive-run` (owner, purpose, start)

@@ -567,6 +567,47 @@ for v0.1 and keeps ADR-010/011 intact.
   inside the request scope) before persisting it as a new derivation
   revision. Invalid results are discarded with `INVALID_RESULT`.
 
+## ADR-019: `journal.organize@1` contract frozen
+
+**Status:** Frozen for implementation (AJ-2.0, 2026-10-11), except the
+questions listed as Open in `journal-organize.md` §12.
+
+**Context:** ADR-018 decided ownership and runtime and required the request,
+result, and event schemas, provenance rules, and vectors to be frozen before
+implementation. Earlier documents disagreed on execution targets, the error
+code, character ranges, and which items must cite sources.
+
+**Decision:** `docs/journal-organize.md` is the normative contract, with the
+schemas and vectors in `schemas/journal/v1/`. In summary:
+
+- **Capability:** `journal.organize` `1.0.0`, streaming, at most 61,440 input
+  bytes, executed only on the paired node (`execution: 'node'`), with a
+  60 s deadline and no fallback.
+- **Input:** 1–20 whole entries. Voice entries send the current transcript
+  (newest full pass, correction heads) with segment IDs and timings; written
+  entries send paragraph units with their offsets. Every unit carries a
+  SHA-256 of its text. Audio, paths, keys, and unrelated entries are never
+  sent; IDs are the opaque local IDs.
+- **Result:** summary, Work and Personal sections, tasks, ideas, people, and
+  projects, as requested. Every item cites 1–8 source references with exact
+  UTF-16 character ranges and, for voice, an audio range inside the cited
+  segment. The result echoes `requestKey` and the input digest.
+- **Validation:** a fixed rule order (`journal-organize.md` §6) with
+  diagnostic sub-codes; any violation discards the result as
+  `INVALID_RESULT`. Partials carry counts only and are never persisted.
+- **Persistence:** one transaction writes an immutable derivation revision,
+  its scope, tasks, and references; `requestKey` is unique, so a delivery
+  can never be stored twice. Sources are never written.
+- **Companion:** an independent ADR-021/ADR-022 node in `node-companion/`
+  (Node.js 22, no dependencies), TLS 1.3 only in v1, holding job content in
+  memory only, within the protocol's retention.
+
+**Consequences:** the LLD `local | auto` wording, `AI_RESULT_INVALID`, and
+single `segmentId` references are superseded for this capability (§11 of the
+contract). Open questions O-1 to O-7 (due dates, stale-source display,
+editing, retention, AJB1 v2, diagnostics on the companion, and TLS 1.2 with
+EMS) block only the work they name.
+
 ## Open decisions before implementation
 
 1. Argon2id cost parameters (from a lowest-supported-device benchmark). Key
@@ -575,7 +616,9 @@ for v0.1 and keeps ADR-010/011 intact.
    interruptions, duration, and storage pressure are decided by ADR-017.
 3. Live-transcription window length, overlap, and cadence, set from device
    measurements. The live UX is decided by ADR-017 and the engine by ADR-016.
-4. `journal.organize@1`: decided by ADR-018 (schemas in `schemas/journal/v1/`).
+4. `journal.organize@1`: decided by ADR-018 and frozen by ADR-019
+   (`journal-organize.md`, `schemas/journal/v1/`); its own open questions are
+   in that document's §12.
 5. ~~The AJB1 binary layout and vectors~~: **frozen for implementation**
    on 2026-10-10 (backup-and-restore.md §9, with its freeze evidence).
    Still open: Argon2id parameters (item 1), iOS cross-platform evidence

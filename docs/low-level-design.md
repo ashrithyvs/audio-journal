@@ -409,8 +409,10 @@ safe. Error copy comes from `errorPresentation.ts`, which covers every code in
 the packaged SDK's `ERROR_CODES` table and every `NODE_REASONS` value.
 
 The adapter maps them to the installed Hybrid AI version and records that version
-in validation evidence. Journal-specific JSON schemas will live under a future
-`schemas/journal/v1/` directory after the contract ADR is approved.
+in validation evidence. The journal-specific contract is frozen in
+`journal-organize.md` (ADR-019), with its schemas and vectors in
+`schemas/journal/v1/`; for `journal.organize@1` it supersedes the
+`OrganizeInput` and validator sketch below wherever they differ.
 
 An `OrganizeInput` contains selected finalized transcript text, stable entry and
 segment references, locale/time-zone context, and user-selected output kinds.
@@ -557,7 +559,7 @@ evidence is in `validation/AJ1-progress.md`.
 | `STORAGE_EXHAUSTED` | Stop safely, preserve valid prefix if possible, prevent AI work. |
 | `TRANSCRIPTION_UNAVAILABLE` | Keep recording; offer retry later. |
 | `NODE_UNAVAILABLE` | Keep source; allow later organization retry. |
-| `AI_RESULT_INVALID` | Persist no derivation; retain source and diagnostics code only. |
+| `INVALID_RESULT` | Persist no derivation; retain source and diagnostics code only (`journal-organize.md` §6). |
 | `MIGRATION_FAILED` | Do not mutate/delete data; enter recoverable error state. |
 
 ## 11. Diagnostics and privacy

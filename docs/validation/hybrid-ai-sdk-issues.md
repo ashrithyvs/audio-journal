@@ -64,6 +64,13 @@ The results directories are git-ignored and kept locally.
    - the status becomes `revoked`;
    - one further `connect()` makes the status `none`.
 
+**Root cause (read-only review of the SDK source, 2026-10-11):** a request
+answered `DEVICE_NOT_PAIRED` is mapped to `NODE_TRUST_REVOKED` for the caller
+(`core/src/node_protocol.cpp:523`), but the request path
+(`core/src/node_executor.cpp`, `core/src/node_client.cpp`) never calls
+`PairedNodeService`; only the connect and refresh paths mark the record
+revoked (`handle_untrusted`, `core/src/pairing_node.cpp:155`).
+
 **Expected:**
 
 - LLD §4, merge rule 6: "Remove node targets when trust is revoked; keep local
@@ -141,6 +148,18 @@ until the next `connect()`. Found by `e2e/aj1/node-f3.mjs` on the merged AJ-1
 build (evidence `aj1-artifacts/evidence/f3-merge-20261011/main-a759db8/`). App
 workaround (`57f316c`): a node result shows Connected at once, and one
 catch-up `node.connect()` lets the SDK agree (UX §7.1).
+
+**Root cause (read-only review of the SDK source, 2026-10-11).** Every status
+write goes through `PairedNodeService::set_status` in
+`core/src/pairing_node.cpp`. Its callers are revocation (`:155`), no active
+record (`:182`), connecting (`:188`), authentication failure (`:202`, `:225`),
+unavailable (`:210`, `:219`, `:236`), connected (`:243`), and `detach`
+(`:72`), reached only from `node.connect()`, `refreshCapabilities()`,
+rotation, forget, and set-active. The request path (`NodeExecutor::produce` in
+`core/src/node_executor.cpp:65-136`, then `NodeClient`) never calls it, so a
+request's success or transport failure never changes the status. Router
+reachability likewise changes only through `set_network_available` and a
+successful refresh (`core/src/hybrid_ai_c.cpp:662-664, 747-759`).
 
 ## SDK-AJ-3: local requests ignore their deadline (SDK-FR-19)
 
