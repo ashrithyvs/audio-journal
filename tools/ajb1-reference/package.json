@@ -1,0 +1,15 @@
+{
+  "name": "audio-journal-ajb1-reference",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Development-only AJB1 reference writer/reader and vector generator. Independent of the app's native libargon2; never bundled.",
+  "type": "module",
+  "engines": {
+    "node": ">= 22.11.0"
+  },
+  "scripts": {
+    "vectors": "node generate-vectors.mjs",
+    "check": "node generate-vectors.mjs --check",
+    "test": "node --test test/*.test.mjs"
+  }
+}

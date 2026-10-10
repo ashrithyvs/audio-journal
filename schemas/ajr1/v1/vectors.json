@@ -1,0 +1,213 @@
+{
+  "format": "AJR1",
+  "version": 1,
+  "status": "Decided design (owner 2026-10-10); vectors for implementation.",
+  "randomness": "stream(label, n) as in schemas/ajb1/v1/vectors.json",
+  "keyLabel": "audio-journal/ajr1/recording-key/v1",
+  "recordingRootKeyHex": "2f154439e6eb4c4d6f6cfcf0a49c0afbea7a690da9884af074caaab724879c5a",
+  "noncePrefixHex": "d27f736b",
+  "valid": [
+    {
+      "name": "basic",
+      "file": "basic.ajr",
+      "sha256": "66d19144f0653cef2cfd5debcb32c432bed9dcce1871d7044723ff76ee0c9576",
+      "recordingId": "rec_hns99tq5q24mg6nz15ntqrpaqc",
+      "saltHex": "818149f42b6f7e2ed31c6bad94bce44e",
+      "encodedInfoHex": "0023617564696f2d6a6f75726e616c2f616a72312f7265636f7264696e672d6b65792f7631001e7265635f686e7339397471357132346d67366e7a31356e74717270617163",
+      "fileKeyHex": "42795059862e514abbe5f43bddfc33c421192387bf748bf11c341da07ae6acdb",
+      "frames": [
+        {
+          "index": 0,
+          "pcm": "stream(\"ajr1:pcm:chunk-0\", 3200)",
+          "pcmSha256": "864285c7418b3fbe4beaf8a9f1268560a7f55b1e3bed5826b510faf599348d27"
+        },
+        {
+          "index": 1,
+          "pcm": "stream(\"ajr1:pcm:chunk-1\", 3200)",
+          "pcmSha256": "9350edc8d95b07475d951b68c7c8938b2bde8ca432488ebc847cd6658071c0fd"
+        },
+        {
+          "index": 2,
+          "pcm": "stream(\"ajr1:pcm:chunk-2\", 3200)",
+          "pcmSha256": "145870cbd4ab0801c6651010739d4d6c66fca28c269f96324719dfa751659e01"
+        },
+        {
+          "index": 3,
+          "pcm": "stream(\"ajr1:pcm:chunk-3\", 1000)",
+          "pcmSha256": "54e4a48206efd1eb4a19b2dfe9376c7de0654b5587b508e549403b90bd215d7d"
+        }
+      ],
+      "expect": {
+        "indices": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "pcmSha256": "3720cc98c58c10777f1c4a2c67ec6b624eea369002d47d19f93fb9d16dda3dde",
+        "resumeIndex": 4
+      }
+    },
+    {
+      "name": "same-prefix-other-recording",
+      "file": "same-prefix-other-recording.ajr",
+      "sha256": "7be8b87d0ba307b8398646f311710cc82400af9bf3a148cd1758eb63646b4dce",
+      "recordingId": "rec_sybea5v484r8p8gdfajp6jthxm",
+      "saltHex": "818149f42b6f7e2ed31c6bad94bce44e",
+      "encodedInfoHex": "0023617564696f2d6a6f75726e616c2f616a72312f7265636f7264696e672d6b65792f7631001e7265635f7379626561357634383472387038676466616a70366a7468786d",
+      "fileKeyHex": "77656108e1fae078686a37820820ab50f66f537567cda7e8e1bbe9a35127a205",
+      "frames": [
+        {
+          "index": 0,
+          "pcm": "stream(\"ajr1:pcm:chunk-0\", 3200)",
+          "pcmSha256": "864285c7418b3fbe4beaf8a9f1268560a7f55b1e3bed5826b510faf599348d27"
+        }
+      ],
+      "expect": {
+        "indices": [
+          0
+        ],
+        "pcmSha256": "864285c7418b3fbe4beaf8a9f1268560a7f55b1e3bed5826b510faf599348d27",
+        "resumeIndex": 1
+      }
+    },
+    {
+      "name": "same-recording-new-salt",
+      "file": "same-recording-new-salt.ajr",
+      "sha256": "c78b04f8ba74bfba22ec93e101a43a692610aeae5453e806ddd15dae0261070c",
+      "recordingId": "rec_hns99tq5q24mg6nz15ntqrpaqc",
+      "saltHex": "3f1655da7f4c35057f0fb19dd398682c",
+      "encodedInfoHex": "0023617564696f2d6a6f75726e616c2f616a72312f7265636f7264696e672d6b65792f7631001e7265635f686e7339397471357132346d67366e7a31356e74717270617163",
+      "fileKeyHex": "2016544a06bbc8d26911ea445a556aea7021a3bfe0ecd42fc9868cdb137ba99c",
+      "frames": [
+        {
+          "index": 0,
+          "pcm": "stream(\"ajr1:pcm:chunk-0\", 3200)",
+          "pcmSha256": "864285c7418b3fbe4beaf8a9f1268560a7f55b1e3bed5826b510faf599348d27"
+        }
+      ],
+      "expect": {
+        "indices": [
+          0
+        ],
+        "pcmSha256": "864285c7418b3fbe4beaf8a9f1268560a7f55b1e3bed5826b510faf599348d27",
+        "resumeIndex": 1
+      }
+    },
+    {
+      "name": "gaps",
+      "file": "gaps.ajr",
+      "sha256": "89ce624cb5910848abb5c1c199c54b72d9ebbb364d8cbbaa17e1471c41148f65",
+      "recordingId": "rec_hns99tq5q24mg6nz15ntqrpaqc",
+      "saltHex": "63a0160bb6f0818ce5345050fd254083",
+      "encodedInfoHex": "0023617564696f2d6a6f75726e616c2f616a72312f7265636f7264696e672d6b65792f7631001e7265635f686e7339397471357132346d67366e7a31356e74717270617163",
+      "fileKeyHex": "d5928785178e2dfe26ce6e1bdd1ae000d226fe5607297be7a511fd4aeeabd6bb",
+      "frames": [
+        {
+          "index": 0,
+          "pcm": "stream(\"ajr1:pcm:gap-0\", 640)",
+          "pcmSha256": "4deb64143b35c00de8691f2bd257cec90ef2ebe28679225e6df241f29c5bbd51"
+        },
+        {
+          "index": 7,
+          "pcm": "stream(\"ajr1:pcm:gap-7\", 640)",
+          "pcmSha256": "fb547500cb2137746447c882ea11dce3144ca7aa4a24cf4dc4a3f6e1e8562b95"
+        },
+        {
+          "index": 8,
+          "pcm": "stream(\"ajr1:pcm:gap-8\", 640)",
+          "pcmSha256": "1f589dea3b3b17e3666e3006345632c02570eae4c6e2ea79188edd140827e99a"
+        }
+      ],
+      "expect": {
+        "indices": [
+          0,
+          7,
+          8
+        ],
+        "pcmSha256": "dd17fbff3ec683494fe0a84d0a05e908d366fd4203046d95f65e3d22bdeb6bb6",
+        "resumeIndex": 9
+      }
+    }
+  ],
+  "readCases": [
+    {
+      "name": "torn-tail",
+      "file": "read-torn-tail.ajr",
+      "sha256": "fa792ee8b7cabfadca2dd2433aaa893227aa78722c422bcf272b1c20d91acb81",
+      "readAs": "rec_hns99tq5q24mg6nz15ntqrpaqc",
+      "expect": {
+        "indices": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "stop": "TORN",
+        "trailingBytes": 30,
+        "resumeIndex": 5
+      }
+    },
+    {
+      "name": "torn-frame-header",
+      "file": "read-torn-frame-header.ajr",
+      "sha256": "da1f32c093dae8a67f9be8d7da5e7e06252310e9d4c87ee4c8d8998eb2edd406",
+      "readAs": "rec_hns99tq5q24mg6nz15ntqrpaqc",
+      "expect": {
+        "indices": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "stop": "TORN",
+        "trailingBytes": 10,
+        "resumeIndex": 5
+      }
+    },
+    {
+      "name": "wrong-recording-id",
+      "file": "read-wrong-recording-id.ajr",
+      "sha256": "66d19144f0653cef2cfd5debcb32c432bed9dcce1871d7044723ff76ee0c9576",
+      "readAs": "rec_sybea5v484r8p8gdfajp6jthxm",
+      "expect": {
+        "indices": [],
+        "stop": "AUTH_FAILED",
+        "trailingBytes": 10712,
+        "resumeIndex": 1
+      }
+    },
+    {
+      "name": "index-order",
+      "file": "read-index-order.ajr",
+      "sha256": "afd84d2f1f018f994fd103c8bde8b31d800424c372eeedb875ebab92f68f28a9",
+      "readAs": "rec_hns99tq5q24mg6nz15ntqrpaqc",
+      "expect": {
+        "indices": [
+          0,
+          2
+        ],
+        "stop": "INDEX_ORDER",
+        "trailingBytes": 668,
+        "resumeIndex": 4
+      }
+    },
+    {
+      "name": "spliced-from-recreated-file",
+      "file": "read-spliced-from-recreated-file.ajr",
+      "sha256": "561f7dbffe3989c4c19cb59a5b072c8c3eda749aea49c48fc10c06372192a95d",
+      "readAs": "rec_hns99tq5q24mg6nz15ntqrpaqc",
+      "expect": {
+        "indices": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "stop": "AUTH_FAILED",
+        "trailingBytes": 668,
+        "resumeIndex": 8
+      }
+    }
+  ]
+}
