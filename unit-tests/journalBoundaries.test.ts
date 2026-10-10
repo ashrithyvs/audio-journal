@@ -44,6 +44,13 @@ it('imports only relative modules inside the allowed layers', () => {
           root,
           path.resolve(path.dirname(file), specifier),
         );
+        // Storage may also reach its own native driver spec, nothing else native.
+        if (
+          layer === 'src/platform/storage' &&
+          target === 'src/native/NativeAudioJournalStore'
+        ) {
+          continue;
+        }
         expect([file, target]).toEqual([
           file,
           expect.stringMatching(

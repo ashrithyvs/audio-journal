@@ -58,7 +58,7 @@
     "type": "modules",
     "jsSrcsDir": "src/native",
     "android": {
-      "javaPackageName": "com.audiojournal.speech"
+      "javaPackageName": "com.audiojournal.specs"
     }
   }
 }

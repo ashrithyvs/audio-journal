@@ -17,6 +17,8 @@ class MainApplication : Application(), ReactApplication {
         PackageList(this).packages.apply {
           // App-owned on-device transcription (ADR-016).
           add(AudioJournalSpeechPackage())
+          // App-owned vault and encrypted journal store (ADR-017).
+          add(AudioJournalCorePackage())
         },
     )
   }

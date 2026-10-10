@@ -15,7 +15,7 @@ export function SettingsScreen({
   onOpenNode(): void;
   onOpenDiagnostics(): void;
 }) {
-  const { lock } = useAppLock();
+  const { lock, state: lockState, setBiometricEnabled } = useAppLock();
   const { state, activeNode } = usePrivateNode();
   const { sdk } = state;
   const sdkStatus =
@@ -64,8 +64,29 @@ export function SettingsScreen({
       <View style={styles.card}>
         <Text style={styles.label}>App lock</Text>
         <Text style={styles.meta}>
-          AJ-0 uses volatile credentials until the security ADR is accepted.
+          Your PIN unlocks an encrypted vault on this device. There is no
+          account and no way to recover a forgotten PIN.
         </Text>
+        {lockState.notice === 'biometric_invalidated' ? (
+          <Text style={styles.meta} testID="biometric-invalidated">
+            Biometric unlock was turned off because your device biometrics
+            changed. You can turn it on again.
+          </Text>
+        ) : null}
+        {lockState.biometricAvailable ? (
+          <View style={styles.action}>
+            <PrimaryButton
+              label={
+                lockState.biometricEnabled
+                  ? 'Turn off biometric unlock'
+                  : 'Turn on biometric unlock'
+              }
+              onPress={() => setBiometricEnabled(!lockState.biometricEnabled)}
+              secondary
+              testID="toggle-biometric"
+            />
+          </View>
+        ) : null}
         <View style={styles.action}>
           <PrimaryButton label="Lock now" onPress={lock} testID="lock-now" />
         </View>

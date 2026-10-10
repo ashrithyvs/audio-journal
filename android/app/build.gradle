@@ -83,6 +83,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        // Device tests for the ADR-017 vault and encrypted store.
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     signingConfigs {
         debug {
@@ -158,6 +160,16 @@ dependencies {
     implementation("com.facebook.react:react-android")
     // App-owned on-device transcription engine (ADR-016).
     implementation(project(':speech-engine'))
+    // ADR-017: native vault (reference libargon2), encrypted journal store, biometrics.
+    implementation(project(':vault-crypto'))
+    implementation("net.zetetic:sqlcipher-android:4.19.1@aar")
+    implementation("androidx.sqlite:sqlite:2.7.0")
+    implementation("androidx.biometric:biometric:1.1.0")
+    testImplementation("junit:junit:4.13.2")
+    // Real org.json for JVM tests (android.jar ships only stubs).
+    testImplementation("org.json:json:20240303")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

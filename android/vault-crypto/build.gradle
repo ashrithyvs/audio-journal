@@ -1,0 +1,26 @@
+// Native-only library: builds the P-H-C reference libargon2 (release
+// 20190702, ADR-017) into libaj_argon2.so for the vault's PIN KEK and the AJB1
+// KEK. Source is fetched from a SHA-256-pinned archive; nothing is vendored.
+apply plugin: 'com.android.library'
+
+android {
+  namespace 'com.audiojournal.vault.crypto'
+  compileSdk rootProject.ext.compileSdkVersion
+  ndkVersion rootProject.ext.ndkVersion
+  defaultConfig {
+    minSdk rootProject.ext.minSdkVersion
+    ndk { abiFilters 'arm64-v8a', 'x86_64' }
+    externalNativeBuild {
+      cmake {
+        // KDF cost is a security parameter: always fully optimized.
+        arguments '-DANDROID_STL=none', '-DCMAKE_BUILD_TYPE=Release'
+      }
+    }
+  }
+  externalNativeBuild {
+    cmake {
+      path 'src/main/cpp/CMakeLists.txt'
+      version '3.31.6'
+    }
+  }
+}

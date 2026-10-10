@@ -6,8 +6,7 @@ import { FakeHybridAiGateway } from './FakeHybridAiGateway';
 import { makeTestServices } from './makeTestServices';
 
 export const PIN = '482915';
-export const DIARY_COPY =
-  'Your private voice and written entries, in their original order.';
+export const DIARY_COPY = 'What do you want to remember?';
 
 type View = Awaited<ReturnType<typeof render>>;
 
@@ -26,6 +25,8 @@ export async function renderUnlocked(gateway = new FakeHybridAiGateway()) {
   await fireEvent.changeText(await view.findByTestId('unlock-pin'), PIN);
   await fireEvent.press(view.getByText('Unlock'));
   await view.findByText(DIARY_COPY);
+  // The journal opens and the timeline loads asynchronously after unlock.
+  await flush();
   return { view, gateway };
 }
 

@@ -16,3 +16,11 @@
 -keep class com.audiojournal.speech.WhisperNative { *; }
 -keep interface com.audiojournal.speech.SegmentListener { *; }
 -keep class * implements com.audiojournal.speech.SegmentListener { void onSegment(...); }
+
+# SQLCipher (ADR-017): JNI binds Java classes and methods by name.
+-keep,includedescriptorclasses class net.zetetic.database.** { *; }
+-keep,includedescriptorclasses interface net.zetetic.database.** { *; }
+# Vault JNI (libaj_argon2).
+-keepclasseswithmembernames class com.audiojournal.vault.Argon2Native {
+    native <methods>;
+}

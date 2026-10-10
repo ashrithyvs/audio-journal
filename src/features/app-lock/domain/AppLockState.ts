@@ -10,6 +10,10 @@ export interface AppLockState {
   biometricAvailable: boolean;
   biometricEnabled: boolean;
   error?: string;
+  /** Set while the ADR-017 attempt policy refuses PIN attempts. */
+  retryAt?: number;
+  /** Enrollment changed: the biometric copy was removed; PIN still works. */
+  notice?: 'biometric_invalidated';
 }
 
 export type AppLockAction =
@@ -18,10 +22,15 @@ export type AppLockAction =
       configured: boolean;
       biometricAvailable: boolean;
       biometricEnabled: boolean;
+      retryAt?: number;
+      notice?: 'biometric_invalidated';
     }
   | { type: 'BEGIN_UNLOCK' }
   | { type: 'UNLOCKED' }
-  | { type: 'AUTH_FAILED'; message: string }
+  | { type: 'AUTH_FAILED'; message: string; retryAt?: number }
+  | { type: 'BIOMETRIC_INVALIDATED' }
+  | { type: 'BIOMETRIC_CHANGED'; enabled: boolean }
+  | { type: 'ERASED' }
   | { type: 'LOCK' }
   | { type: 'FAIL_CLOSED'; message: string };
 
@@ -41,6 +50,8 @@ export function appLockReducer(
         phase: action.configured ? 'locked' : 'unconfigured',
         biometricAvailable: action.biometricAvailable,
         biometricEnabled: action.configured && action.biometricEnabled,
+        retryAt: action.retryAt,
+        notice: action.notice,
       };
     case 'BEGIN_UNLOCK':
       if (state.phase !== 'locked') {
@@ -51,12 +62,36 @@ export function appLockReducer(
       if (state.phase !== 'unlocking' && state.phase !== 'unconfigured') {
         return state;
       }
-      return { ...state, phase: 'unlocked', error: undefined };
+      return {
+        ...state,
+        phase: 'unlocked',
+        error: undefined,
+        retryAt: undefined,
+      };
     case 'AUTH_FAILED':
       return {
         ...state,
         phase: state.phase === 'unconfigured' ? 'unconfigured' : 'locked',
         error: action.message,
+        retryAt: action.retryAt,
+      };
+    case 'BIOMETRIC_CHANGED':
+      return state.phase === 'unlocked'
+        ? { ...state, biometricEnabled: action.enabled, notice: undefined }
+        : state;
+    case 'ERASED':
+      // Back to first-run setup; nothing of the old journal remains reachable.
+      return {
+        phase: 'unconfigured',
+        biometricAvailable: state.biometricAvailable,
+        biometricEnabled: false,
+      };
+    case 'BIOMETRIC_INVALIDATED':
+      // PIN fallback stays; biometric unlock is off until re-enabled.
+      return {
+        ...state,
+        biometricEnabled: false,
+        notice: 'biometric_invalidated',
       };
     case 'LOCK':
       return state.phase === 'unconfigured' || state.phase === 'checking'

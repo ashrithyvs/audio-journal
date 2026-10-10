@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import { colors } from '../../theme/colors';
 import { PlaceholderScreen } from '../screens/PlaceholderScreen';
+import { JournalNavigator } from './JournalNavigator';
 import { SettingsNavigator } from './SettingsNavigator';
 
 export type MainTabParamList = {
@@ -28,14 +29,7 @@ export function MainNavigator() {
         tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
       }}
     >
-      <Tabs.Screen name="Diary">
-        {() => (
-          <PlaceholderScreen
-            title="Diary"
-            description="Your private voice and written entries, in their original order."
-          />
-        )}
-      </Tabs.Screen>
+      <Tabs.Screen name="Diary" component={JournalNavigator} />
       <Tabs.Screen name="Organized">
         {() => (
           <PlaceholderScreen

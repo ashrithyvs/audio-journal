@@ -1,6 +1,7 @@
 package com.audiojournal.speech
 
 import android.os.Debug
+import com.audiojournal.specs.NativeAudioJournalSpeechSpec
 import android.os.SystemClock
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise

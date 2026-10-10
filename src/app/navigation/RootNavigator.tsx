@@ -6,9 +6,15 @@ import { useAppLock } from '../../features/app-lock/application/AppLockContext';
 import { SetupLockScreen } from '../../features/app-lock/ui/SetupLockScreen';
 import { UnlockScreen } from '../../features/app-lock/ui/UnlockScreen';
 import { colors } from '../../theme/colors';
+import { JournalGate } from '../JournalGate';
+import type { OpenedJournal } from '../openJournal';
 import { MainNavigator } from './MainNavigator';
 
-export function RootNavigator() {
+export function RootNavigator({
+  openJournal,
+}: {
+  openJournal: () => Promise<OpenedJournal>;
+}) {
   const { state } = useAppLock();
 
   if (state.phase === 'checking') {
@@ -27,10 +33,13 @@ export function RootNavigator() {
     return <UnlockScreen />;
   }
 
+  // The journal exists only while unlocked; locking unmounts and closes it.
   return (
-    <NavigationContainer>
-      <MainNavigator />
-    </NavigationContainer>
+    <JournalGate openJournal={openJournal}>
+      <NavigationContainer>
+        <MainNavigator />
+      </NavigationContainer>
+    </JournalGate>
   );
 }
 

@@ -1,8 +1,8 @@
-// Vault port (ADR-017). It replaces the AJ-0 `LockCredentialStore` and
-// `BiometricAuthenticator` scaffolds once the native vault exists. The master
-// key, KDF output, and purpose keys never cross into JavaScript; results carry
-// only outcomes. The KDF and its parameters are native details recorded in the
-// vault file, so this port does not change when they are frozen.
+// Vault port (ADR-017), which replaced the AJ-0 LockCredentialStore and
+// BiometricAuthenticator scaffolds. The master key, KDF output, and purpose
+// keys never cross into JavaScript; results carry only outcomes. The KDF and
+// its parameters are native details recorded in the vault file, so this port
+// does not change when they are frozen.
 
 export type VaultStatus =
   | { state: 'unconfigured' }

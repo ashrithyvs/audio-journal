@@ -11,11 +11,7 @@ it('configures a PIN, enters the journal, and locks again', async () => {
   await fireEvent.changeText(view.getByTestId('pin-confirmation'), '482915');
   await fireEvent.press(view.getByText('Protect my journal'));
 
-  expect(
-    await view.findByText(
-      'Your private voice and written entries, in their original order.',
-    ),
-  ).toBeTruthy();
+  expect(await view.findByText('What do you want to remember?')).toBeTruthy();
   await fireEvent.press(view.getByText('Settings'));
   await fireEvent.press(await view.findByText('Lock now'));
   expect(await view.findByText('Welcome back')).toBeTruthy();

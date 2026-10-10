@@ -34,7 +34,7 @@ export function AppRoot({
           options={appServices.privateNode}
         >
           <View style={styles.root}>
-            <RootNavigator />
+            <RootNavigator openJournal={appServices.openJournal} />
             <PrivacyCurtain />
           </View>
         </PrivateNodeProvider>
