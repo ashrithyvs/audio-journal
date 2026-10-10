@@ -2,7 +2,8 @@
 // framework: selectors are React Native testIDs (exposed as resource-id) or
 // exact visible text. FLAG_SECURE blocks screenshots, so evidence is the UI
 // hierarchy text, which this module can also save.
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
+import fs from 'node:fs';
 
 export const PACKAGE = 'com.audiojournal';
 
@@ -133,7 +134,7 @@ function displayHeight() {
   return screenHeight;
 }
 
-export async function scrollTo(selector, { maxSwipes = 10 } = {}) {
+async function searchDown(selector, maxSwipes) {
   const height = displayHeight();
   const [low, high] = [height * 0.3, height * 0.7].map(Math.round);
   for (let swipe = 0; swipe <= maxSwipes; swipe += 1) {
@@ -161,6 +162,19 @@ export async function scrollTo(selector, { maxSwipes = 10 } = {}) {
     }
     await sleep(500);
   }
+  return undefined;
+}
+
+/**
+ * Brings a node on screen. Off-screen nodes are absent from the hierarchy,
+ * so search downward first, then from the top (for content above the view).
+ */
+export async function scrollTo(selector, { maxSwipes = 10 } = {}) {
+  const below = await searchDown(selector, maxSwipes);
+  if (below) return below;
+  await scrollToTop();
+  const fromTop = await searchDown(selector, maxSwipes);
+  if (fromTop) return fromTop;
   throw new Error(`could not scroll to ${describe(selector)}`);
 }
 
@@ -188,6 +202,15 @@ export async function tap(selector, { timeoutMs = 20_000 } = {}) {
 }
 
 export async function typeInto(selector, value) {
+  // Android may re-enable the keyboard (e.g. after a process restart); with it
+  // shown, an injected Shift at the start of a field yields a stray 'V'.
+  try {
+    if (shell('ime', 'list', '-s').includes('LatinIME')) {
+      shell('ime', 'disable', 'com.android.inputmethod.latin/.LatinIME');
+    }
+  } catch {
+    // no such IME on this image
+  }
   await tap(selector);
   // `input text` needs spaces escaped; pairing codes are URL-safe base64.
   // 80 characters per `input text`: longer strings drop characters under injection.
@@ -350,6 +373,14 @@ export function quietKeyboard() {
       // keyboard not installed on this image
     }
   }
+  // Test configuration only: with the AOSP keyboard shown, injected Shift+key
+  // events at the start of an auto-capitalized empty field come out as 'V_'.
+  // Injected keys need no on-screen keyboard, so disable it on test devices.
+  try {
+    shell('ime', 'disable', 'com.android.inputmethod.latin/.LatinIME');
+  } catch {
+    // no such IME on this image
+  }
 }
 
 /**
@@ -371,4 +402,90 @@ export async function pasteInto(selector, value) {
     await sleep(300);
   }
   return false;
+}
+
+/** Like waitFor, but scrolls the screen while waiting (for below-the-fold content). */
+export async function findScrolling(selector, { timeoutMs = 30_000 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  while (true) {
+    try {
+      return await scrollTo(selector, { maxSwipes: 4 });
+    } catch {
+      if (Date.now() > deadline) {
+        throw new Error(
+          `not found (scrolling): ${describe(
+            selector,
+          )}\nvisible: ${visibleText().join(' | ')}`,
+        );
+      }
+      await sleep(500);
+    }
+  }
+}
+
+// --- Device log, for privacy scans ------------------------------------------------
+
+export function bootId() {
+  return shell('cat', '/proc/sys/kernel/random/boot_id').trim();
+}
+
+/**
+ * Test devices: start an empty device log that can hold a whole run, so a
+ * privacy scan at the end covers every step. Returns what the scan checks.
+ */
+export function prepareDeviceLog() {
+  try {
+    adb('logcat', '-G', '16M');
+  } catch {
+    // default size; nearlyFullLogBuffers() tells whether pruning is possible
+  }
+  try {
+    // uiautomator logs each invisible node it skips, text included: test-tool
+    // output, not app logging, and it would fill the buffers.
+    shell('setprop', 'log.tag.AccessibilityNodeInfoDumper', 'S');
+  } catch {
+    // not settable here; saveDeviceLog() filters the tag instead
+  }
+  adb('logcat', '-c');
+  return { bootId: bootId(), clearedAt: Number(shell('date', '+%s').trim()) };
+}
+
+/** Buffers at least 90% consumed, which logd may already have pruned. */
+export function nearlyFullLogBuffers(names = ['main', 'system', 'crash']) {
+  const unit = { B: 1, KiB: 1 << 10, MiB: 1 << 20, GiB: 1 << 30 };
+  return adb('logcat', '-g')
+    .split('\n')
+    .flatMap(line => {
+      const m =
+        /^(\w+): ring buffer is ([\d.]+) (\w+) \(([\d.]+) (\w+) consumed/.exec(
+          line,
+        );
+      if (!m || !names.includes(m[1])) return [];
+      const size = Number(m[2]) * unit[m[3]];
+      return Number(m[4]) * unit[m[5]] >= 0.9 * size ? [m[1]] : [];
+    });
+}
+
+/** Saves all log buffers (epoch times) to `file`, minus uiautomator's dumps. */
+export function saveDeviceLog(file) {
+  const fd = fs.openSync(file, 'w');
+  try {
+    const { status } = spawnSync(
+      'adb',
+      [
+        'logcat',
+        '-d',
+        '-b',
+        'all',
+        '-v',
+        'epoch',
+        'AccessibilityNodeInfoDumper:S',
+        '*:V',
+      ],
+      { stdio: ['ignore', fd, 'ignore'] },
+    );
+    if (status !== 0) throw new Error(`adb logcat exited ${status}`);
+  } finally {
+    fs.closeSync(fd);
+  }
 }

@@ -6,6 +6,7 @@
 //
 // Requires a booted emulator (adb), Node.js 22, and the reference node at
 // $HYBRID_AI_SDK_REPO (default ../hybridAi). Exits non-zero on any failure.
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -33,13 +34,21 @@ const { values: args } = parseArgs({
     // Resume from <out>/checkpoint.json: same node identity and port, app data
     // kept, already-passed steps skipped.
     resume: { type: 'boolean', default: false },
+    // AJ-1 builds: the vault persists the PIN, so a restart must ask to
+    // unlock; being asked to create a PIN again is a failure.
+    'expect-persistent-pin': { type: 'boolean', default: false },
+    // With --resume: steps to run again even though they passed earlier.
+    rerun: { type: 'string', default: '' },
   },
 });
+// One suite per device: never let adb pick a device implicitly.
+if (!process.env.ANDROID_SERIAL) {
+  throw new Error('ANDROID_SERIAL must name the device under test');
+}
 fs.mkdirSync(args.out, { recursive: true });
 
 const PIN = '482915';
 const results = [];
-const evidence = [];
 let node;
 
 const checkpointFile = path.join(args.out, 'checkpoint.json');
@@ -48,12 +57,33 @@ const checkpoint =
     ? JSON.parse(fs.readFileSync(checkpointFile, 'utf8'))
     : undefined;
 if (args.resume && !checkpoint) throw new Error(`no checkpoint in ${args.out}`);
-const resumed = new Set((checkpoint?.passed ?? []).filter(id => id !== 'S00'));
+const rerun = args.rerun.split(',').filter(Boolean);
+const resumed = new Set(
+  (checkpoint?.passed ?? []).filter(id => id !== 'S00' && !rerun.includes(id)),
+);
 const metrics = { ...(checkpoint?.metrics ?? {}) };
 const state = { usedCode: checkpoint?.usedCode };
+// Every attempt's step results and UI evidence are kept, so a resumed run
+// still reports how and when each earlier step passed or failed.
+const attempt = (checkpoint?.attempt ?? 0) + 1;
+const history = [...(checkpoint?.history ?? [])];
+const evidenceFile = path.join(args.out, 'evidence.json');
+const evidence =
+  checkpoint && fs.existsSync(evidenceFile)
+    ? JSON.parse(fs.readFileSync(evidenceFile, 'utf8'))
+    : [];
 
 function saveCheckpoint() {
-  const passed = results.filter(r => r.result === 'pass').map(r => r.id);
+  // Keep steps carried by an earlier checkpoint even before they are re-listed.
+  const failedNow = new Set(
+    results.filter(r => r.result === 'fail').map(r => r.id),
+  );
+  const passed = [
+    ...new Set([
+      ...(checkpoint?.passed ?? []).filter(id => !failedNow.has(id)),
+      ...results.filter(r => r.result === 'pass').map(r => r.id),
+    ]),
+  ].sort();
   fs.writeFileSync(
     checkpointFile,
     JSON.stringify(
@@ -69,6 +99,8 @@ function saveCheckpoint() {
           : undefined,
         usedCode: state.usedCode,
         metrics,
+        attempt,
+        history,
         report: Object.fromEntries(
           Object.entries(report).filter(
             ([key]) => !['results', 'metrics', 'counts'].includes(key),
@@ -79,11 +111,12 @@ function saveCheckpoint() {
       2,
     ),
   );
+  fs.writeFileSync(evidenceFile, JSON.stringify(evidence, null, 2));
 }
 
 function note(label) {
   const text = d.snapshot();
-  evidence.push({ step: current, label, text });
+  evidence.push({ attempt, step: current, label, text });
   return text;
 }
 
@@ -91,7 +124,8 @@ let current = '';
 async function step(id, title, body) {
   if (args.only && !args.only.split(',').includes(id)) return;
   if (resumed.has(id)) {
-    results.push({ id, title, result: 'pass', ms: 0, resumed: true });
+    const earlier = history.findLast(r => r.id === id && r.result === 'pass');
+    results.push({ ...earlier, id, title, result: 'pass', resumed: true });
     process.stdout.write(`↷ ${id} ${title} (passed earlier; resumed)\n`);
     return;
   }
@@ -100,7 +134,9 @@ async function step(id, title, body) {
   process.stdout.write(`▶ ${current}\n`);
   try {
     await body();
-    results.push({ id, title, result: 'pass', ms: Date.now() - started });
+    const passed = { id, title, result: 'pass', ms: Date.now() - started };
+    results.push(passed);
+    history.push({ ...passed, attempt });
     process.stdout.write(`  ✓ pass (${Date.now() - started} ms)\n`);
     saveCheckpoint();
   } catch (error) {
@@ -108,21 +144,53 @@ async function step(id, title, body) {
       ? ` (cause: ${error.cause.code ?? error.cause.message ?? error.cause})`
       : '';
     error.message = `${error.message}${cause}`;
-    results.push({
+    const failed = {
       id,
       title,
       result: 'fail',
       ms: Date.now() - started,
       error: String(error.message ?? error),
-    });
+    };
+    results.push(failed);
+    history.push({ ...failed, attempt });
     process.stdout.write(`  ✗ FAIL ${error.message}\n`);
     try {
       note('failure state');
     } catch {
       // device unavailable
     }
+    saveCheckpoint();
+    // The step restored the state later steps need, so the suite goes on.
+    if (error.continueSuite) return;
     throw error;
   }
+}
+
+/**
+ * After the app has seen a node request fail, its status must stop claiming
+ * "Connected" (UX 7.1). Returns the label shown, or undefined if it stayed.
+ */
+async function labelAfterFailure(timeoutMs = 30_000) {
+  await openNodeScreen();
+  return waitForConnection(/^(?!Connected$)./, timeoutMs).catch(
+    () => undefined,
+  );
+}
+
+/** After a request completes again, the status must return to "Connected". */
+async function labelAfterRecovery(timeoutMs = 30_000) {
+  await openNodeScreen();
+  const label = await waitForConnection('Connected', timeoutMs).catch(
+    () => undefined,
+  );
+  return label
+    ? { connected: true, label }
+    : { connected: false, label: await connectionLabel() };
+}
+
+/** A failure recorded after the step has restored the state later steps need. */
+function failAndContinue(message) {
+  return Object.assign(new Error(message), { continueSuite: true });
 }
 
 function expect(condition, message) {
@@ -150,21 +218,32 @@ async function unlockIfNeeded() {
     { text: 'Settings' },
   ]);
   if (selector.id === 'unlock-pin') {
-    await d.typeInto({ id: 'unlock-pin' }, PIN);
+    await typePin({ id: 'unlock-pin' });
     await d.hideKeyboard();
     await d.tap({ text: 'Unlock' });
-    await d.waitFor({ text: 'Settings' });
+    // AJ-1 derives the PIN key natively (Argon2id); allow it time.
+    await d.waitFor({ text: 'Settings' }, { timeoutMs: 90_000 });
   } else if (selector.id === 'pin') {
     await setupPin();
   }
 }
 
+/** Types the PIN into a masked field; only its length can be checked. */
+async function typePin(selector) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await d.clearField(selector);
+    await d.typeInto(selector, PIN);
+    if (d.textOf(selector)?.length === PIN.length) return;
+  }
+  throw new Error(`${d.describe(selector)} did not hold ${PIN.length} digits`);
+}
+
 async function setupPin() {
-  await d.typeInto({ id: 'pin' }, PIN);
-  await d.typeInto({ id: 'pin-confirmation' }, PIN);
+  await typePin({ id: 'pin' });
+  await typePin({ id: 'pin-confirmation' });
   await d.hideKeyboard();
   await d.tap({ text: 'Protect my journal' });
-  await d.waitFor({ text: 'Settings' });
+  await d.waitFor({ text: 'Settings' }, { timeoutMs: 90_000 });
 }
 
 async function openSettingsHome() {
@@ -267,9 +346,13 @@ async function runRequest({ target = 'auto', deadline = 30_000, input } = {}) {
   await openDiagnostics();
   await d.scrollToTop();
   if (input !== undefined) {
+    // S19 checks that no input text reaches the device log.
+    report.inputs = [...new Set([...(report.inputs ?? []), input])];
     await d.clearField({ id: 'diag-input' });
-    // Paste the exact text: key injection turned a leading '_' into 'V_'.
-    if (!(await d.pasteInto({ id: 'diag-input' }, input))) {
+    // Type, don't paste: KEYCODE_PASTE in this multiline field also inserts
+    // a stray 'V' before the clipboard text. Retry once if the text differs.
+    await d.typeInto({ id: 'diag-input' }, input);
+    if (d.textOf({ id: 'diag-input' }) !== input) {
       await d.clearField({ id: 'diag-input' });
       await d.typeInto({ id: 'diag-input' }, input);
     }
@@ -311,13 +394,88 @@ async function requestOutcome(timeoutMs = 45_000) {
   return outcome;
 }
 
+/**
+ * Repeats a request until it ends in `phase` or the deadline passes. The SDK
+ * marks an unreachable node `reachable=false` for routing, but `node.status()`
+ * may keep its last state, so loss and recovery are proven by requests.
+ */
+async function requestUntil(phase, { target = 'node', input, timeoutMs }) {
+  const deadline = Date.now() + timeoutMs;
+  let outcome;
+  do {
+    await runRequest({ target, input });
+    outcome = await requestOutcome();
+    if (outcome.phase === phase) return outcome;
+    await d.sleep(2_000);
+  } while (Date.now() < deadline);
+  return outcome;
+}
+
+/** Forgets every paired node through the UI, then pairs `node` again. */
+async function forgetAllAndPair() {
+  await openNodeScreen();
+  for (let i = 0; i < 5; i += 1) {
+    const row = await d
+      .findScrolling({ id: 'forget-node' }, { timeoutMs: 5_000 })
+      .catch(() => undefined);
+    if (!row) break;
+    await d.tap({ id: 'forget-node' });
+    await d.sleep(3_000);
+  }
+  await d.findScrolling(
+    { text: 'No nodes are paired with this device.' },
+    { timeoutMs: 30_000 },
+  );
+  note('all nodes forgotten');
+  await pairWithNode(node);
+  await openNodeScreen();
+  await waitForConnection('Connected');
+}
+
 // --- Suite ------------------------------------------------------------------------
 
+const sha256 = file =>
+  crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 const report = {
+  // Fields recorded by earlier attempts (codes, labels) are kept on resume.
+  ...(checkpoint?.report ?? {}),
   startedAt: new Date().toISOString(),
+  attempt,
   api: d.apiLevel(),
   apk: args.apk,
+  // What ran where, so a report stands on its own.
+  provenance: {
+    command: process.argv.slice(1).join(' '),
+    argv: process.argv.slice(1),
+    serial: process.env.ANDROID_SERIAL,
+    apkSha256:
+      args.apk && fs.existsSync(args.apk) ? sha256(args.apk) : undefined,
+    fixtureSha256: fs.existsSync(args.fixture)
+      ? sha256(args.fixture)
+      : undefined,
+    avd: (() => {
+      try {
+        return d.adb('emu', 'avd', 'name').split(/\r?\n/)[0].trim();
+      } catch {
+        return undefined; // not an emulator
+      }
+    })(),
+    fingerprint: d.shell('getprop', 'ro.build.fingerprint').trim(),
+    node: process.version,
+  },
 };
+// Every provenance field must be present before any step runs.
+const missing = Object.entries(report.provenance)
+  .filter(([key, value]) =>
+    key === 'apkSha256'
+      ? args.apk && !value
+      : value === undefined || value === '',
+  )
+  .map(([key]) => key);
+if (missing.length > 0) {
+  throw new Error(`provenance incomplete: ${missing.join(', ')}`);
+}
+
 try {
   d.adb('install', '-r', args.fixture);
   // Never uninstall when resuming: the app's pairing must survive.
@@ -353,6 +511,7 @@ try {
     d.shell('pm', 'clear', d.PACKAGE);
     d.stopAdvertising();
     d.quietKeyboard();
+    report.deviceLog = d.prepareDeviceLog();
     node = await startNode({ name: 'AJ Study Node' });
     report.node = { port: node.port, nodeId: await node.nodeId() };
   });
@@ -646,8 +805,16 @@ try {
       await unlockIfNeeded();
       await openNodeScreen();
       await d.tap({ id: 'start-discovery' });
-      await d.waitFor({ text: '⁨AJ-Study-Node-2⁩' }, { timeoutMs: 30_000 });
+      // With a node paired, "Nearby nodes" sits below the fold: scroll to it.
+      await d.findScrolling(
+        { text: '⁨AJ-Study-Node-2⁩' },
+        { timeoutMs: 45_000 },
+      );
       await d.sleep(5_000);
+      await d.findScrolling(
+        { text: 'Unverified · Possible impersonation' },
+        { timeoutMs: 15_000 },
+      );
       const text = note('spoof candidates');
       const flagged =
         d.count({ id: 'candidate-claims_paired_identity' }) +
@@ -667,65 +834,128 @@ try {
   );
 
   await step('S12', 'network loss and recovery', async () => {
+    const problems = [];
+    // AVDs created with avdmanager also have eth0, which keeps the default
+    // network alive when Wi-Fi and data are off. On test devices, take it down
+    // too (needs root; restarting adbd drops reverse rules, so re-add them).
+    const ethernet = /^eth0\s+UP/m.test(d.shell('ip', '-brief', 'link'));
+    if (ethernet) {
+      d.adb('root');
+      d.adb('wait-for-device');
+      await d.sleep(2_000);
+      d.adb('reverse', `tcp:${node.port}`, `tcp:${node.port}`);
+    }
+    report.networkCut = `${
+      ethernet ? 'wifi+data+eth0' : 'wifi+data'
+    } + adb-reverse path + live sockets`;
     d.launch();
     await openNodeScreen();
     d.shell('svc', 'wifi', 'disable');
     d.shell('svc', 'data', 'disable');
+    if (ethernet) d.shell('ip', 'link', 'set', 'eth0', 'down');
+    // The node is reached over `adb reverse` (127.0.0.1), which device networks
+    // do not affect. Cut that path and the live sockets too, so the loss is
+    // real for the app (a simulated path loss, not a physical radio cut).
+    d.adb('reverse', '--remove', `tcp:${node.port}`);
+    await node.dropConnections();
     try {
-      const lost = await waitForConnection(
-        /Reconnecting…|Unavailable|Not connected/,
-        45_000,
+      const lost = await requestUntil('failed', {
+        target: 'node',
+        input: 'Network loss probe entry.',
+        timeoutMs: 60_000,
+      });
+      expect(
+        lost.phase === 'failed',
+        `request succeeded with the path cut: ${JSON.stringify(lost)}`,
       );
-      report.networkLossLabel = lost;
+      const label = await labelAfterFailure();
+      report.networkLoss = {
+        code: lost.code,
+        nodeReason: lost.nodeReason,
+        statusLabel: label ?? (await connectionLabel()),
+      };
       note('network lost');
+      if (!label)
+        problems.push(
+          `status stayed "${report.networkLoss.statusLabel}" after a request failed with ${lost.code}`,
+        );
     } finally {
+      if (ethernet) d.shell('ip', 'link', 'set', 'eth0', 'up');
       d.shell('svc', 'wifi', 'enable');
       d.shell('svc', 'data', 'enable');
+      d.adb('reverse', `tcp:${node.port}`, `tcp:${node.port}`);
     }
     const started = Date.now();
-    await waitForConnection('Connected', 90_000);
-    metrics.networkRecoveryObservedMs = Date.now() - started;
-    note('network recovered');
-    await runRequest({
+    const recovered = await requestUntil('completed', {
       target: 'node',
       input: 'Recovered network check entry.',
+      timeoutMs: 120_000,
     });
-    const after = await requestOutcome();
+    metrics.networkRecoveryObservedMs = Date.now() - started;
     expect(
-      after.phase === 'completed',
-      `post-recovery request: ${JSON.stringify(after)}`,
+      recovered.phase === 'completed',
+      `no recovery: ${JSON.stringify(recovered)}`,
     );
+    note('network recovered');
+    // A request completed again, so the status must not stay on a failure.
+    const recoveredLabel = await labelAfterRecovery();
+    report.networkRecoveredLabel = recoveredLabel.label;
+    if (!recoveredLabel.connected)
+      problems.push(
+        `status "${recoveredLabel.label}" after a request completed again`,
+      );
+    if (problems.length > 0) throw failAndContinue(problems.join('; '));
   });
 
   await step('S13', 'node interruption and secure reconnect', async () => {
     const { port, stateDir } = node;
     await node.stop();
-    await openNodeScreen();
-    const down = await waitForConnection(
-      /Reconnecting…|Unavailable|Not connected/,
-      45_000,
-    );
-    report.nodeDownLabel = down;
+    const down = await requestUntil('failed', {
+      target: 'auto',
+      input: 'Node down probe entry.',
+      timeoutMs: 60_000,
+    });
+    expect(down.phase === 'failed', 'request succeeded with node down');
+    report.nodeDownRequest = { code: down.code, nodeReason: down.nodeReason };
+    const downLabel = await labelAfterFailure();
+    report.nodeDownLabel = downLabel ?? (await connectionLabel());
     note('node down');
-    await runRequest({ target: 'auto' });
-    const unavailable = await requestOutcome();
-    expect(unavailable.phase === 'failed', 'request succeeded with node down');
-    report.nodeDownRequest = {
-      code: unavailable.code,
-      nodeReason: unavailable.nodeReason,
-    };
+    const problems = downLabel
+      ? []
+      : [
+          `status stayed "${report.nodeDownLabel}" after a request failed with ${down.code}`,
+        ];
     await openSettingsHome();
     await d.tap({ text: 'Diary' });
-    await d.waitFor({
-      text: 'Your private voice and written entries, in their original order.',
-    });
+    // AJ-0 shows a placeholder; AJ-1 shows the real journal (empty state or
+    // Write action). Either proves the journal stays usable without a node.
+    const journal = await d.waitForAny([
+      {
+        text: 'Your private voice and written entries, in their original order.',
+      },
+      { id: 'diary-write' },
+      { text: 'What do you want to remember?' },
+    ]);
+    report.journalScreen = journal.selector.id ?? journal.selector.text;
     note('journal usable without node');
     node = await startNode({ name: 'AJ Study Node', stateDir, port });
     await openNodeScreen();
     const reconnect = d.find(d.dump(), { id: 'reconnect' });
     if (reconnect) await d.tap({ id: 'reconnect' });
-    await waitForConnection('Connected', 60_000);
+    const back = await requestUntil('completed', {
+      target: 'node',
+      input: 'Node restarted check entry.',
+      timeoutMs: 120_000,
+    });
+    expect(back.phase === 'completed', `no reconnect: ${JSON.stringify(back)}`);
     note('reconnected after node restart');
+    const backLabel = await labelAfterRecovery();
+    report.nodeBackLabel = backLabel.label;
+    if (!backLabel.connected)
+      problems.push(
+        `status "${backLabel.label}" after a request completed again`,
+      );
+    if (problems.length > 0) throw failAndContinue(problems.join('; '));
   });
 
   await step(
@@ -759,7 +989,19 @@ try {
     async () => {
       d.forceStop();
       metrics.restartLaunchMs = d.launch();
-      // The AJ-0 lock verifier is volatile, so a restart re-creates the PIN.
+      if (args['expect-persistent-pin']) {
+        const { selector } = await d.waitForAny(
+          [{ id: 'unlock-pin' }, { id: 'pin' }],
+          {
+            timeoutMs: 30_000,
+          },
+        );
+        expect(
+          selector.id === 'unlock-pin',
+          'restart asked to create a PIN: the persistent PIN was lost',
+        );
+      }
+      // AJ-0's verifier is volatile, so there a restart re-creates the PIN.
       await unlockIfNeeded();
       await openNodeScreen();
       await waitForConnection('Connected', 45_000);
@@ -770,8 +1012,16 @@ try {
 
   await step('S16', 'forget and re-pair', async () => {
     await openNodeScreen();
-    await d.tap({ id: 'forget-node' });
-    await d.waitFor(
+    // Resumable: an interrupted earlier attempt may already have forgotten it.
+    const forget = await d
+      .findScrolling({ id: 'forget-node' }, { timeoutMs: 10_000 })
+      .catch(() => undefined);
+    if (forget) {
+      await d.tap({ id: 'forget-node' });
+    } else {
+      report.forgetDoneInEarlierAttempt = true;
+    }
+    await d.findScrolling(
       { text: 'No nodes are paired with this device.' },
       { timeoutMs: 30_000 },
     );
@@ -800,32 +1050,80 @@ try {
     'S17',
     'revoked trust is shown and recovered by re-pairing',
     async () => {
-      await node.revokeAll();
       await openNodeScreen();
-      const reconnect = d.find(d.dump(), { id: 'reconnect' });
-      if (reconnect) await d.tap({ id: 'reconnect' });
-      const label = await waitForConnection(
-        /Trust revoked|Identity check failed|Unavailable|Reconnecting…|Not connected/,
-        60_000,
-      );
-      report.revokedLabel = label;
-      let text = note('revoked');
-      if (!/Trust revoked/.test(text)) {
-        await d.tap({ id: 'reconnect' }).catch(() => {});
-        await waitForConnection('Trust revoked', 45_000);
-        text = note('revoked after reconnect');
+      const start = await connectionLabel();
+      if (start !== 'Connected') {
+        // Resumable: an interrupted attempt may have left a revoked record.
+        report.revokedStepStartedFrom = start;
+        await forgetAllAndPair();
       }
-      expect(
-        d.find(d.dump(), { id: 'forget-and-repair' }),
-        'no forget-and-repair action',
-      );
-      await d.tap({ id: 'forget-and-repair' });
-      await d.waitFor({ id: 'pairing-code-input' }, { timeoutMs: 30_000 });
-      d.back();
-      await pairWithNode(node);
+      await node.revokeAll();
+      // The node closes this device's sockets, but the SDK's status changes
+      // only on its next contact with the node (as in S12). Record what the
+      // app shows before that, then make contact with a request.
       await openNodeScreen();
-      await waitForConnection('Connected');
+      await d.sleep(10_000);
+      report.revokedLabelBeforeContact = await connectionLabel();
+      const refused = await requestUntil('failed', {
+        target: 'node',
+        input: 'Revoked trust probe entry.',
+        timeoutMs: 60_000,
+      });
+      expect(
+        refused.phase === 'failed' && refused.code === 'NODE_TRUST_REVOKED',
+        `after revocation: ${JSON.stringify(refused)}`,
+      );
+      report.revokedRequest = {
+        code: refused.code,
+        nodeReason: refused.nodeReason,
+      };
+      // The app now knows trust is revoked; its status must say "Trust
+      // revoked" and offer "Forget and pair again" (UX 7.1).
+      const problems = [];
+      await openNodeScreen();
+      let shown = await waitForConnection('Trust revoked', 30_000).catch(
+        () => undefined,
+      );
+      report.revokedLabelAfterRefusal = shown ?? (await connectionLabel());
+      note('after the refused request');
+      if (!shown) {
+        problems.push(
+          `status "${report.revokedLabelAfterRefusal}" after the refused request`,
+        );
+        // A restart's connect makes the SDK re-check trust.
+        d.forceStop();
+        d.launch();
+        await unlockIfNeeded();
+        await openNodeScreen();
+        shown = await waitForConnection('Trust revoked', 45_000).catch(
+          () => undefined,
+        );
+        report.revokedLabelAfterRestart = shown ?? (await connectionLabel());
+        note('after a restart');
+        if (!shown)
+          problems.push(
+            `status "${report.revokedLabelAfterRestart}" after a restart`,
+          );
+      }
+      // Recover with the specified action, or else the paired row's Forget,
+      // so that later steps start from a paired, connected node.
+      if (d.find(d.dump(), { id: 'forget-and-repair' })) {
+        await d.tap({ id: 'forget-and-repair' });
+        await d.waitFor({ id: 'pairing-code-input' }, { timeoutMs: 30_000 });
+        d.back();
+        await pairWithNode(node);
+        await openNodeScreen();
+        await waitForConnection('Connected');
+      } else {
+        problems.push('no "Forget and pair again" action');
+        await forgetAllAndPair();
+      }
       note('re-paired after revocation');
+      report.revokedProblems = problems;
+      if (problems.length > 0)
+        throw failAndContinue(
+          `revoked trust not shown as specified: ${problems.join('; ')}`,
+        );
     },
   );
 
@@ -868,17 +1166,67 @@ try {
     'S19',
     'privacy: no secrets or input text in device logs',
     async () => {
-      const log = d.adb('logcat', '-d');
-      fs.writeFileSync(path.join(args.out, 'logcat.txt'), log);
-      const forbidden = [
-        PIN,
-        'hybrid-ai-pair:',
+      const logFile = path.join(args.out, 'logcat.txt');
+      d.saveDeviceLog(logFile);
+      const log = fs.readFileSync(logFile, 'utf8');
+      report.logScan = {
+        bytes: log.length,
+        firstLineAt: Number(/^\s*(\d+\.\d+)\s/m.exec(log)?.[1]),
+        // 'run': cleared at S00 on this boot; 'buffer': whatever it still held.
+        coverage: report.deviceLog ? 'run' : 'buffer',
+      };
+      if (report.deviceLog) {
+        expect(
+          d.bootId() === report.deviceLog.bootId,
+          'device rebooted during the run: earlier logs are gone',
+        );
+        const full = d.nearlyFullLogBuffers();
+        expect(
+          full.length === 0,
+          `log buffers nearly full (${full.join(
+            ', ',
+          )}): earlier steps may be pruned`,
+        );
+      }
+      // Every request input this suite types, including steps that passed in
+      // earlier attempts, plus anything recorded by this run.
+      const inputs = new Set([
         'Plan the garden',
-        'Policy check text',
-        'Recovered network check',
+        '__fixture_hold__',
+        'Policy check text for routing.',
+        'Network loss probe entry.',
+        'Recovered network check entry.',
+        'Node down probe entry.',
+        'Node restarted check entry.',
+        'After forget check entry.',
+        'Revoked trust probe entry.',
+        ...(report.inputs ?? []),
+      ]);
+      const forbidden = [
+        ['pairing code', 'hybrid-ai-pair:'],
+        ...[...inputs].map((input, i) => [`input #${i + 1}`, input]),
       ];
-      for (const value of forbidden)
-        expect(!log.includes(value), `logcat contains "${value}"`);
+      if (state.usedCode) {
+        const payload = state.usedCode.slice('hybrid-ai-pair:'.length);
+        forbidden.push(['pairing payload', payload]);
+        try {
+          const { secret } = JSON.parse(
+            Buffer.from(payload, 'base64url').toString(),
+          );
+          if (secret) forbidden.push(['pairing secret', secret]);
+        } catch {
+          // payload format changed; the prefix and payload checks remain
+        }
+      }
+      // Labels, not values, in failure messages: never echo a secret.
+      for (const [label, value] of forbidden)
+        expect(!log.includes(value), `device log contains the ${label}`);
+      // A 6-digit PIN is checked as a whole number, not inside longer ones.
+      expect(
+        !new RegExp(`(?<![0-9])${PIN}(?![0-9])`).test(log),
+        'device log contains the PIN',
+      );
+      report.logScan.checked = forbidden.length + 1;
     },
   );
 } catch {
@@ -886,6 +1234,11 @@ try {
 } finally {
   d.shell('svc', 'wifi', 'enable');
   d.shell('svc', 'data', 'enable');
+  try {
+    d.shell('ip', 'link', 'set', 'eth0', 'up');
+  } catch {
+    // not root or no eth0
+  }
   try {
     d.stopAdvertising();
   } catch {
@@ -897,6 +1250,7 @@ try {
   }
   report.finishedAt = new Date().toISOString();
   report.results = results;
+  report.history = history;
   report.metrics = metrics;
   report.counts = {
     pass: results.filter(r => r.result === 'pass').length,
@@ -906,10 +1260,7 @@ try {
     path.join(args.out, 'report.json'),
     JSON.stringify(report, null, 2),
   );
-  fs.writeFileSync(
-    path.join(args.out, 'evidence.json'),
-    JSON.stringify(evidence, null, 2),
-  );
+  fs.writeFileSync(evidenceFile, JSON.stringify(evidence, null, 2));
   console.log(
     JSON.stringify({ out: args.out, counts: report.counts, metrics }, null, 2),
   );
