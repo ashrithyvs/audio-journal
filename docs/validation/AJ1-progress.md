@@ -9,11 +9,11 @@ accepted**:
 - the physical-device gates (Argon2id parameters, memory/latency, the AJB1
   production profile) are deferred, not passed;
 - iOS is deferred, not passed (no macOS/Xcode evidence);
-- the live-text parameters stay PROVISIONAL (Open decision 3);
-- the AJ-3 S00–S19 regression against the final AJ-1 APK (the merge gate)
-  is still to run.
+- the live-text parameters stay PROVISIONAL (Open decision 3).
 
-The branch is not merged and not pushed.
+The AJ-3 S00–S19 merge gate **passed 20/20** on the final AJ-1 APK
+(§0.2). The branch is not merged and not pushed; the merge waits for the
+owner.
 
 ## 0. Checkpoint 3 summary
 
@@ -161,7 +161,7 @@ device gates.
 | AJB1 backup and restore | **Done** (JVM vectors and emulator journey), with the owner decisions. |
 | Device load and performance | **Emulator measurements recorded** (§0.1); physical-device numbers deferred. |
 | iOS | **Deferred.** No evidence; needs macOS and Xcode. |
-| AJ-3 S00–S19 on the final AJ-1 APK (merge gate) | **Pending**, run by the AJ-3 track. |
+| AJ-3 S00–S19 on the final AJ-1 APK (merge gate) | **Passed 20/20**: `app-release-6f2b36b.apk` (SHA-256 `cb4ff897…4b7d`), one fresh run (attempt 1, nothing resumed) with `--expect-persistent-pin` on `emulator-5556`, harness `84d3b4c`, 23:18–23:58 IST, by `hybridai-7b`. Evidence: `audio-journal/e2e/speech/results/aj3-final-6f2b36b/report.json` (`counts: pass 20, fail 0`). Report: `docs/validation/AJ3-android.md` §8.3 on `main`. |
 
 ---
 
