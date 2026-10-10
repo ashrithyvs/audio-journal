@@ -1,0 +1,54 @@
+[
+  {
+    "name": "request-at-cap",
+    "kind": "jobRequest",
+    "input": "fixture:max",
+    "envelope": {
+      "requestId": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+      "idempotencyKey": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+      "version": "99.99.99",
+      "deadlineMs": 120000,
+      "stream": false
+    },
+    "expect": {
+      "bytes": 61440,
+      "withinCap": true
+    }
+  },
+  {
+    "name": "request-over-cap",
+    "kind": "jobRequest",
+    "input": "input:over-cap-by-one",
+    "envelope": {
+      "requestId": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+      "idempotencyKey": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+      "version": "99.99.99",
+      "deadlineMs": 120000,
+      "stream": false
+    },
+    "expect": {
+      "bytes": 61441,
+      "withinCap": false
+    }
+  },
+  {
+    "name": "event-at-cap",
+    "kind": "completedEvent",
+    "output": "result:valid-maxOutput",
+    "sequence": 64,
+    "expect": {
+      "bytes": 61440,
+      "withinCap": true
+    }
+  },
+  {
+    "name": "event-over-cap",
+    "kind": "completedEvent",
+    "output": "result:over-cap-by-one",
+    "sequence": 64,
+    "expect": {
+      "bytes": 61441,
+      "withinCap": false
+    }
+  }
+]

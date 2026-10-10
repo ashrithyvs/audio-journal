@@ -1,0 +1,293 @@
+[
+  {
+    "name": "progress-partial-completed",
+    "events": [
+      {
+        "type": "accepted"
+      },
+      {
+        "type": "progress",
+        "stage": "received",
+        "fraction": 0.1
+      },
+      {
+        "type": "partial",
+        "delta": {
+          "counts": {
+            "tasks": 2
+          }
+        }
+      },
+      {
+        "type": "progress",
+        "stage": "checking",
+        "fraction": 0.9
+      },
+      {
+        "type": "completed",
+        "result": "valid-mixed"
+      }
+    ],
+    "expect": {
+      "outcome": "stored",
+      "partials": 1
+    }
+  },
+  {
+    "name": "partial-then-failed",
+    "events": [
+      {
+        "type": "accepted"
+      },
+      {
+        "type": "partial",
+        "delta": {
+          "counts": {
+            "tasks": 1
+          }
+        }
+      },
+      {
+        "type": "failed",
+        "code": "EXECUTION_FAILED"
+      }
+    ],
+    "expect": {
+      "outcome": "failed",
+      "code": "EXECUTION_FAILED",
+      "partials": 1
+    }
+  },
+  {
+    "name": "deadline",
+    "events": [
+      {
+        "type": "accepted"
+      },
+      {
+        "type": "progress",
+        "stage": "extracting"
+      },
+      {
+        "type": "failed",
+        "code": "DEADLINE_EXCEEDED"
+      }
+    ],
+    "expect": {
+      "outcome": "failed",
+      "code": "DEADLINE_EXCEEDED",
+      "partials": 0
+    }
+  },
+  {
+    "name": "cancelled",
+    "events": [
+      {
+        "type": "accepted"
+      },
+      {
+        "type": "partial",
+        "delta": {
+          "counts": {
+            "ideas": 1
+          }
+        }
+      },
+      {
+        "type": "cancelled"
+      }
+    ],
+    "expect": {
+      "outcome": "cancelled",
+      "partials": 1
+    }
+  },
+  {
+    "name": "invalid-result",
+    "events": [
+      {
+        "type": "accepted"
+      },
+      {
+        "type": "completed",
+        "result": "request-key-mismatch"
+      }
+    ],
+    "expect": {
+      "outcome": "invalid",
+      "code": "INVALID_RESULT",
+      "subCode": "RESULT_ECHO",
+      "partials": 0
+    }
+  },
+  {
+    "name": "after-terminal-ignored",
+    "events": [
+      {
+        "type": "accepted"
+      },
+      {
+        "type": "completed",
+        "result": "valid-mixed"
+      },
+      {
+        "type": "progress",
+        "stage": "checking"
+      },
+      {
+        "type": "failed",
+        "code": "EXECUTION_FAILED"
+      }
+    ],
+    "expect": {
+      "outcome": "stored",
+      "partials": 0
+    }
+  },
+  {
+    "name": "second-completed-ignored",
+    "events": [
+      {
+        "type": "accepted"
+      },
+      {
+        "type": "completed",
+        "result": "valid-mixed"
+      },
+      {
+        "type": "completed",
+        "result": "valid-mixed"
+      }
+    ],
+    "expect": {
+      "outcome": "stored",
+      "partials": 0
+    }
+  },
+  {
+    "name": "failed-then-completed-ignored",
+    "events": [
+      {
+        "type": "accepted"
+      },
+      {
+        "type": "failed",
+        "code": "EXECUTION_FAILED"
+      },
+      {
+        "type": "completed",
+        "result": "valid-mixed"
+      }
+    ],
+    "expect": {
+      "outcome": "failed",
+      "code": "EXECUTION_FAILED",
+      "partials": 0
+    }
+  },
+  {
+    "name": "no-terminal",
+    "events": [
+      {
+        "type": "accepted"
+      },
+      {
+        "type": "progress",
+        "stage": "received"
+      }
+    ],
+    "expect": {
+      "outcome": "failed",
+      "code": "EXECUTION_FAILED",
+      "partials": 0
+    }
+  },
+  {
+    "name": "invalid-partial-ignored",
+    "events": [
+      {
+        "type": "accepted"
+      },
+      {
+        "type": "partial",
+        "delta": {
+          "counts": {
+            "topics": 3
+          }
+        }
+      },
+      {
+        "type": "partial",
+        "delta": {
+          "text": "leak"
+        }
+      },
+      {
+        "type": "partial",
+        "delta": {
+          "counts": {}
+        }
+      },
+      {
+        "type": "completed",
+        "result": "valid-mixed"
+      }
+    ],
+    "expect": {
+      "outcome": "stored",
+      "partials": 0,
+      "ignoredPartials": 3
+    }
+  },
+  {
+    "name": "unrequested-kind-partial-ignored",
+    "fixture": "summaryOnly",
+    "events": [
+      {
+        "type": "accepted"
+      },
+      {
+        "type": "partial",
+        "delta": {
+          "counts": {
+            "tasks": 1
+          }
+        }
+      },
+      {
+        "type": "partial",
+        "delta": {
+          "counts": {
+            "summary": 1
+          }
+        }
+      },
+      {
+        "type": "completed",
+        "result": "valid-summaryOnly"
+      }
+    ],
+    "expect": {
+      "outcome": "stored",
+      "partials": 1,
+      "ignoredPartials": 1
+    }
+  },
+  {
+    "name": "replayed-request-key",
+    "alreadyStored": true,
+    "events": [
+      {
+        "type": "accepted"
+      },
+      {
+        "type": "completed",
+        "result": "valid-mixed"
+      }
+    ],
+    "expect": {
+      "outcome": "duplicate",
+      "partials": 0
+    }
+  }
+]

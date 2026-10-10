@@ -1,0 +1,15 @@
+{
+  "name": "audio-journal-journal-organize-vectors",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Development-only generator and independent verifier for the journal.organize@1 schemas and vectors. Never bundled.",
+  "type": "module",
+  "engines": {
+    "node": ">= 22.11.0"
+  },
+  "scripts": {
+    "vectors": "node generate-vectors.mjs",
+    "check": "node generate-vectors.mjs --check",
+    "verify": "python3 -I verify_vectors.py ../../schemas/journal/v1"
+  }
+}
