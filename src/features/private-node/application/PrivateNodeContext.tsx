@@ -30,12 +30,19 @@ import {
   type CandidateView,
 } from '../domain/candidatePresentation';
 import {
+  focusStatus,
+  NODE_LINK_CODES,
+  type StatusFocus,
+} from '../domain/connectionPresentation';
+import {
   initialPrivateNodeState,
   privateNodeReducer,
   type PrivateNodeState,
 } from '../domain/privateNodeState';
 
 export const CONNECT_DEADLINE_MS = 15_000;
+/** At most one link reconciliation per this interval after failed requests. */
+export const RECONCILE_DEBOUNCE_MS = 5_000;
 const DEVICE_NAME = `Audio Journal (${
   Platform.OS === 'ios' ? 'iOS' : 'Android'
 })`;
@@ -58,6 +65,8 @@ interface PrivateNodeContextValue {
   gateway: HybridAiGateway;
   candidates: CandidateView[];
   activeNode?: PairedNodeRecord;
+  /** The node the status describes, including a deactivated revoked one. */
+  focus: StatusFocus;
   retryInitialization(): void;
   setPolicy(policy: AppRoutingPolicy): void;
   refresh(): Promise<unknown>;
@@ -400,6 +409,22 @@ export function PrivateNodeProvider({
     [gateway, now, refresh],
   );
 
+  // AJ3-REV-001/003: after a node request fails on the link, at most one
+  // connect() lets the SDK store the real state (unavailable, revoked, key
+  // unavailable). Single-flight and debounced; the request is never retried.
+  const lastReconcileAt = useRef(Number.NEGATIVE_INFINITY);
+  const reconcileLink = useCallback(async () => {
+    const at = now();
+    if (
+      linkBusy.current ||
+      at - lastReconcileAt.current < RECONCILE_DEBOUNCE_MS
+    ) {
+      return;
+    }
+    lastReconcileAt.current = at;
+    await connect();
+  }, [connect, now]);
+
   const runRequest = useCallback(
     async ({ text, execution, timeoutMs }: RunRequestInput) => {
       if (!sdkReadyRef.current || requestId.current || !text.trim()) {
@@ -414,6 +439,7 @@ export function PrivateNodeProvider({
         execution,
         at: now(),
       });
+      let linkFailed = false;
       await gateway.run(
         {
           capability: ANALYZE_CAPABILITY.id,
@@ -426,6 +452,12 @@ export function PrivateNodeProvider({
         update => {
           if (!live.current) {
             return;
+          }
+          if (
+            update.type === 'failed' &&
+            NODE_LINK_CODES.has(update.failure.code)
+          ) {
+            linkFailed = true;
           }
           dispatch({
             type: 'REQUEST_UPDATE',
@@ -442,8 +474,11 @@ export function PrivateNodeProvider({
       if (requestId.current === id) {
         requestId.current = undefined;
       }
+      if (linkFailed && live.current) {
+        await reconcileLink();
+      }
     },
-    [gateway, now],
+    [gateway, now, reconcileLink],
   );
 
   const cancelRequest = useCallback(() => {
@@ -462,6 +497,10 @@ export function PrivateNodeProvider({
     [state.discovery.candidates, state.paired],
   );
   const activeNode = state.paired.find(node => node.active);
+  const focus = useMemo(
+    () => focusStatus(state.paired, state.link.mark),
+    [state.paired, state.link.mark],
+  );
 
   const value = useMemo<PrivateNodeContextValue>(
     () => ({
@@ -469,6 +508,7 @@ export function PrivateNodeProvider({
       gateway,
       candidates,
       activeNode,
+      focus,
       retryInitialization,
       setPolicy,
       refresh,
@@ -489,6 +529,7 @@ export function PrivateNodeProvider({
     }),
     [
       activeNode,
+      focus,
       beginPairing,
       cancelPairing,
       cancelRequest,

@@ -1,0 +1,1228 @@
+{
+  "format": "AJB1",
+  "formatVersion": 1,
+  "domainSchemaVersion": 1,
+  "status": "Proposed; not frozen. KDF parameters are provisional until the lowest-supported-device benchmark.",
+  "generator": "tools/ajb1-reference (independent of the app libargon2)",
+  "randomness": "stream(label, n) = SHA-256(\"ajb1-vectors-v1:\" + label || u32be(counter)) concatenated",
+  "kdf": {
+    "algorithm": "argon2id",
+    "version": 19,
+    "m": 19456,
+    "t": 2,
+    "p": 1
+  },
+  "kdfPolicy": {
+    "floor": {
+      "m": 19456,
+      "t": 2,
+      "p": 1
+    },
+    "ceiling": {
+      "m": 1048576,
+      "t": 10,
+      "p": 4
+    }
+  },
+  "limits": {
+    "maxArchiveBytes": 36507222016,
+    "maxManifestBytes": 65536,
+    "maxRecordsBytes": 1073741824,
+    "maxLineBytes": 2097152,
+    "maxEntries": 100000,
+    "maxRecordings": 100000,
+    "maxTranscriptSegments": 4000000,
+    "maxRecordingDurationMs": 3600000,
+    "maxRecordingPcmBytes": 115200032,
+    "maxTotalPcmBytes": 34359738368,
+    "restoreReserveBytes": 536870912
+  },
+  "wordlist": {
+    "id": "bip39-english",
+    "sha256": "2f5eed53a4727b4bf8880d8f3f199efc90e58503646d9ff8eff3a2ed3b24dbda"
+  },
+  "secrets": {
+    "password-a": {
+      "kind": "password",
+      "input": "correct horse battery staple ✓",
+      "kdfInputHex": "636f727265637420686f727365206261747465727920737461706c6520e29c93"
+    },
+    "password-nfd": {
+      "kind": "password",
+      "input": "Pässwörd für Tagebücher",
+      "kdfInputHex": "50c3a4737377c3b672642066c3bc72205461676562c3bc63686572"
+    },
+    "recovery-c": {
+      "kind": "recoveryKey",
+      "input": "man language impose zone punch enact near load bargain globe topic road thing fine shaft club shock lounge about walnut pride chat nuclear bulb",
+      "kdfInputHex": "86cf9dc7ffeadc92e4e41712ac6b945d7e0aadb13961c6508801fb6aa84da5d0"
+    },
+    "password-wrong": {
+      "kind": "password",
+      "input": "correct horse battery stapler",
+      "kdfInputHex": "636f727265637420686f727365206261747465727920737461706c6572"
+    },
+    "recovery-wrong": {
+      "kind": "recoveryKey",
+      "input": "hard action deer clump spoil client breeze dignity limit sister soft toward evil test among employ toast unlock robot trumpet ahead sustain mistake afraid",
+      "kdfInputHex": "692050e5162d245586e1f081f933397304dfbf01fa47e31dc2ecf4c053b5e378"
+    }
+  },
+  "valid": [
+    {
+      "name": "empty-journal",
+      "file": "valid/empty-journal.ajbackup",
+      "sha256": "b49d54315a605f93bcb249731fb004158107245133b853407138cf50560150cf",
+      "bytes": 465,
+      "segments": 1,
+      "secret": "password-a",
+      "random": {
+        "saltHex": "8655e5e9d571864b22b746ad36b2bb50",
+        "dekHex": "11868ed73644751c98bf7a8da3e74f2570849a8fd2ef99d5176ffd8938f41e25",
+        "noncePrefixHex": "2639fc74",
+        "wrapNonceHex": "0649d4b4bc3c6fc81af7900e"
+      },
+      "kekHex": "9b5f5359ff9380864350010e24b5525b03a40bf12f97417874003a57bd2faa45",
+      "createdAtMs": 1760000600000,
+      "expect": {
+        "ok": true,
+        "manifest": {
+          "createdAtMs": 1760000600000,
+          "domainSchemaVersion": 1,
+          "format": "AJB1",
+          "formatVersion": 1,
+          "pcm": {
+            "bytes": 0,
+            "recordings": 0
+          },
+          "records": {
+            "bytes": 0,
+            "counts": {
+              "entry": 0,
+              "recording": 0,
+              "transcriptSegment": 0
+            },
+            "lines": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "recordsFile": "valid/empty-journal.records.ndjson",
+        "recordsSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "pcm": []
+      }
+    },
+    {
+      "name": "written-unicode",
+      "file": "valid/written-unicode.ajbackup",
+      "sha256": "683303993da03f4a28d2fd0357259928c5bd94fc9be49e24280623ce54f6bc7d",
+      "bytes": 923,
+      "segments": 1,
+      "secret": "password-nfd",
+      "random": {
+        "saltHex": "50dcc57270f7ca7a96cb1a734d176e3f",
+        "dekHex": "439556e2bff01c5f55b04c1d8c30d05313834a7bf2c44081d04312405aa74762",
+        "noncePrefixHex": "e91affeb",
+        "wrapNonceHex": "3ebf437f00d3721ee7249a99"
+      },
+      "kekHex": "0cd5d6cbc55f4986c2347f7be6e5f0007dd4cb210a0f90125de1723af732d912",
+      "createdAtMs": 1760000600000,
+      "expect": {
+        "ok": true,
+        "manifest": {
+          "createdAtMs": 1760000600000,
+          "domainSchemaVersion": 1,
+          "format": "AJB1",
+          "formatVersion": 1,
+          "pcm": {
+            "bytes": 0,
+            "recordings": 0
+          },
+          "records": {
+            "bytes": 456,
+            "counts": {
+              "entry": 2,
+              "recording": 0,
+              "transcriptSegment": 0
+            },
+            "lines": 2,
+            "sha256": "04ac8689b3ddd90bc7fc3ff3b39335aecc5ed16e45b96d503e64c179291c09a6"
+          }
+        },
+        "recordsFile": "valid/written-unicode.records.ndjson",
+        "recordsSha256": "04ac8689b3ddd90bc7fc3ff3b39335aecc5ed16e45b96d503e64c179291c09a6",
+        "pcm": []
+      }
+    },
+    {
+      "name": "voice-multisegment",
+      "file": "valid/voice-multisegment.ajbackup",
+      "sha256": "5c4638591cc9737bc60be1baa846b7a3107e153d7000ab8da9e302982f6365b8",
+      "bytes": 2123760,
+      "segments": 3,
+      "secret": "recovery-c",
+      "random": {
+        "saltHex": "6cb41650ff91cca2d9aef69492a0d06c",
+        "dekHex": "39a189f240b0cb488582dba541f17caad88c3d62b6f7e7a7fc1172423f0ae448",
+        "noncePrefixHex": "62a4c975",
+        "wrapNonceHex": "d6799a2668353b4395cf859f"
+      },
+      "kekHex": "459092cf3fe3d0a246f785bb69a903c21d41f77b3c509c75d90f420f277d83d5",
+      "createdAtMs": 1760000600000,
+      "expect": {
+        "ok": true,
+        "manifest": {
+          "createdAtMs": 1760000600000,
+          "domainSchemaVersion": 1,
+          "format": "AJB1",
+          "formatVersion": 1,
+          "pcm": {
+            "bytes": 2120000,
+            "recordings": 2
+          },
+          "records": {
+            "bytes": 3169,
+            "counts": {
+              "entry": 3,
+              "recording": 2,
+              "transcriptSegment": 6
+            },
+            "lines": 11,
+            "sha256": "954858e05ee988da5a08bf3bc439f8d93329d3e098eab298206c511eeac2b8ac"
+          }
+        },
+        "recordsFile": "valid/voice-multisegment.records.ndjson",
+        "recordsSha256": "954858e05ee988da5a08bf3bc439f8d93329d3e098eab298206c511eeac2b8ac",
+        "pcm": [
+          {
+            "id": "rec_7f0vgpajsxf6r85m5gzf8nggh8",
+            "bytes": 8000,
+            "sha256": "603acc8ed115f860b0b44044f5663eb7555eac0987dacbcf3dea40b0fcc7e770",
+            "source": "stream(\"pcm:recording-2\", 8000)"
+          },
+          {
+            "id": "rec_h91c74bff3ek3me4dd1x0zj2vc",
+            "bytes": 2112000,
+            "sha256": "1947c32ce2791cda12a2c2589654f73e7e57233e58d345e925897ba1665e344c",
+            "source": "stream(\"pcm:recording-1\", 2112000)"
+          }
+        ]
+      }
+    },
+    {
+      "name": "exact-segment-boundary",
+      "file": "valid/exact-segment-boundary.ajbackup",
+      "sha256": "ef5d626eae15e4e31b6749c4eed6d1c97edc48e1db8e764462d15a0dcdf360c4",
+      "bytes": 1048736,
+      "segments": 2,
+      "secret": "password-a",
+      "random": {
+        "saltHex": "425f5649bda7f7342ff2effa364c3181",
+        "dekHex": "ffb01914e38787304113cb361a20e227fb715229ac386ecab715d946136a233b",
+        "noncePrefixHex": "052e2410",
+        "wrapNonceHex": "32778b5895a7c09670784877"
+      },
+      "kekHex": "223443b20ae1286e3b85d966f8326def28e76fce8b853cd3cf6710ca9812d0bf",
+      "createdAtMs": 1760000600000,
+      "expect": {
+        "ok": true,
+        "manifest": {
+          "createdAtMs": 1760000600000,
+          "domainSchemaVersion": 1,
+          "format": "AJB1",
+          "formatVersion": 1,
+          "pcm": {
+            "bytes": 1047282,
+            "recordings": 1
+          },
+          "records": {
+            "bytes": 923,
+            "counts": {
+              "entry": 3,
+              "recording": 1,
+              "transcriptSegment": 0
+            },
+            "lines": 4,
+            "sha256": "55da0fbf2c904fab3a43621d25ef0dbc64da17066e54ebef1325dcd8beb35443"
+          }
+        },
+        "recordsFile": "valid/exact-segment-boundary.records.ndjson",
+        "recordsSha256": "55da0fbf2c904fab3a43621d25ef0dbc64da17066e54ebef1325dcd8beb35443",
+        "pcm": [
+          {
+            "id": "rec_957wjqcdwek4qzf075ajst6rgr",
+            "bytes": 1047282,
+            "sha256": "5efde9a883aba43c71d4345cde241e5f0c7ca575480a88435e84353f128e2e3c",
+            "source": "stream(\"pcm:boundary-recording\", 1047282)"
+          }
+        ]
+      }
+    }
+  ],
+  "hostile": [
+    {
+      "name": "empty-file",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "truncate",
+        "length": 0
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "NOT_AJB1",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "bad-magic",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "xor",
+        "offset": 0,
+        "hex": "01"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "NOT_AJB1",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "short-header",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "truncate",
+        "length": 100
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "TRUNCATED",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "format-version-2",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "set",
+        "offset": 8,
+        "hex": "0002"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "UNSUPPORTED_VERSION",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "header-length-129",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "set",
+        "offset": 10,
+        "hex": "0081"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "MALFORMED_HEADER",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "reserved-15-nonzero",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "set",
+        "offset": 15,
+        "hex": "01"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "MALFORMED_HEADER",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "reserved-tail-nonzero",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "set",
+        "offset": 127,
+        "hex": "01"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "MALFORMED_HEADER",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "aead-id-2",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "set",
+        "offset": 40,
+        "hex": "02"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "MALFORMED_HEADER",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "secret-kind-3",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "set",
+        "offset": 41,
+        "hex": "03"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "MALFORMED_HEADER",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "segment-length-64k",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "set",
+        "offset": 44,
+        "hex": "00010000"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "MALFORMED_HEADER",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "domain-schema-0",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "set",
+        "offset": 42,
+        "hex": "0000"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "MALFORMED_HEADER",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "domain-schema-2-unsupported",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "set",
+        "offset": 42,
+        "hex": "0002"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "UNSUPPORTED_SCHEMA",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "kdf-algorithm-2",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "set",
+        "offset": 12,
+        "hex": "02"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "UNSUPPORTED_KDF",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "kdf-version-0x10",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "set",
+        "offset": 13,
+        "hex": "10"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "UNSUPPORTED_KDF",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "kdf-memory-above-ceiling",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "set",
+        "offset": 16,
+        "hex": "ffffffff"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "KDF_PARAMS_REJECTED",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "kdf-memory-below-floor",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "set",
+        "offset": 16,
+        "hex": "00000008"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "KDF_PARAMS_REJECTED",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "kdf-time-above-ceiling",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "set",
+        "offset": 20,
+        "hex": "000003e8"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "KDF_PARAMS_REJECTED",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "kdf-time-zero",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "set",
+        "offset": 20,
+        "hex": "00000000"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "KDF_PARAMS_REJECTED",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "kdf-parallelism-zero",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "set",
+        "offset": 14,
+        "hex": "00"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "KDF_PARAMS_REJECTED",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "kdf-parallelism-above-ceiling",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "set",
+        "offset": 14,
+        "hex": "40"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "KDF_PARAMS_REJECTED",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "final-block-shorter-than-tag",
+      "base": "voice-multisegment",
+      "mutation": {
+        "op": "truncate",
+        "length": 2097322
+      },
+      "secret": "recovery-c",
+      "expect": {
+        "code": "TRUNCATED",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "final-segment-dropped",
+      "base": "voice-multisegment",
+      "mutation": {
+        "op": "dropBlock",
+        "index": 2
+      },
+      "secret": "recovery-c",
+      "expect": {
+        "code": "TRUNCATED",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "salt-flipped",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "xor",
+        "offset": 24,
+        "hex": "80"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "AUTH_FAILED",
+        "stage": "unwrap"
+      }
+    },
+    {
+      "name": "wrap-nonce-flipped",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "xor",
+        "offset": 52,
+        "hex": "01"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "AUTH_FAILED",
+        "stage": "unwrap"
+      }
+    },
+    {
+      "name": "wrapped-dek-flipped",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "xor",
+        "offset": 64,
+        "hex": "01"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "AUTH_FAILED",
+        "stage": "unwrap"
+      }
+    },
+    {
+      "name": "wrap-tag-flipped",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "xor",
+        "offset": 111,
+        "hex": "01"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "AUTH_FAILED",
+        "stage": "unwrap"
+      }
+    },
+    {
+      "name": "stream-nonce-prefix-flipped",
+      "base": "written-unicode",
+      "mutation": {
+        "op": "xor",
+        "offset": 48,
+        "hex": "01"
+      },
+      "secret": "password-nfd",
+      "expect": {
+        "code": "AUTH_FAILED",
+        "stage": "unwrap"
+      }
+    },
+    {
+      "name": "ciphertext-bit-flipped",
+      "base": "voice-multisegment",
+      "mutation": {
+        "op": "xor",
+        "offset": 1049720,
+        "hex": "01"
+      },
+      "secret": "recovery-c",
+      "expect": {
+        "code": "AUTH_FAILED",
+        "stage": "segment"
+      }
+    },
+    {
+      "name": "segments-swapped",
+      "base": "voice-multisegment",
+      "mutation": {
+        "op": "swapBlocks",
+        "a": 0,
+        "b": 1
+      },
+      "secret": "recovery-c",
+      "expect": {
+        "code": "AUTH_FAILED",
+        "stage": "segment"
+      }
+    },
+    {
+      "name": "segment-duplicated",
+      "base": "voice-multisegment",
+      "mutation": {
+        "op": "duplicateBlock",
+        "from": 0,
+        "to": 1
+      },
+      "secret": "recovery-c",
+      "expect": {
+        "code": "AUTH_FAILED",
+        "stage": "segment"
+      }
+    },
+    {
+      "name": "middle-segment-dropped",
+      "base": "voice-multisegment",
+      "mutation": {
+        "op": "dropBlock",
+        "index": 1
+      },
+      "secret": "recovery-c",
+      "expect": {
+        "code": "AUTH_FAILED",
+        "stage": "segment"
+      }
+    },
+    {
+      "name": "truncated-mid-segment",
+      "base": "voice-multisegment",
+      "mutation": {
+        "op": "truncate",
+        "length": 2123660
+      },
+      "secret": "recovery-c",
+      "expect": {
+        "code": "AUTH_FAILED",
+        "stage": "segment"
+      }
+    },
+    {
+      "name": "trailing-bytes",
+      "base": "voice-multisegment",
+      "mutation": {
+        "op": "append",
+        "hex": "0000000000000000000000000000000000000000"
+      },
+      "secret": "recovery-c",
+      "expect": {
+        "code": "AUTH_FAILED",
+        "stage": "segment"
+      }
+    },
+    {
+      "name": "segment-spliced-from-other-archive",
+      "base": "voice-multisegment",
+      "mutation": {
+        "op": "spliceBlock",
+        "fromVector": "voice-multisegment-same-secret",
+        "fromIndex": 1,
+        "to": 1
+      },
+      "secret": "recovery-c",
+      "expect": {
+        "code": "AUTH_FAILED",
+        "stage": "segment"
+      }
+    },
+    {
+      "name": "segment-splice-source",
+      "note": "Source archive for segment-spliced-from-other-archive: voice-multisegment plaintext and secret, random inputs from label \"voice-multisegment-same-secret\".",
+      "file": "hostile/voice-multisegment-same-secret.ajbackup",
+      "sha256": "9d4adfeedbaecef5e10b0dd3fe25c8408c9baf5fe74a61afd5c258a2043afc13",
+      "expect": {
+        "ok": true
+      }
+    },
+    {
+      "name": "wrong-password",
+      "base": "written-unicode",
+      "mutation": null,
+      "secret": "password-wrong",
+      "context": {},
+      "expect": {
+        "code": "AUTH_FAILED",
+        "stage": "unwrap"
+      }
+    },
+    {
+      "name": "wrong-recovery-key",
+      "base": "voice-multisegment",
+      "mutation": null,
+      "secret": "recovery-wrong",
+      "context": {},
+      "expect": {
+        "code": "AUTH_FAILED",
+        "stage": "unwrap"
+      }
+    },
+    {
+      "name": "secret-kind-mismatch",
+      "base": "voice-multisegment",
+      "mutation": null,
+      "secret": "password-a",
+      "context": {},
+      "expect": {
+        "code": "SECRET_KIND_MISMATCH",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "insufficient-storage-for-restore",
+      "base": "written-unicode",
+      "mutation": null,
+      "secret": "password-nfd",
+      "context": {
+        "purpose": "restore",
+        "availableBytes": 1024
+      },
+      "expect": {
+        "code": "INSUFFICIENT_STORAGE",
+        "stage": "header"
+      }
+    },
+    {
+      "name": "manifest-unknown-field",
+      "file": "hostile/manifest-unknown-field.ajbackup",
+      "sha256": "672c6d7596e172b490e35a6c802e4515bc08bcf074b28c2f2d6806c81f9895ec",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "MALFORMED_MANIFEST",
+        "stage": "manifest"
+      }
+    },
+    {
+      "name": "manifest-duplicate-key",
+      "file": "hostile/manifest-duplicate-key.ajbackup",
+      "sha256": "016765f2e2b27275995874fe143eccdadc0d3508c1bf77b680a78012c02e61c8",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "NON_CANONICAL_JSON",
+        "stage": "manifest"
+      }
+    },
+    {
+      "name": "manifest-whitespace",
+      "file": "hostile/manifest-whitespace.ajbackup",
+      "sha256": "a7705600e453d08b0606929574aba6e33bf567aec15be0bab484c4722eac5c08",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "NON_CANONICAL_JSON",
+        "stage": "manifest"
+      }
+    },
+    {
+      "name": "manifest-key-order",
+      "file": "hostile/manifest-key-order.ajbackup",
+      "sha256": "200fb1691a4fcdb81f5c5dfd1e1564b33e01f19370897851a68776adf132f139",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "NON_CANONICAL_JSON",
+        "stage": "manifest"
+      }
+    },
+    {
+      "name": "manifest-schema-mismatch",
+      "file": "hostile/manifest-schema-mismatch.ajbackup",
+      "sha256": "964b476e5a21a5a3ae111f62653a2ea3c4f03e6b91a6ba4c333429ae45579df0",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "MALFORMED_MANIFEST",
+        "stage": "manifest"
+      }
+    },
+    {
+      "name": "manifest-too-large",
+      "file": "hostile/manifest-too-large.ajbackup",
+      "sha256": "f0b7f3c3e2152c7de30b36b5d27e292176efae6ad42aa78a054d36471941cf9a",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "LIMIT_EXCEEDED",
+        "stage": "manifest"
+      }
+    },
+    {
+      "name": "manifest-entry-count-over-limit",
+      "file": "hostile/manifest-entry-count-over-limit.ajbackup",
+      "sha256": "8cf705d59e79ef9958c586a94e45c8f916920cc32038b7bfa553491b77311f45",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "LIMIT_EXCEEDED",
+        "stage": "manifest"
+      }
+    },
+    {
+      "name": "manifest-first-violated",
+      "file": "hostile/manifest-first-violated.ajbackup",
+      "sha256": "1f3bd2d8858f4f11284cc3bd187a85802f156b710d80bcb5060c52eb294b79c2",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "MALFORMED_SECTION",
+        "stage": "sections"
+      }
+    },
+    {
+      "name": "records-length-mismatch",
+      "file": "hostile/records-length-mismatch.ajbackup",
+      "sha256": "76dc4270ca9272d65016c0479abf0de7d001c0251d90b03ce63c3cd0937c6924",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "COUNT_MISMATCH",
+        "stage": "records"
+      }
+    },
+    {
+      "name": "records-digest-mismatch",
+      "file": "hostile/records-digest-mismatch.ajbackup",
+      "sha256": "7929173df15b5091d58cde33bd41bec293cba477e0a9b4393a1d4759767ef8e5",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "DIGEST_MISMATCH",
+        "stage": "records"
+      }
+    },
+    {
+      "name": "record-duplicate-key",
+      "file": "hostile/record-duplicate-key.ajbackup",
+      "sha256": "eec45daf66efa6d9a169f5acd0d501e3294c660896f41cea7f6eae82a36cb2bd",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "NON_CANONICAL_JSON",
+        "stage": "records"
+      }
+    },
+    {
+      "name": "record-crlf",
+      "file": "hostile/record-crlf.ajbackup",
+      "sha256": "c00d06367f4bfa0689dad2117d22e535fa720b2204879263d0dad841ed2e84ae",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "NON_CANONICAL_JSON",
+        "stage": "records"
+      }
+    },
+    {
+      "name": "record-bom",
+      "file": "hostile/record-bom.ajbackup",
+      "sha256": "31e146bc627875bc6374063b5b09c679138490b262d11f07ad6df04357bdbdf3",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "NON_CANONICAL_JSON",
+        "stage": "records"
+      }
+    },
+    {
+      "name": "record-empty-line",
+      "file": "hostile/record-empty-line.ajbackup",
+      "sha256": "620ad8b5a8eef674288a5e5a0317c99ae7082aa7e0d3c6fe23de4bd0d2ab59f2",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "NON_CANONICAL_JSON",
+        "stage": "records"
+      }
+    },
+    {
+      "name": "record-null-value",
+      "file": "hostile/record-null-value.ajbackup",
+      "sha256": "358c7de2c4fbcaf46140c52f7ecc918a937781d95fc105df19c41a5513d483e2",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "NON_CANONICAL_JSON",
+        "stage": "records"
+      }
+    },
+    {
+      "name": "record-fraction",
+      "file": "hostile/record-fraction.ajbackup",
+      "sha256": "4619e73143f930f36223eb363dca34093016cf66848fd4ecdd2d4445394d38e0",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "NON_CANONICAL_JSON",
+        "stage": "records"
+      }
+    },
+    {
+      "name": "record-lone-surrogate",
+      "file": "hostile/record-lone-surrogate.ajbackup",
+      "sha256": "62cd4bb9b72a2ba107dba90c000304a3348e8d1bd3efec80ef5709a475e105c1",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "NON_CANONICAL_JSON",
+        "stage": "records"
+      }
+    },
+    {
+      "name": "record-escaped-slash",
+      "file": "hostile/record-escaped-slash.ajbackup",
+      "sha256": "98b7b4faade0841778f14e458b9e98023b6fe41ad1f0e39def7310cb678e4b81",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "NON_CANONICAL_JSON",
+        "stage": "records"
+      }
+    },
+    {
+      "name": "record-missing-final-lf",
+      "file": "hostile/record-missing-final-lf.ajbackup",
+      "sha256": "347129233b37e157e5fd28f140068aa01cc64e5c30e40dcb33a02daaf88e86ac",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "NON_CANONICAL_JSON",
+        "stage": "records"
+      }
+    },
+    {
+      "name": "record-unknown-type",
+      "file": "hostile/record-unknown-type.ajbackup",
+      "sha256": "70249d68cf6b693eaad010237e0cb98918ff7146e71de06314f5ab0a8b5a5104",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "INVALID_RECORD",
+        "stage": "records"
+      }
+    },
+    {
+      "name": "record-unknown-field",
+      "file": "hostile/record-unknown-field.ajbackup",
+      "sha256": "6ef47bd8061b236b88c01a4b1fd2581bb93cf4c2d939e199176076e143069cd0",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "INVALID_RECORD",
+        "stage": "records"
+      }
+    },
+    {
+      "name": "record-bad-enum",
+      "file": "hostile/record-bad-enum.ajbackup",
+      "sha256": "48fe072d05e79b9ceb1ec2a70f0378a7b299ae692edc836315cacf6a2182c40b",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "INVALID_RECORD",
+        "stage": "records"
+      }
+    },
+    {
+      "name": "records-out-of-order",
+      "file": "hostile/records-out-of-order.ajbackup",
+      "sha256": "3d1f82c6b94994efe4ae1bf9fd1742df3c1e24396ce6bbe1814ac20c695ed1ab",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "INVALID_RECORD",
+        "stage": "records"
+      }
+    },
+    {
+      "name": "record-duplicate-id",
+      "file": "hostile/record-duplicate-id.ajbackup",
+      "sha256": "f52b95d2dd4714c3db049cd0363b534daa0719e9f5435e06ee82faf1dd965864",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "DUPLICATE_ID",
+        "stage": "records"
+      }
+    },
+    {
+      "name": "record-count-mismatch",
+      "file": "hostile/record-count-mismatch.ajbackup",
+      "sha256": "20c0c0952debd7c05972fe7bfd3367045168b23a4b1e94c1b7089e0dcca29e1e",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "COUNT_MISMATCH",
+        "stage": "records"
+      }
+    },
+    {
+      "name": "end-missing",
+      "file": "hostile/end-missing.ajbackup",
+      "sha256": "e8f819fef478a4018e332f13bd55ea36b93b10e2b0d55d007faaa0ca3feab95e",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "MALFORMED_SECTION",
+        "stage": "sections"
+      }
+    },
+    {
+      "name": "data-after-end",
+      "file": "hostile/data-after-end.ajbackup",
+      "sha256": "4aaf4c805801f58a5a94304c40cc4679471b93a1916ad4e9d469983c1183ba81",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "MALFORMED_SECTION",
+        "stage": "sections"
+      }
+    },
+    {
+      "name": "unknown-section-kind",
+      "file": "hostile/unknown-section-kind.ajbackup",
+      "sha256": "f8d28e507013c0d830f73f596b6c10ed3f2fd11b21bb74f33fabb3b6184af330",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "MALFORMED_SECTION",
+        "stage": "sections"
+      }
+    },
+    {
+      "name": "section-reserved-nonzero",
+      "file": "hostile/section-reserved-nonzero.ajbackup",
+      "sha256": "f6d7a2af0ccb2abea561a8ac041a5d5c6cbfaa281faed2506d975887162caa43",
+      "secret": "password-nfd",
+      "random": "same as written-unicode",
+      "expect": {
+        "code": "MALFORMED_SECTION",
+        "stage": "sections"
+      }
+    },
+    {
+      "name": "pcm-digest-mismatch",
+      "file": "hostile/pcm-digest-mismatch.ajbackup",
+      "sha256": "d674bff76fd8d82afb12e9acabd83328749b4af0dde8a2f5d3a0dce8735fc423",
+      "secret": "recovery-c",
+      "random": "same as voice-multisegment",
+      "expect": {
+        "code": "DIGEST_MISMATCH",
+        "stage": "recordings"
+      }
+    },
+    {
+      "name": "recording-sections-out-of-order",
+      "file": "hostile/recording-sections-out-of-order.ajbackup",
+      "sha256": "2d78cc3d4c0cc46a609ed8d6e148d54173cb32b99b821f909b6f70237a8a3d4f",
+      "secret": "recovery-c",
+      "random": "same as voice-multisegment",
+      "expect": {
+        "code": "MALFORMED_SECTION",
+        "stage": "recordings"
+      }
+    },
+    {
+      "name": "recording-length-mismatch",
+      "file": "hostile/recording-length-mismatch.ajbackup",
+      "sha256": "c1ae4580fe6ecc61d6dc2cc589f86081188c44874c109a33938bf6d56a96a6fb",
+      "secret": "recovery-c",
+      "random": "same as voice-multisegment",
+      "expect": {
+        "code": "MALFORMED_SECTION",
+        "stage": "recordings"
+      }
+    },
+    {
+      "name": "recording-dangling-entry",
+      "file": "hostile/recording-dangling-entry.ajbackup",
+      "sha256": "7ca79c2ab26531051fab63d10a451b14f0168254c65b714c8415960bb09fb1fd",
+      "secret": "recovery-c",
+      "random": "same as voice-multisegment",
+      "expect": {
+        "code": "DANGLING_REFERENCE",
+        "stage": "records"
+      }
+    }
+  ],
+  "recoveryKeys": {
+    "encode": [
+      {
+        "entropyHex": "0000000000000000000000000000000000000000000000000000000000000000",
+        "words": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art"
+      },
+      {
+        "entropyHex": "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f",
+        "words": "legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth title"
+      },
+      {
+        "entropyHex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "words": "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote"
+      },
+      {
+        "entropyHex": "86cf9dc7ffeadc92e4e41712ac6b945d7e0aadb13961c6508801fb6aa84da5d0",
+        "words": "man language impose zone punch enact near load bargain globe topic road thing fine shaft club shock lounge about walnut pride chat nuclear bulb"
+      }
+    ],
+    "decode": [
+      {
+        "name": "canonical",
+        "input": "man language impose zone punch enact near load bargain globe topic road thing fine shaft club shock lounge about walnut pride chat nuclear bulb",
+        "entropyHex": "86cf9dc7ffeadc92e4e41712ac6b945d7e0aadb13961c6508801fb6aa84da5d0"
+      },
+      {
+        "name": "upper-case-and-extra-whitespace",
+        "input": "  MAN \t\n LANGUAGE \t\n IMPOSE \t\n ZONE \t\n PUNCH \t\n ENACT \t\n NEAR \t\n LOAD \t\n BARGAIN \t\n GLOBE \t\n TOPIC \t\n ROAD \t\n THING \t\n FINE \t\n SHAFT \t\n CLUB \t\n SHOCK \t\n LOUNGE \t\n ABOUT \t\n WALNUT \t\n PRIDE \t\n CHAT \t\n NUCLEAR \t\n BULB  ",
+        "entropyHex": "86cf9dc7ffeadc92e4e41712ac6b945d7e0aadb13961c6508801fb6aa84da5d0"
+      },
+      {
+        "name": "twenty-three-words",
+        "input": "language impose zone punch enact near load bargain globe topic road thing fine shaft club shock lounge about walnut pride chat nuclear bulb",
+        "reason": "WORD_COUNT"
+      },
+      {
+        "name": "unknown-word",
+        "input": "abandonx language impose zone punch enact near load bargain globe topic road thing fine shaft club shock lounge about walnut pride chat nuclear bulb",
+        "reason": "UNKNOWN_WORD",
+        "position": 0
+      },
+      {
+        "name": "checksum-mismatch",
+        "input": "language man impose zone punch enact near load bargain globe topic road thing fine shaft club shock lounge about walnut pride chat nuclear bulb",
+        "reason": "CHECKSUM"
+      },
+      {
+        "name": "non-ascii-letter",
+        "input": "màn language impose zone punch enact near load bargain globe topic road thing fine shaft club shock lounge about walnut pride chat nuclear bulb",
+        "reason": "UNKNOWN_WORD",
+        "position": 0
+      }
+    ]
+  },
+  "passwords": [
+    {
+      "name": "nfc-input",
+      "input": "Pässwörd für Tagebücher",
+      "kdfInputHex": "50c3a4737377c3b672642066c3bc72205461676562c3bc63686572"
+    },
+    {
+      "name": "nfd-input-normalizes-to-nfc",
+      "input": "Pässwörd für Tagebücher",
+      "kdfInputHex": "50c3a4737377c3b672642066c3bc72205461676562c3bc63686572"
+    },
+    {
+      "name": "too-short",
+      "input": "short pass",
+      "reason": "WEAK_PASSWORD"
+    },
+    {
+      "name": "too-long",
+      "input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "reason": "TOO_LONG"
+    }
+  ]
+}

@@ -253,10 +253,46 @@ describe('paired node status, recovery, and trust', () => {
     await openNodeScreen(view);
     expect(await view.findByText('Private AI Node unavailable')).toBeTruthy();
     expect(view.getByText('Unavailable')).toBeTruthy();
+    // One Reconnect, not one per notice and status (AJ-3 report F3).
+    expect(view.getAllByText('Reconnect')).toHaveLength(1);
     gateway.connectFailure = undefined;
     await fireEvent.press(view.getByTestId('reconnect'));
     expect(await view.findByText('Connected')).toBeTruthy();
   });
+
+  it.each([
+    ['Unavailable', 'NODE_UNAVAILABLE', 'unavailable', 1, false],
+    [
+      'Identity check failed',
+      'NODE_AUTHENTICATION_FAILED',
+      'authentication_failed',
+      1,
+      false,
+    ],
+    ['Connected', undefined, undefined, 0, false],
+    ['Trust revoked', 'NODE_TRUST_REVOKED', undefined, 0, true],
+    ['Pairing key unavailable', 'CREDENTIAL_UNAVAILABLE', undefined, 0, true],
+  ] as const)(
+    '%s offers one recovery action (UX §7.1, AJ-3 report F3)',
+    async (label, code, status, reconnects, repair) => {
+      const gateway = new FakeHybridAiGateway();
+      gateway.paired = [pairedRecord()];
+      if (code) {
+        gateway.connectFailure = { code };
+      }
+      if (status) {
+        gateway.linkStatus = { state: status, nodeId: NODE_ID };
+      }
+      const { view } = await renderUnlocked(gateway);
+      await openNodeScreen(view);
+      expect(view.getByTestId('node-connection-state')).toHaveTextContent(
+        label,
+      );
+      expect(view.queryAllByText('Reconnect')).toHaveLength(reconnects);
+      expect(view.queryAllByTestId('reconnect')).toHaveLength(reconnects);
+      expect(view.queryByTestId('forget-and-repair') !== null).toBe(repair);
+    },
+  );
 
   it('shows revoked trust and recovers by forgetting then pairing again', async () => {
     const gateway = new FakeHybridAiGateway();

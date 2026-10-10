@@ -344,7 +344,9 @@ cross-platform vectors are frozen in `backup-and-restore.md`.
 ### Argon2id (PIN copy and AJB1 KEK)
 
 - **Implementation.** The P-H-C reference libargon2, release `20190702`
-  (commit `62358ba2`, archive SHA-256 `daf972a8…442c`, CC0/Apache-2.0),
+  (commit `62358ba2`, archive SHA-256
+  `daf972a89577f8772602bf2eb38b6a3dd3d922bf5724d45e7f9589b5e830442c`,
+  CC0/Apache-2.0),
   compiled into the app's native library. Algorithm Argon2id, version `0x13`.
   One C implementation serves Android now and iOS later, so backups are
   byte-identical across platforms.
@@ -367,12 +369,34 @@ cross-platform vectors are frozen in `backup-and-restore.md`.
   (`net.zetetic:sqlcipher-android:4.19.1`), keyed with the raw HKDF database
   key, in WAL mode, in app-private no-backup storage.
 - **Recordings.** Recordings are 16 kHz mono 16-bit PCM in the `AJR1`
-  container: a header followed by 1-second PCM chunks, each sealed with
-  AES-256-GCM. The nonce is a 4-byte per-file salt plus an 8-byte chunk
-  index, and the additional authenticated data binds the header and the chunk
-  index, so reordering is detected. After a crash, recovery keeps every
-  authenticated chunk and drops the torn tail. Recordings never exist as
-  plaintext files.
+  container: an authenticated header followed by sealed PCM chunks of up to
+  1 second. Recordings never exist as plaintext files. The owner amended the
+  key and nonce design on 2026-10-10 (formerly Open decision 7):
+  - **Per-recording key:** `K_file = HKDF-SHA256(recordingRootKey,
+    fileSalt, encodedInfo, 32)`.
+    - `recordingRootKey` is `HKDF(MK, "aj-rec-v1")`.
+    - `fileSalt` is 16 fresh CSPRNG bytes, stored in the header.
+    - `encodedInfo` is the length-prefixed label
+      `audio-journal/ajr1/recording-key/v1` followed by the length-prefixed
+      ASCII recording ID.
+
+    A new file, or a recreated one, always gets a new salt and therefore a
+    new key. Derived keys are cleared when the recording closes or the vault
+    locks.
+  - **Nonce:** a 4-byte per-file prefix plus the unsigned 64-bit chunk
+    index. Nonces are unique because each file has its own key.
+  - **Authentication:** every frame carries its chunk index. The AAD binds
+    the header hash, the recording ID, and that index. A wrong key, salt,
+    header, recording ID, or index fails authentication.
+  - **Ordering:** indices strictly increase. Gaps are allowed; duplicates,
+    decreases, and reordering are rejected. An index above `2^48 − 1` is
+    rejected, and the writer refuses to overflow.
+  - **Crash recovery** keeps every authenticated frame and drops the torn
+    tail. If torn bytes exist, any index they may have used is never reused
+    under the same key: writing continues at least two past the last
+    authenticated index, and past any readable torn index.
+
+  The byte layout and vectors are in LLD §5.1 and `schemas/ajr1/v1/`.
 
 ### Recording (closes ADR-008 for Android)
 
@@ -381,8 +405,10 @@ cross-platform vectors are frozen in `backup-and-restore.md`.
 - Leaving the foreground auto-pauses and seals the current chunk; a
   foreground service is deferred.
 - Recordings are limited to 60 minutes. Recording won't start with less
-  than 200 MB free and finishes automatically below 50 MB.
-- Unfinished recordings are reconciled at startup.
+  than 200 MiB free and finishes automatically below 50 MiB (binary units,
+  2^20 bytes; owner clarification, 2026-10-10).
+- Unfinished recordings are reconciled at startup. Interrupted captures
+  are kept as ready recordings (see **Owner decisions of 2026-10-10**).
 - Recording never depends on transcription: it continues whenever
   transcription is unavailable, slow, cancelled, or failing.
 
@@ -420,13 +446,84 @@ cross-platform vectors are frozen in `backup-and-restore.md`.
   biometric state, node pairing, logs, and caches.
 - **Saving.** The archive is saved through the system document picker,
   then reopened and fully authenticated before success is reported.
-- **Restore.** Restore only targets an empty journal. It works in isolated
-  staging and activates atomically after complete verification. The user then
-  sets a new PIN, and the node must be re-paired.
+- **Restore.** Restore only targets an empty journal (as defined below). It
+  works in isolated staging and activates atomically after complete
+  verification. The user re-enters the current PIN, which then protects the
+  restored vault (owner decision, 2026-10-10). The node must be re-paired.
 - **Format first.** The binary layout and its hostile vectors (tampering,
   truncation, downgrade, excessive memory, malformed fields) and
   cross-platform vectors are frozen in `backup-and-restore.md` before any
   implementation.
+
+### Owner decisions of 2026-10-10 (afternoon)
+
+These amend the sections above. Each is reflected in `backup-and-restore.md`,
+`ux-design.md`, and the LLD, and has tests.
+
+1. **System UI the app opens itself (lock grace).**
+   - The app's own microphone permission dialog and system document picker
+     pause the activity.
+   - While one of those is open, relocking is deferred for at most
+     2 minutes. After that, the app locks anyway.
+   - The privacy curtain and `FLAG_SECURE` stay on throughout.
+   - Any other backgrounding (Home, app switch, screen off) still locks
+     immediately.
+2. **Interrupted captures are kept.** A capture that ended without Finish
+   (lock, process death) is handled at the next unlock as follows:
+   - Reconciliation drops a torn final frame.
+   - It then promotes every authenticated chunk to a ready recording, with
+     finish reason `recovered`.
+   - Only real damage keeps a recording in "needs attention" (recoverable):
+     an authentication or ordering failure before the end of the file. The
+     bytes after the damage are kept.
+3. **Final passes restart after unlock.** This is the explicit policy LLD §9
+   step 5 asks for:
+   - Ready recordings without a full pass are queued after unlock, one at a
+     time.
+   - Passes run on-device only, are cancellable, and never block capture.
+   - A pass that fails in a session is retried only when the user asks.
+4. **Damaged recording during backup.**
+   - By default, the backup stops safely and lists every affected entry
+     (date, title, and damaged component).
+   - Continuing without those entries needs explicit confirmation. Content is
+     never excluded silently.
+   - The result reports the exclusion, and the journal is unchanged.
+   - **Where incompleteness is recorded** (`AJ1-DEC-001`, option B, confirmed
+     by the owner): AJB1 v1 stays byte-frozen, with no manifest field. The
+     result screen shows counts and non-sensitive entry labels, the suggested
+     file name ends in `-incomplete`, and local backup history keeps a
+     counts-only incomplete status.
+   - **Known limitation.** A file that is renamed or moved without its local
+     history cannot prove that damaged entries were omitted.
+   - A self-describing incomplete archive is recorded for a future container
+     (AJB2).
+5. **Restore activation needs the current PIN.**
+   - Being unlocked is not enough: the current PIN is re-entered under the
+     normal attempt policy.
+   - That PIN wraps the restored vault's new master key.
+   - The biometric copy is removed; the user can re-enable it later.
+   - The app locks immediately, and a normal unlock opens the restored
+     journal.
+   - Someone holding an unlocked phone cannot replace the journal without the
+     PIN.
+6. **"Empty journal" for restore.** The journal is empty when it has no
+   ready entries, no needs-attention entries, and no playable recording file.
+   - Tombstones, abandoned drafts, and failed recording artifacts do not block
+     restore.
+   - They are counted on the confirmation screen and need explicit
+     confirmation.
+   - They are discarded together with the old journal (rows and files) when
+     activation completes.
+   - If activation fails, the pre-restore vault is unchanged.
+   - Any visible journal content blocks restore.
+7. **Recovery-key confirmation.**
+   - The phrase is hidden first.
+   - The user then types the words at three distinct positions, chosen with
+     the platform CSPRNG, and they are checked exactly and in order.
+   - On failure the user returns to the phrase and may try again.
+   - Answers are never logged or stored, and a checkbox alone never counts as
+     confirmation.
+   - `FLAG_SECURE` and the privacy curtain stay on throughout.
 
 ## ADR-018: `journal.organize@1` served by an Audio Journal node companion
 
@@ -446,6 +543,15 @@ for v0.1 and keeps ADR-010/011 intact.
   jobs/streaming, ADR-022 pairing/mutual TLS). It is checked against the
   SDK's published vectors and against the packaged SDK on device. No SDK
   source is copied or imported.
+- **What "separate" means** (owner clarification, 2026-10-10). The companion
+  is a separately built and deployed process, kept as a subproject of this
+  repository (`node-companion/`). It is not a separate Git repository: Audio
+  Journal owns `journal.organize@1`, so its server lives here.
+  - It is not bundled into the Android or iOS application.
+  - It is not part of the Hybrid AI SDK repository or its reference node.
+  - It imports no SDK-private source.
+  - It communicates only through the SDK's published node protocol.
+  - It uses the authoritative schemas and vectors in `schemas/journal/v1/`.
 - **Client path.** The mobile app invokes the capability only through the
   SDK public API (`execution: 'node'`), after an explicit user selection,
   sending only finalized transcript or written text with segment IDs and
@@ -470,7 +576,15 @@ for v0.1 and keeps ADR-010/011 intact.
 3. Live-transcription window length, overlap, and cadence, set from device
    measurements. The live UX is decided by ADR-017 and the engine by ADR-016.
 4. `journal.organize@1`: decided by ADR-018 (schemas in `schemas/journal/v1/`).
-5. The AJB1 binary layout and hostile/cross-platform vectors, which must be
-   frozen before implementation (the cryptographic design is ADR-017), and
-   non-empty-vault merge semantics (outside v0.1).
+5. ~~The AJB1 binary layout and vectors~~: **frozen for implementation**
+   on 2026-10-10 (backup-and-restore.md §9, with its freeze evidence).
+   Still open: Argon2id parameters (item 1), iOS cross-platform evidence
+   (needs macOS/Xcode), and non-empty-vault merge semantics (outside v0.1).
 6. Retention/deletion behavior for recordings, transcripts, derivations, and tasks.
+   Until it is decided, confirmed discards are tombstoned (rows kept and marked;
+   no cryptographic-erasure claim), and superseded live transcript rows are
+   kept, marked superseded, excluded from normal reads, and bounded to 4,000
+   per recording (owner decisions, 2026-10-10).
+7. ~~AJR1 nonce uniqueness across files~~. **Decided** 2026-10-10 by the
+   owner: per-recording HKDF keys, chunk-index frames, and torn-tail index
+   skipping. See ADR-017's **Recordings** bullet.

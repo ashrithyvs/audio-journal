@@ -47,6 +47,11 @@ material into useful views and tasks through Hybrid AI.
 - Calendar/email integrations, notifications derived from external accounts, or team workflows.
 - Editing or deleting source audio as a side effect of transcript/AI edits.
 - SDK-private imports or journal-specific logic added to Hybrid AI SDK core.
+- A self-describing incomplete backup archive. In v0.1 an export that skips
+  damaged entries (after typed confirmation) is marked incomplete only on its
+  result screen, in its `-incomplete` file name, and in local backup history.
+  A renamed or moved copy cannot prove the omission. This is left to a future
+  AJB2 (`AJ1-DEC-001`, option B).
 
 ## 5. Functional requirements
 

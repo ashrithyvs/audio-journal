@@ -1,8 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAppLock } from '../../features/app-lock/application/AppLockContext';
 import { PrimaryButton } from '../../features/app-lock/ui/PrimaryButton';
+import { useBackup } from '../../features/backup/application/BackupContext';
 import { usePrivateNode } from '../../features/private-node/application/PrivateNodeContext';
 import { presentConnection } from '../../features/private-node/domain/connectionPresentation';
 import { SDK_PACKAGE_VERSION } from '../../platform/hybrid-ai/PackagedHybridAiGateway';
@@ -11,12 +12,15 @@ import { colors } from '../../theme/colors';
 export function SettingsScreen({
   onOpenNode,
   onOpenDiagnostics,
+  onOpenBackup,
 }: {
   onOpenNode(): void;
   onOpenDiagnostics(): void;
+  onOpenBackup?(): void;
 }) {
-  const { lock } = useAppLock();
-  const { state, activeNode } = usePrivateNode();
+  const backup = useBackup();
+  const { lock, state: lockState, setBiometricEnabled } = useAppLock();
+  const { state, focus } = usePrivateNode();
   const { sdk } = state;
   const sdkStatus =
     sdk.phase === 'ready'
@@ -26,12 +30,15 @@ export function SettingsScreen({
       : 'Initializing…';
   const connection = presentConnection(
     state.link.status.state,
-    activeNode,
+    focus,
     state.link.operation === 'connecting',
+    state.link.mark,
   );
 
+  // Scrolls: with biometric unlock offered, or a larger font size, the cards
+  // outgrow the screen and "Lock now" must stay reachable.
   return (
-    <View style={styles.page}>
+    <ScrollView contentContainerStyle={styles.content} style={styles.page}>
       <Text style={styles.title}>Settings</Text>
       <View style={styles.card}>
         <Text style={styles.label}>Private AI Node</Text>
@@ -61,21 +68,59 @@ export function SettingsScreen({
           />
         </View>
       </View>
+      {backup && onOpenBackup ? (
+        <View style={styles.card}>
+          <Text style={styles.label}>Backup & restore</Text>
+          <Text style={styles.meta}>
+            An encrypted copy of your journal, saved where you choose.
+          </Text>
+          <View style={styles.action}>
+            <PrimaryButton
+              label="Backup & restore"
+              onPress={onOpenBackup}
+              secondary
+              testID="open-backup"
+            />
+          </View>
+        </View>
+      ) : null}
       <View style={styles.card}>
         <Text style={styles.label}>App lock</Text>
         <Text style={styles.meta}>
-          AJ-0 uses volatile credentials until the security ADR is accepted.
+          Your PIN unlocks an encrypted vault on this device. There is no
+          account and no way to recover a forgotten PIN.
         </Text>
+        {lockState.notice === 'biometric_invalidated' ? (
+          <Text style={styles.meta} testID="biometric-invalidated">
+            Biometric unlock was turned off because your device biometrics
+            changed. You can turn it on again.
+          </Text>
+        ) : null}
+        {lockState.biometricAvailable ? (
+          <View style={styles.action}>
+            <PrimaryButton
+              label={
+                lockState.biometricEnabled
+                  ? 'Turn off biometric unlock'
+                  : 'Turn on biometric unlock'
+              }
+              onPress={() => setBiometricEnabled(!lockState.biometricEnabled)}
+              secondary
+              testID="toggle-biometric"
+            />
+          </View>
+        ) : null}
         <View style={styles.action}>
           <PrimaryButton label="Lock now" onPress={lock} testID="lock-now" />
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.background, padding: 24 },
+  page: { flex: 1, backgroundColor: colors.background },
+  content: { padding: 24 },
   title: {
     color: colors.ink,
     fontFamily: 'serif',

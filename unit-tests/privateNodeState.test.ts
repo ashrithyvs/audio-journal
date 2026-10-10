@@ -349,6 +349,79 @@ describe('connection and forget', () => {
   });
 });
 
+describe('link failure after recovery (AJ-3 report F3)', () => {
+  const failedConnect = run(
+    [
+      {
+        type: 'SNAPSHOT',
+        status: { state: 'unavailable', nodeId: NODE_ID },
+        paired: [pairedRecord()],
+      },
+      { type: 'CONNECT_STARTED', at: 0 },
+      {
+        type: 'CONNECT_FINISHED',
+        at: 9,
+        failure: { code: 'NODE_UNAVAILABLE' },
+      },
+    ],
+    ready,
+  );
+
+  it('clears the failed connect once the SDK reconnects by itself', () => {
+    expect(failedConnect.link.failure).toEqual({ code: 'NODE_UNAVAILABLE' });
+    const recovered = run(
+      [
+        { type: 'STATUS', status: { state: 'reconnecting', nodeId: NODE_ID } },
+        { type: 'STATUS', status: { state: 'connected', nodeId: NODE_ID } },
+      ],
+      failedConnect,
+    );
+    expect(recovered.link.mark).toBeUndefined();
+    expect(recovered.link.failure).toBeUndefined();
+  });
+
+  it('keeps it while the only "connected" seen is stale', () => {
+    const stale = run(
+      [{ type: 'STATUS', status: { state: 'connected', nodeId: NODE_ID } }],
+      run(
+        [
+          {
+            type: 'SNAPSHOT',
+            status: { state: 'connected', nodeId: NODE_ID },
+            paired: [pairedRecord()],
+          },
+          { type: 'CONNECT_STARTED', at: 0 },
+          {
+            type: 'CONNECT_FINISHED',
+            at: 9,
+            failure: { code: 'NODE_UNAVAILABLE' },
+          },
+        ],
+        ready,
+      ),
+    );
+    expect(stale.link.failure).toEqual({ code: 'NODE_UNAVAILABLE' });
+    expect(stale.link.mark).toBeDefined();
+  });
+
+  it('keeps a failed forget, which no contact resolves', () => {
+    const kept = run(
+      [
+        { type: 'FORGET_STARTED', at: 20 },
+        {
+          type: 'FORGET_FINISHED',
+          nodeId: NODE_ID,
+          failure: { code: 'CREDENTIAL_UNAVAILABLE' },
+        },
+        { type: 'STATUS', status: { state: 'reconnecting', nodeId: NODE_ID } },
+        { type: 'STATUS', status: { state: 'connected', nodeId: NODE_ID } },
+      ],
+      failedConnect,
+    );
+    expect(kept.link.failure).toEqual({ code: 'CREDENTIAL_UNAVAILABLE' });
+  });
+});
+
 describe('capability request', () => {
   const running = run(
     [
@@ -464,5 +537,128 @@ describe('capability request', () => {
         running,
       ).request.phase,
     ).toBe('cancelled');
+  });
+});
+
+describe('link failure marks (AJ3-REV-001/003)', () => {
+  const connected = run(
+    [
+      {
+        type: 'SNAPSHOT',
+        status: { state: 'connected', nodeId: NODE_ID },
+        paired: [pairedRecord()],
+      },
+      {
+        type: 'REQUEST_STARTED',
+        requestId: 'r1',
+        execution: 'node',
+        at: 1_000,
+      },
+    ],
+    ready,
+  );
+  const failed = (code: string) =>
+    run(
+      [
+        {
+          type: 'REQUEST_UPDATE',
+          requestId: 'r1',
+          at: 1_100,
+          update: { type: 'failed', failure: { code } },
+        },
+      ],
+      connected,
+    );
+
+  it('marks the active node when a request fails on the link', () => {
+    expect(failed('NODE_TRUST_REVOKED').link.mark).toEqual({
+      nodeId: NODE_ID,
+      code: 'NODE_TRUST_REVOKED',
+      sawDisconnect: false, // the SDK still says "connected" (stale)
+    });
+    // A request-level failure says nothing about the link.
+    expect(failed('INVALID_INPUT').link.mark).toBeUndefined();
+  });
+
+  it('clears only on authenticated contact or recovery', () => {
+    const marked = failed('NODE_UNAVAILABLE');
+    const restarted = (target: 'node' | 'local') =>
+      run(
+        [
+          {
+            type: 'REQUEST_STARTED',
+            requestId: 'r2',
+            execution: 'auto',
+            at: 2_000,
+          },
+          {
+            type: 'REQUEST_UPDATE',
+            requestId: 'r2',
+            at: 2_100,
+            update: {
+              type: 'completed',
+              target,
+              routingReason: 'policy',
+              output: { summary: 's', topics: [] },
+            },
+          },
+        ],
+        marked,
+      );
+    expect(restarted('local').link.mark).toBeDefined();
+    expect(restarted('node').link.mark).toBeUndefined();
+    const reconnected = run(
+      [
+        { type: 'CONNECT_STARTED', at: 3_000 },
+        { type: 'CONNECT_FINISHED', at: 3_100 },
+      ],
+      marked,
+    );
+    expect(reconnected.link.mark).toBeUndefined();
+    const forgotten = run(
+      [
+        { type: 'FORGET_STARTED', at: 3_000 },
+        { type: 'FORGET_FINISHED', nodeId: NODE_ID, confirmed: true },
+      ],
+      marked,
+    );
+    expect(forgotten.link.mark).toBeUndefined();
+  });
+
+  it('remembers exactly which node the SDK reports as revoked', () => {
+    const revoked = run(
+      [
+        {
+          type: 'SNAPSHOT',
+          status: { state: 'revoked', nodeId: NODE_ID },
+          paired: [pairedRecord({ active: false, state: 'revoked' })],
+        },
+      ],
+      ready,
+    );
+    expect(revoked.link.mark).toMatchObject({
+      nodeId: NODE_ID,
+      code: 'NODE_TRUST_REVOKED',
+    });
+  });
+
+  it('ignores a stale "connected" but clears on a fresh reconnect by the SDK', () => {
+    const snapshot = (
+      state: 'connected' | 'unavailable',
+    ): PrivateNodeAction => ({
+      type: 'SNAPSHOT',
+      status: { state, nodeId: NODE_ID },
+      paired: [pairedRecord()],
+    });
+    const marked = failed('NODE_UNAVAILABLE');
+    // Polling keeps reading the stale status: the failure stays shown.
+    expect(run([snapshot('connected')], marked).link.mark).toBeDefined();
+    // The reconciling connect failed, then the network came back and the
+    // SDK reconnected by itself (no Reconnect tap).
+    const recovered = run(
+      [snapshot('unavailable'), snapshot('connected')],
+      marked,
+    );
+    expect(recovered.link.mark).toBeUndefined();
   });
 });

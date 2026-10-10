@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
 } from 'react';
 import { AppState } from 'react-native';
 
@@ -15,12 +16,11 @@ import {
   type AppLockState,
 } from '../domain/AppLockState';
 import { validateScaffoldPin } from '../domain/pinPolicy';
-import type { BiometricAuthenticator } from '../ports/BiometricAuthenticator';
-import type { LockCredentialStore } from '../ports/LockCredentialStore';
+import type { VaultService } from '../ports/VaultService';
 
 export interface AppLockServices {
-  credentials: LockCredentialStore;
-  biometrics: BiometricAuthenticator;
+  vault: VaultService;
+  now?: () => number;
 }
 
 interface AppLockContextValue {
@@ -28,41 +28,72 @@ interface AppLockContextValue {
   configure(pin: string, confirmation: string): Promise<boolean>;
   unlockWithPin(pin: string): Promise<boolean>;
   unlockWithBiometrics(): Promise<boolean>;
+  setBiometricEnabled(enabled: boolean): Promise<boolean>;
+  /** Forgotten PIN (ADR-017): irreversible; needs the typed word ERASE. */
+  eraseJournal(confirmation: string): Promise<boolean>;
   lock(): void;
+  /**
+   * Call just before opening the app's own system UI (permission dialog,
+   * document picker). Until the app is active again, leaving the foreground
+   * does not lock, for at most [SYSTEM_UI_GRACE_MS] from now. Returns a
+   * release to call when that UI has closed.
+   */
+  expectSystemUi(): () => void;
 }
+
+/**
+ * The longest the app's own system UI may keep it in the background without
+ * locking (ADR-017, owner decision 2026-10-10). Any other background locks at once.
+ */
+export const SYSTEM_UI_GRACE_MS = 120_000;
 
 const AppLockContext = createContext<AppLockContextValue | undefined>(
   undefined,
 );
+
+/** Coarse wait text ("30 s", "2 min", "1 h") for the attempt policy. */
+export function waitText(retryAt: number, now: number): string {
+  const seconds = Math.max(1, Math.ceil((retryAt - now) / 1000));
+  if (seconds < 90) {
+    return `${seconds} s`;
+  }
+  const minutes = Math.ceil(seconds / 60);
+  return minutes < 90 ? `${minutes} min` : `${Math.ceil(minutes / 60)} h`;
+}
 
 export function AppLockProvider({
   children,
   services,
 }: PropsWithChildren<{ services: AppLockServices }>) {
   const [state, dispatch] = useReducer(appLockReducer, initialAppLockState);
+  const { vault } = services;
+  const now = services.now ?? Date.now;
 
   useEffect(() => {
     let live = true;
-    Promise.all([
-      services.credentials.status(),
-      services.biometrics.availability(),
-    ])
-      .then(([credentialStatus, biometric]) => {
+    vault
+      .status()
+      .then(status => {
         if (!live) {
           return;
         }
-        if (credentialStatus === 'unavailable') {
+        if (status.state === 'unavailable') {
           dispatch({
             type: 'FAIL_CLOSED',
             message: 'Secure lock storage is unavailable.',
           });
           return;
         }
+        const biometric =
+          status.state === 'unconfigured' ? 'not_available' : status.biometric;
         dispatch({
           type: 'BOOTSTRAPPED',
-          configured: credentialStatus === 'configured',
-          biometricAvailable: biometric.available,
-          biometricEnabled: biometric.enabled,
+          configured: status.state !== 'unconfigured',
+          biometricAvailable: biometric !== 'not_available',
+          biometricEnabled: biometric === 'on',
+          retryAt: status.state === 'locked' ? status.retryAt : undefined,
+          notice:
+            biometric === 'invalidated' ? 'biometric_invalidated' : undefined,
         });
       })
       .catch(() => {
@@ -76,16 +107,86 @@ export function AppLockProvider({
     return () => {
       live = false;
     };
-  }, [services]);
+  }, [vault]);
+
+  const lock = useCallback(() => {
+    dispatch({ type: 'LOCK' });
+    // Zeroes the master key and closes the journal database natively.
+    vault.lock().catch(() => undefined);
+  }, [vault]);
+
+  // A registered expectation of the app's own system UI, and whether the app
+  // is currently away from the foreground.
+  const grace = useRef<{
+    until: number;
+    timer?: ReturnType<typeof setTimeout>;
+  } | null>(null);
+  const away = useRef(false);
+
+  const endGrace = useCallback(() => {
+    if (grace.current?.timer) {
+      clearTimeout(grace.current.timer);
+    }
+    grace.current = null;
+  }, []);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', nextState => {
-      if (nextState !== 'active') {
-        dispatch({ type: 'LOCK' });
+      if (nextState === 'active') {
+        away.current = false;
+        endGrace();
+        return;
       }
+      away.current = true;
+      const current = grace.current;
+      const remaining = current ? current.until - now() : 0;
+      if (current && remaining > 0) {
+        // The app's own dialog or picker: lock only if it outlasts the grace.
+        current.timer ??= setTimeout(() => {
+          endGrace();
+          lock();
+        }, remaining);
+        return;
+      }
+      endGrace();
+      lock();
     });
-    return () => subscription.remove();
-  }, []);
+    return () => {
+      subscription.remove();
+      endGrace();
+    };
+  }, [endGrace, lock, now]);
+
+  const expectSystemUi = useCallback(() => {
+    endGrace();
+    const token = { until: now() + SYSTEM_UI_GRACE_MS };
+    grace.current = token;
+    return () => {
+      if (grace.current !== token) {
+        return;
+      }
+      endGrace();
+      if (away.current) {
+        lock();
+      }
+    };
+  }, [endGrace, lock, now]);
+
+  const refreshBiometric = useCallback(async () => {
+    try {
+      const status = await vault.status();
+      if (status.state === 'unlocked') {
+        dispatch({
+          type: 'BIOMETRIC_REFRESHED',
+          available: status.biometric !== 'not_available',
+          enabled: status.biometric === 'on',
+          invalidated: status.biometric === 'invalidated',
+        });
+      }
+    } catch {
+      // Keep what is shown; the PIN path is unaffected.
+    }
+  }, [vault]);
 
   const configure = useCallback(
     async (pin: string, confirmation: string) => {
@@ -102,8 +203,9 @@ export function AppLockProvider({
         return false;
       }
       try {
-        await services.credentials.enroll(pin);
+        await vault.setupPin(pin);
         dispatch({ type: 'UNLOCKED' });
+        await refreshBiometric();
         return true;
       } catch {
         dispatch({
@@ -113,20 +215,48 @@ export function AppLockProvider({
         return false;
       }
     },
-    [services],
+    [refreshBiometric, vault],
   );
 
   const unlockWithPin = useCallback(
     async (pin: string) => {
       dispatch({ type: 'BEGIN_UNLOCK' });
       try {
-        const verified = await services.credentials.verify(pin);
-        dispatch(
-          verified
-            ? { type: 'UNLOCKED' }
-            : { type: 'AUTH_FAILED', message: 'That PIN is not correct.' },
-        );
-        return verified;
+        const outcome = await vault.unlockWithPin(pin);
+        switch (outcome.result) {
+          case 'unlocked':
+            dispatch({ type: 'UNLOCKED' });
+            await refreshBiometric();
+            return true;
+          case 'wrong_pin':
+            dispatch({
+              type: 'AUTH_FAILED',
+              message: outcome.retryAt
+                ? `That PIN is not correct. Try again in ${waitText(
+                    outcome.retryAt,
+                    now(),
+                  )}.`
+                : 'That PIN is not correct.',
+              retryAt: outcome.retryAt,
+            });
+            return false;
+          case 'refused':
+            dispatch({
+              type: 'AUTH_FAILED',
+              message: `Too many incorrect PINs. Try again in ${waitText(
+                outcome.retryAt,
+                now(),
+              )}.`,
+              retryAt: outcome.retryAt,
+            });
+            return false;
+          case 'unavailable':
+            dispatch({
+              type: 'FAIL_CLOSED',
+              message: 'Secure lock storage is unavailable.',
+            });
+            return false;
+        }
       } catch {
         dispatch({
           type: 'FAIL_CLOSED',
@@ -135,24 +265,29 @@ export function AppLockProvider({
         return false;
       }
     },
-    [services],
+    [now, refreshBiometric, vault],
   );
 
   const unlockWithBiometrics = useCallback(async () => {
     dispatch({ type: 'BEGIN_UNLOCK' });
     try {
-      const result = await services.biometrics.authenticate();
-      if (result === 'success') {
+      const outcome = await vault.unlockWithBiometric();
+      if (outcome.result === 'unlocked') {
         dispatch({ type: 'UNLOCKED' });
+        await refreshBiometric();
         return true;
       }
-      dispatch({
-        type: 'AUTH_FAILED',
-        message:
-          result === 'cancelled'
-            ? 'Biometric unlock was cancelled. Use your PIN.'
-            : 'Biometric unlock is unavailable. Use your PIN.',
-      });
+      if (outcome.result === 'invalidated') {
+        dispatch({ type: 'BIOMETRIC_INVALIDATED' });
+      }
+      const messages = {
+        cancelled: 'Biometric unlock was cancelled. Use your PIN.',
+        invalidated:
+          'Your device biometrics changed, so biometric unlock was turned off. Use your PIN.',
+        failed: 'Biometric unlock failed. Use your PIN.',
+        not_available: 'Biometric unlock is unavailable. Use your PIN.',
+      };
+      dispatch({ type: 'AUTH_FAILED', message: messages[outcome.result] });
       return false;
     } catch {
       dispatch({
@@ -161,12 +296,69 @@ export function AppLockProvider({
       });
       return false;
     }
-  }, [services]);
+  }, [refreshBiometric, vault]);
 
-  const lock = useCallback(() => dispatch({ type: 'LOCK' }), []);
+  const setBiometricEnabled = useCallback(
+    async (enabled: boolean) => {
+      try {
+        if (enabled) {
+          const outcome = await vault.enableBiometric();
+          if (outcome.result !== 'unlocked') {
+            return false;
+          }
+        } else {
+          await vault.disableBiometric();
+        }
+        dispatch({ type: 'BIOMETRIC_CHANGED', enabled });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [vault],
+  );
+
+  const eraseJournal = useCallback(
+    async (confirmation: string) => {
+      if (confirmation !== 'ERASE') {
+        return false;
+      }
+      try {
+        await vault.erase('ERASE');
+        dispatch({ type: 'ERASED' });
+        return true;
+      } catch {
+        dispatch({
+          type: 'FAIL_CLOSED',
+          message: 'The journal could not be erased. Nothing was unlocked.',
+        });
+        return false;
+      }
+    },
+    [vault],
+  );
+
   const value = useMemo(
-    () => ({ state, configure, unlockWithPin, unlockWithBiometrics, lock }),
-    [configure, lock, state, unlockWithBiometrics, unlockWithPin],
+    () => ({
+      state,
+      configure,
+      unlockWithPin,
+      unlockWithBiometrics,
+      setBiometricEnabled,
+      eraseJournal,
+      lock,
+      expectSystemUi,
+    }),
+    [
+      configure,
+      eraseJournal,
+      expectSystemUi,
+      lock,
+      setBiometricEnabled,
+      state,
+      unlockWithBiometrics,
+      unlockWithPin,
+    ],
   );
 
   return (

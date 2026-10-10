@@ -25,6 +25,34 @@ describe('app lock state machine', () => {
     ]);
   });
 
+  it('re-reads biometric availability only while unlocked', () => {
+    const refreshed = {
+      type: 'BIOMETRIC_REFRESHED',
+      available: true,
+      enabled: false,
+      invalidated: false,
+    } as const;
+    const setup = appLockReducer(
+      { ...initialAppLockState, phase: 'unconfigured' },
+      { type: 'UNLOCKED' },
+    );
+    expect(appLockReducer(setup, refreshed).biometricAvailable).toBe(true);
+    const locked = { ...initialAppLockState, phase: 'locked' as const };
+    expect(appLockReducer(locked, refreshed)).toBe(locked);
+    const invalidated = appLockReducer(
+      { ...setup, biometricEnabled: true },
+      { ...refreshed, invalidated: true },
+    );
+    expect(invalidated).toMatchObject({
+      biometricEnabled: false,
+      notice: 'biometric_invalidated',
+    });
+    // A later "off" keeps the notice until the user acts on it.
+    expect(appLockReducer(invalidated, refreshed).notice).toBe(
+      'biometric_invalidated',
+    );
+  });
+
   it('returns to the locked shell after an authentication failure', () => {
     const failed = appLockReducer(
       { ...initialAppLockState, phase: 'unlocking' },
