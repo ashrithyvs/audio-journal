@@ -1,4 +1,5 @@
 import type { AppServices } from '../src/app/AppServices';
+import type { PrivateNodeOptions } from '../src/features/private-node/application/PrivateNodeContext';
 import { FakeHybridAiGateway } from './FakeHybridAiGateway';
 import { FakeVaultService, type FakeBiometric } from './FakeVaultService';
 import { FakeRecordingService } from './journal/FakeRecordingService';
@@ -9,11 +10,13 @@ export function makeTestServices({
   biometricResult = 'unavailable',
   hybridAI = new FakeHybridAiGateway(),
   vault = new FakeVaultService(configuredPin, biometricResult),
+  privateNode,
 }: {
   configuredPin?: string;
   biometricResult?: FakeBiometric;
   hybridAI?: FakeHybridAiGateway;
   vault?: FakeVaultService;
+  privateNode?: PrivateNodeOptions;
 } = {}): AppServices {
   // One in-memory journal per test app: it survives lock and unlock, as the
   // encrypted database does on a device. Closing on lock is a no-op here.
@@ -22,7 +25,7 @@ export function makeTestServices({
   return {
     appLock: { vault },
     hybridAI,
-    privateNode: { pollIntervalMs: 0 },
+    privateNode: { pollIntervalMs: 0, ...privateNode },
     openJournal: async () => {
       journal ??= openJournal();
       const context = await journal;

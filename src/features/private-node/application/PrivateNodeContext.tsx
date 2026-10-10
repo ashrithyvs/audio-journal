@@ -50,6 +50,8 @@ const DEVICE_NAME = `Audio Journal (${
 export interface PrivateNodeOptions {
   /** Status refresh period while unlocked; 0 disables polling. */
   pollIntervalMs?: number;
+  /** Minimum spacing of reconciling connects; tests shorten it. */
+  reconcileDebounceMs?: number;
   now?: () => number;
 }
 
@@ -111,6 +113,7 @@ export function PrivateNodeProvider({
   );
   const now = options?.now ?? defaultNow;
   const pollIntervalMs = options?.pollIntervalMs ?? 2_000;
+  const debounceMs = options?.reconcileDebounceMs ?? RECONCILE_DEBOUNCE_MS;
   const unlocked = lock.phase === 'unlocked';
 
   const latest = useRef(state);
@@ -198,6 +201,18 @@ export function PrivateNodeProvider({
     }
   }, [gateway, now, reconnectIfPaired]);
 
+  // A pending catch-up connect after a node result (see scheduleCatchUp).
+  const catchUpWanted = useRef(false);
+  const catchUpTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const cancelCatchUp = useCallback(() => {
+    catchUpWanted.current = false;
+    if (catchUpTimer.current !== undefined) {
+      clearTimeout(catchUpTimer.current);
+      catchUpTimer.current = undefined;
+    }
+  }, []);
   // AJ-FR-035: start the SDK only after the journal is unlocked.
   const wasUnlocked = useRef(false);
   useEffect(() => {
@@ -219,9 +234,10 @@ export function PrivateNodeProvider({
       if (requestId.current) {
         gateway.cancel(requestId.current);
       }
+      cancelCatchUp();
       dispatch({ type: 'LOCKED' });
     }
-  }, [gateway, initialize, reconnectIfPaired, unlocked]);
+  }, [cancelCatchUp, gateway, initialize, reconnectIfPaired, unlocked]);
 
   const sdkReady = state.sdk.phase === 'ready';
   useEffect(() => {
@@ -415,15 +431,40 @@ export function PrivateNodeProvider({
   const lastReconcileAt = useRef(Number.NEGATIVE_INFINITY);
   const reconcileLink = useCallback(async () => {
     const at = now();
-    if (
-      linkBusy.current ||
-      at - lastReconcileAt.current < RECONCILE_DEBOUNCE_MS
-    ) {
+    if (linkBusy.current || at - lastReconcileAt.current < debounceMs) {
       return;
     }
     lastReconcileAt.current = at;
     await connect();
-  }, [connect, now]);
+  }, [connect, debounceMs, now]);
+
+  // After a node result, the SDK may still report its last connect result
+  // (SDK-AJ-2). One connection attempt lets it catch up. It is coalesced, and
+  // it waits out the debounce rather than being dropped by it; a connect
+  // already in flight, or a newer link failure, makes it unnecessary.
+  const scheduleCatchUp = useCallback(() => {
+    catchUpWanted.current = true;
+    if (catchUpTimer.current !== undefined) {
+      return;
+    }
+    const wait = Math.max(0, lastReconcileAt.current + debounceMs - now());
+    catchUpTimer.current = setTimeout(() => {
+      catchUpTimer.current = undefined;
+      if (!catchUpWanted.current || !live.current) {
+        return;
+      }
+      catchUpWanted.current = false;
+      if (
+        linkBusy.current ||
+        latest.current.link.status.state === 'connected'
+      ) {
+        return;
+      }
+      lastReconcileAt.current = now();
+      connect();
+    }, wait);
+  }, [connect, debounceMs, now]);
+  useEffect(() => cancelCatchUp, [cancelCatchUp]);
 
   const runRequest = useCallback(
     async ({ text, execution, timeoutMs }: RunRequestInput) => {
@@ -440,6 +481,7 @@ export function PrivateNodeProvider({
         at: now(),
       });
       let linkFailed = false;
+      let nodeResult = false;
       await gateway.run(
         {
           capability: ANALYZE_CAPABILITY.id,
@@ -459,6 +501,10 @@ export function PrivateNodeProvider({
           ) {
             linkFailed = true;
           }
+          // Only a node completion is contact; a local one says nothing.
+          if (update.type === 'completed' && update.target === 'node') {
+            nodeResult = true;
+          }
           dispatch({
             type: 'REQUEST_UPDATE',
             requestId: id,
@@ -475,10 +521,14 @@ export function PrivateNodeProvider({
         requestId.current = undefined;
       }
       if (linkFailed && live.current) {
+        cancelCatchUp();
         await reconcileLink();
+      } else if (nodeResult && live.current) {
+        // The request itself is never retried.
+        scheduleCatchUp();
       }
     },
-    [gateway, now, reconcileLink],
+    [cancelCatchUp, gateway, now, reconcileLink, scheduleCatchUp],
   );
 
   const cancelRequest = useCallback(() => {

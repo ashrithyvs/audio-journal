@@ -31,6 +31,19 @@ export interface LinkFailureMark {
   sawDisconnect?: boolean;
 }
 
+/**
+ * Authenticated contact with a node: a request it completed. The SDK keeps
+ * its last connect result after requests succeed (SDK-AJ-2), so its status
+ * may still say the node is unavailable. The node is shown Connected until
+ * the SDK reports anything other than that stale status, or a newer failure
+ * marks the node (UX §7.1).
+ */
+export interface LinkContact {
+  nodeId: string;
+  /** The SDK status at contact time; any other status supersedes the contact. */
+  staleState: NodeConnectionState;
+}
+
 /** Failure codes that describe the node link rather than one request. */
 export const NODE_LINK_CODES: ReadonlySet<string> = new Set([
   'NODE_UNAVAILABLE',
@@ -97,11 +110,19 @@ export function focusStatus(
   return untrusted.length === 1 ? { node: untrusted[0], ...base } : base;
 }
 
+const CONNECTED: ConnectionPresentation = {
+  label: 'Connected',
+  detail: 'Verified with the key you paired with.',
+  tone: 'good',
+  canReconnect: false,
+};
+
 export function presentConnection(
   state: NodeConnectionState,
   focus: StatusFocus,
   connecting: boolean,
   mark?: LinkFailureMark,
+  contact?: LinkContact,
 ): ConnectionPresentation {
   const { node } = focus;
   if (!node) {
@@ -153,6 +174,11 @@ export function presentConnection(
       repairNodeId: node.nodeId,
     };
   }
+  // A node result is authenticated contact; a background catch-up connect
+  // does not turn it back into "Connecting securely…".
+  if (contact?.nodeId === node.nodeId && mark?.nodeId !== node.nodeId) {
+    return CONNECTED;
+  }
   if (connecting || state === 'connecting') {
     return {
       label: 'Connecting securely…',
@@ -171,12 +197,7 @@ export function presentConnection(
   }
   switch (state) {
     case 'connected':
-      return {
-        label: 'Connected',
-        detail: 'Verified with the key you paired with.',
-        tone: 'good',
-        canReconnect: false,
-      };
+      return CONNECTED;
     case 'reconnecting':
       return {
         label: 'Reconnecting…',

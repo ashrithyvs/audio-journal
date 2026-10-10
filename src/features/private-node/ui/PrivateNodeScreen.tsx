@@ -60,6 +60,7 @@ export function PrivateNodeScreen({ onPair }: { onPair(): void }) {
     focus,
     link.operation === 'connecting',
     link.mark,
+    link.contact,
   );
   // Trust failed: the one recovery is to forget that exact node and pair again
   // (UX §7.1, AJ3-REV-001). Several failed nodes each get their own action.

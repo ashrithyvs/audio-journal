@@ -2,6 +2,7 @@ import React from 'react';
 import { act, fireEvent, render } from '@testing-library/react-native';
 
 import { AppRoot } from '../src/app/AppRoot';
+import type { PrivateNodeOptions } from '../src/features/private-node/application/PrivateNodeContext';
 import { FakeHybridAiGateway } from './FakeHybridAiGateway';
 import { makeTestServices } from './makeTestServices';
 
@@ -16,10 +17,17 @@ export function tab(view: View, name: string) {
 }
 
 /** Renders the app with a configured PIN and unlocks it. */
-export async function renderUnlocked(gateway = new FakeHybridAiGateway()) {
+export async function renderUnlocked(
+  gateway = new FakeHybridAiGateway(),
+  privateNode?: PrivateNodeOptions,
+) {
   const view = await render(
     <AppRoot
-      services={makeTestServices({ configuredPin: PIN, hybridAI: gateway })}
+      services={makeTestServices({
+        configuredPin: PIN,
+        hybridAI: gateway,
+        privateNode,
+      })}
     />,
   );
   await fireEvent.changeText(await view.findByTestId('unlock-pin'), PIN);

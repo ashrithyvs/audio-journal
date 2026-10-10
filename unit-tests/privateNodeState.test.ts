@@ -4,6 +4,7 @@ import {
   type PrivateNodeAction,
   type PrivateNodeState,
 } from '../src/features/private-node/domain/privateNodeState';
+import { presentConnection } from '../src/features/private-node/domain/connectionPresentation';
 import { NODE_ID, pairedRecord } from '../test/FakeHybridAiGateway';
 
 const run = (actions: PrivateNodeAction[], from = initialPrivateNodeState) =>
@@ -419,6 +420,178 @@ describe('link failure after recovery (AJ-3 report F3)', () => {
       failedConnect,
     );
     expect(kept.link.failure).toEqual({ code: 'CREDENTIAL_UNAVAILABLE' });
+  });
+});
+
+describe('a node result is authenticated contact (UX §7.1)', () => {
+  const OTHER = 'ffeeddccbbaa99887766554433221100';
+  // The node was down: a request failed, and the reconciling connect failed.
+  const down = run(
+    [
+      {
+        type: 'SNAPSHOT',
+        status: { state: 'connected', nodeId: NODE_ID },
+        paired: [pairedRecord()],
+      },
+      { type: 'REQUEST_STARTED', requestId: 'r1', execution: 'node', at: 0 },
+      {
+        type: 'REQUEST_UPDATE',
+        requestId: 'r1',
+        at: 5,
+        update: { type: 'failed', failure: { code: 'NODE_UNAVAILABLE' } },
+      },
+      { type: 'CONNECT_STARTED', at: 10 },
+      {
+        type: 'CONNECT_FINISHED',
+        at: 20,
+        failure: { code: 'NODE_UNAVAILABLE' },
+      },
+      { type: 'STATUS', status: { state: 'unavailable', nodeId: NODE_ID } },
+    ],
+    ready,
+  );
+  const result = (target: 'node' | 'local', from = down) =>
+    run(
+      [
+        { type: 'REQUEST_STARTED', requestId: 'r2', execution: 'auto', at: 30 },
+        {
+          type: 'REQUEST_UPDATE',
+          requestId: 'r2',
+          at: 40,
+          update: {
+            type: 'completed',
+            output: {},
+            target,
+            routingReason: 'policy',
+          },
+        },
+      ],
+      from,
+    );
+  const shown = (state: PrivateNodeState) =>
+    presentConnection(
+      state.link.status.state,
+      {
+        node: state.paired.find(node => node.active),
+        untrusted: [],
+        pairedCount: state.paired.length,
+      },
+      state.link.operation === 'connecting',
+      state.link.mark,
+      state.link.contact,
+    ).label;
+
+  it('turns Unavailable into Connected at once, though the SDK lags', () => {
+    expect(shown(down)).toBe('Unavailable');
+    const back = result('node');
+    expect(back.link.status.state).toBe('unavailable');
+    expect(back.link.contact).toEqual({
+      nodeId: NODE_ID,
+      staleState: 'unavailable',
+    });
+    expect(shown(back)).toBe('Connected');
+  });
+
+  it('removes the stale failure notice with the matching mark', () => {
+    expect(down.link.failure).toEqual({ code: 'NODE_UNAVAILABLE' });
+    const back = result('node');
+    expect(back.link.mark).toBeUndefined();
+    expect(back.link.failure).toBeUndefined();
+  });
+
+  it('leaves the node state unchanged after a local completion', () => {
+    expect(result('local').link).toEqual(down.link);
+  });
+
+  it('updates only the active node when several are paired', () => {
+    const two = run(
+      [
+        {
+          type: 'SNAPSHOT',
+          status: { state: 'unavailable', nodeId: NODE_ID },
+          paired: [
+            pairedRecord(),
+            pairedRecord({ nodeId: OTHER, nodeName: 'Laptop', active: false }),
+          ],
+        },
+      ],
+      {
+        ...down,
+        link: {
+          ...down.link,
+          mark: {
+            nodeId: OTHER,
+            code: 'NODE_UNAVAILABLE',
+            sawDisconnect: true,
+          },
+        },
+      },
+    );
+    const back = result('node', two);
+    expect(back.link.contact?.nodeId).toBe(NODE_ID);
+    expect(back.link.mark).toEqual({
+      nodeId: OTHER,
+      code: 'NODE_UNAVAILABLE',
+      sawDisconnect: true,
+    });
+  });
+
+  it('stands until the SDK reports something new, or the node fails again', () => {
+    const back = result('node');
+    const same = run(
+      [{ type: 'STATUS', status: { state: 'unavailable', nodeId: NODE_ID } }],
+      back,
+    );
+    expect(shown(same)).toBe('Connected');
+    const caughtUp = run(
+      [{ type: 'STATUS', status: { state: 'connected', nodeId: NODE_ID } }],
+      back,
+    );
+    expect(caughtUp.link.contact).toBeUndefined();
+    expect(shown(caughtUp)).toBe('Connected');
+    const dropped = run(
+      [{ type: 'STATUS', status: { state: 'reconnecting', nodeId: NODE_ID } }],
+      back,
+    );
+    expect(shown(dropped)).toBe('Reconnecting…');
+    const failedAgain = run(
+      [
+        { type: 'REQUEST_STARTED', requestId: 'r3', execution: 'node', at: 50 },
+        {
+          type: 'REQUEST_UPDATE',
+          requestId: 'r3',
+          at: 60,
+          update: { type: 'failed', failure: { code: 'NODE_UNAVAILABLE' } },
+        },
+      ],
+      back,
+    );
+    expect(failedAgain.link.contact).toBeUndefined();
+    expect(shown(failedAgain)).toBe('Unavailable');
+  });
+
+  it('shows a failed catch-up connect as the newer failure', () => {
+    const caughtUpFailed = run(
+      [
+        { type: 'CONNECT_STARTED', at: 50 },
+        {
+          type: 'CONNECT_FINISHED',
+          at: 60,
+          failure: { code: 'NODE_UNAVAILABLE' },
+        },
+      ],
+      result('node'),
+    );
+    expect(shown(caughtUpFailed)).toBe('Unavailable');
+    expect(caughtUpFailed.link.failure).toEqual({ code: 'NODE_UNAVAILABLE' });
+  });
+
+  it('stays Connected, not "Connecting securely…", during the catch-up', () => {
+    const catchingUp = run(
+      [{ type: 'CONNECT_STARTED', at: 50 }],
+      result('node'),
+    );
+    expect(shown(catchingUp)).toBe('Connected');
   });
 });
 

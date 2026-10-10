@@ -33,6 +33,7 @@ export function SettingsScreen({
     focus,
     state.link.operation === 'connecting',
     state.link.mark,
+    state.link.contact,
   );
 
   // Scrolls: with biometric unlock offered, or a larger font size, the cards

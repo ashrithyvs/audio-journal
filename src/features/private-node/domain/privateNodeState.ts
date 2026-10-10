@@ -15,6 +15,7 @@ import type {
 import type { AnalysisCheck } from './analysisResult';
 import {
   NODE_LINK_CODES,
+  type LinkContact,
   type LinkFailureMark,
 } from './connectionPresentation';
 
@@ -63,6 +64,40 @@ export interface LinkState {
    * (AJ3-REV-001/003); cleared by authenticated contact or recovery.
    */
   mark?: LinkFailureMark;
+  /**
+   * A node result seen while the SDK still reports an older, non-connected
+   * status (SDK-AJ-2); the node is shown Connected (UX §7.1).
+   */
+  contact?: LinkContact;
+}
+
+/** The node a link event concerns: the active one, else the status's. */
+function linkNodeId(state: PrivateNodeState): string | undefined {
+  return (
+    state.paired.find(node => node.active)?.nodeId ?? state.link.status.nodeId
+  );
+}
+
+/** A newer failure mark supersedes contact with the same node. */
+function contactAfterMark(
+  contact: LinkContact | undefined,
+  mark: LinkFailureMark | undefined,
+): LinkContact | undefined {
+  return contact && mark?.nodeId === contact.nodeId ? undefined : contact;
+}
+
+/**
+ * Contact stands only while the SDK repeats the stale status it had at the
+ * time; "connected" means the SDK caught up, and anything else is news.
+ */
+function contactAfterStatus(
+  contact: LinkContact | undefined,
+  status: NodeLinkStatus,
+): LinkContact | undefined {
+  if (!contact || (status.nodeId && status.nodeId !== contact.nodeId)) {
+    return contact;
+  }
+  return status.state === contact.staleState ? contact : undefined;
 }
 
 /** The node a link failure concerns: the active one, else the status's. */
@@ -73,8 +108,7 @@ function markFor(
   if (!failure || !NODE_LINK_CODES.has(failure.code)) {
     return undefined;
   }
-  const nodeId =
-    state.paired.find(node => node.active)?.nodeId ?? state.link.status.nodeId;
+  const nodeId = linkNodeId(state);
   return nodeId
     ? {
         nodeId,
@@ -123,7 +157,33 @@ function followLink(
   status: NodeLinkStatus,
   mark: LinkFailureMark | undefined,
 ): LinkState {
-  return { ...link, status, mark, failure: failureAfter(link, mark) };
+  return {
+    ...link,
+    status,
+    mark,
+    failure: failureAfter(link, mark),
+    contact: contactAfterMark(contactAfterStatus(link.contact, status), mark),
+  };
+}
+
+/**
+ * A node result is authenticated contact with the active node: it clears
+ * that node's failure mark and the failed connect behind it, and stands in
+ * for the SDK status until the SDK catches up. Marks for other nodes stay.
+ */
+function afterNodeResult(state: PrivateNodeState): LinkState {
+  const { link } = state;
+  const nodeId = linkNodeId(state);
+  const mark = link.mark && link.mark.nodeId !== nodeId ? link.mark : undefined;
+  return {
+    ...link,
+    mark,
+    failure: failureAfter(link, mark),
+    contact:
+      nodeId && link.status.state !== 'connected'
+        ? { nodeId, staleState: link.status.state }
+        : undefined,
+  };
 }
 
 interface RequestBase {
@@ -388,14 +448,7 @@ function reduceRequest(
       return {
         ...state,
         // Only a node completion is authenticated contact with the node.
-        link:
-          update.target === 'node'
-            ? {
-                ...state.link,
-                mark: undefined,
-                failure: failureAfter(state.link, undefined),
-              }
-            : state.link,
+        link: update.target === 'node' ? afterNodeResult(state) : state.link,
         request: {
           phase: 'completed',
           ...base,
@@ -422,6 +475,10 @@ function reduceRequest(
         link: {
           ...state.link,
           mark: markFor(state, update.failure) ?? state.link.mark,
+          contact: contactAfterMark(
+            state.link.contact,
+            markFor(state, update.failure),
+          ),
         },
         timings,
       };
@@ -527,6 +584,10 @@ export function privateNodeReducer(
           mark: action.failure
             ? markFor(state, action.failure) ?? state.link.mark
             : undefined,
+          contact: contactAfterMark(
+            state.link.contact,
+            markFor(state, action.failure),
+          ),
         },
         timings: action.failure
           ? state.timings
