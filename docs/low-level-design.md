@@ -147,6 +147,82 @@ IDLE -> PREPARING -> RECORDING <-> PAUSED -> FINALIZING -> READY
 Exactly one terminal recording outcome is exposed. STT has a separate operation
 and cancellation token; cancelling it does not cancel recording.
 
+### 5.1 AJR1 recording container (ADR-017, amended 2026-10-10)
+
+The implementation is `android/app/.../recording/Ajr1.kt`. The vectors in
+`schemas/ajr1/v1/` come from the independent Node reference
+(`tools/ajb1-reference/lib/ajr1.mjs`), and a JVM test rebuilds every vector
+file byte for byte. Integers are big-endian.
+
+**Header (64 bytes).**
+
+| Offset | Size | Field | Value |
+|---:|---:|---|---|
+| 0 | 4 | magic | `AJR1` |
+| 4 | 2 | version | `1` |
+| 6 | 2 | header length | `64` |
+| 8 | 4 | sample rate | `16000` |
+| 12 | 1 | channels | `1` |
+| 13 | 1 | sample format | `1` = s16le |
+| 14 | 2 | reserved | `0` |
+| 16 | 16 | `fileSalt` | 16 fresh CSPRNG bytes per file |
+| 32 | 4 | `noncePrefix` | random |
+| 36 | 4 | maximum chunk bytes | `32000` (1 s) |
+| 40 | 24 | reserved | zero |
+
+Readers reject any other value.
+
+**Key.**
+
+```text
+K_file = HKDF-SHA256(ikm = HKDF(MK, "aj-rec-v1"), salt = fileSalt,
+                     info = u16(35) || "audio-journal/ajr1/recording-key/v1"
+                            || u16(30) || recordingId)
+```
+
+The key exists only while the recording is open. Closing the writer, or
+locking the vault, zeroes it.
+
+**Frame.** Each frame is `u64 index || u32 length || ciphertext || tag(16)`,
+where:
+
+- `nonce = noncePrefix || u64(index)`;
+- `aad = SHA-256(header) || u8(30) || recordingId || u64(index) ||
+  u32(length)`;
+- `length` is even and between 2 and 32 000.
+
+**Rules:**
+
+- Indices strictly increase from 0, and gaps are allowed. A reader stops at
+  the first duplicate or decrease (`INDEX_ORDER`), at an index above
+  `2^48 − 1` (`INDEX_OVERFLOW`), at an invalid length (`CHUNK_LENGTH`), at
+  a torn frame (`TORN`), or at an authentication failure (`AUTH_FAILED`).
+- Everything before the stop point is authenticated audio. Everything after
+  it is trailing bytes.
+- Each frame is written and then fsync'd. Only complete frames count.
+- **Resume after a crash.** The writer truncates the file to the
+  authenticated prefix and continues at:
+  - `last + 1` when there are no trailing bytes;
+  - otherwise `max(last + 2, tornIndex + 1)`, so an index a torn write may
+    have consumed is never reused.
+
+  The writer refuses to pass `2^48 − 1`.
+- **Recreating a file** always draws a new salt, and therefore a new key.
+- **Reads stream** from disk (`Ajr1.FileSource`), so a 60-minute recording
+  (about 115 MB) is never loaded into memory whole.
+
+**Tests:** `Ajr1Test` (JVM) covers:
+
+- identical nonce prefixes in different recordings;
+- one recording ID with different salts;
+- a wrong ID, salt, header, or index;
+- duplicate, decreasing, and reordered indices;
+- torn-tail index skipping;
+- file recreation;
+- the maximum index and overflow.
+
+`Ajr1VectorsTest` checks the Kotlin codec against the Node reference.
+
 ## 6. Transcript stream handling
 
 - Key updates by `(recordingId, segmentId)` and require monotonically increasing
@@ -263,14 +339,71 @@ UNCONFIGURED -> LOCKED -> UNLOCKING -> UNLOCKED
 - Biometric invalidation returns to PIN fallback.
 - Background snapshots are obscured immediately. The unlock session follows a
   configurable timeout; the initial target default is a short grace period.
-- Lockout/backoff and reset semantics are blocked on the security ADR.
+- Lockout/backoff, PIN change, and reset follow ADR-017.
 
-AJ-0 implements this state machine and lifecycle relock behind
-`LockCredentialStore` and `BiometricAuthenticator` ports. Its default
-`VolatileCredentialStore` retains only a non-cryptographic verifier for the
-current process and is explicitly test/scaffold code—not the implementation of
-the frozen production security properties. Android applies `FLAG_SECURE`; a JS
-privacy curtain covers inactive/background lifecycle states.
+AJ-0 implemented this state machine and lifecycle relock with a volatile
+verifier. Android applies `FLAG_SECURE`, and a JS privacy curtain covers
+inactive and background lifecycle states.
+
+### 8.1 AJ-1 implementation (ADR-017; not yet accepted)
+
+The AJ-0 `LockCredentialStore` and `BiometricAuthenticator` scaffolds, and
+the volatile verifier, are replaced by the `VaultService` port
+(`src/features/app-lock/ports/VaultService.ts`).
+
+**`AppLockProvider` over the vault:**
+
+- It maps the vault's outcomes to the lock reducer: `unlocked`,
+  `wrong_pin` with an optional `retryAt`, `refused` with `retryAt`,
+  `unavailable` (which fails closed), and biometric `invalidated`, which
+  turns biometrics off and shows PIN fallback.
+- Every lock, manual or lifecycle, also calls `vault.lock()`. That zeroes
+  MK and closes the database natively.
+
+**Native vault** (`android/.../vault/`):
+
+- `Vault` is pure Kotlin, with JVM tests behind small interfaces:
+  - `DeviceSealer`: in production, a non-exportable Keystore AES-256-GCM key.
+  - `PinKdf`: in production, Argon2id from the reference libargon2 20190702,
+    built by `android/vault-crypto` from its SHA-256-pinned archive.
+  - `BiometricKeys`: in production, a Keystore key requiring
+    `BIOMETRIC_STRONG` authentication per use, invalidated by enrollment
+    changes, and used through a `BiometricPrompt` `CryptoObject`.
+- **Vault file** (`no_backup/vault/vault.bin`): a device-sealed `AJV1`
+  record holding:
+  - the Argon2id identity, `m/t/p`, and salt;
+  - the PIN-wrapped MK, whose AAD binds the KDF identity and parameters;
+  - the failure counter and last-failure time;
+  - the optional biometric copy.
+- **File writes** are atomic: write a temporary file, fsync it, and rename.
+- **Clock rollback** restarts the lockout window from the current time.
+- **Parameter changes.** The provisional parameters (19 456 KiB, t = 2,
+  p = 1) are not frozen. A successful PIN unlock rewraps the PIN copy
+  whenever the parameters change.
+- **Biometric invalidation** is detected when the cipher is initialized,
+  including at status time. The biometric copy and its key are deleted, and
+  the PIN copy is never touched.
+
+**Journal store:**
+
+- `JournalDatabase` is SQLCipher, keyed natively with the raw
+  `HKDF(MK, "aj-db-v1")` key, in WAL mode with foreign keys on.
+- All operations, including close on lock, run on one thread, because
+  Android SQLite transactions are thread-bound.
+- JavaScript reaches it through `SerialSqlDatabase`, the same serializing
+  and transaction wrapper the tests use, over a JSON TurboModule driver.
+
+**Opening the journal.** `JournalGate` mounts only while the app is
+unlocked. It opens the database, runs migrations, reconciles recordings,
+and closes everything on lock. If opening or migrating fails, nothing
+changes and the user sees a recoverable error.
+
+**Not yet done:**
+
+- Erase-journal UI; the native `erase` exists.
+- Biometric enable/disable UI; the native methods exist.
+- The AJR1 recorder, paused on Open decision 7.
+- Device evidence: no AJ-1 native code has been validated on a device yet.
 
 ## 9. Startup and recovery
 

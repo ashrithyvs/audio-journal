@@ -104,8 +104,10 @@ to the Hybrid AI SDK release evidence where required.
 - [x] Recording format/library, interruptions, duration, and storage limits
       accepted for Android (ADR-017).
 - [x] Portable backup envelope cryptography and restore activation accepted (ADR-017).
-- [ ] AJB1 binary layout and hostile/cross-platform vectors frozen (before implementation).
-- [ ] Argon2id parameters benchmarked on the lowest-supported Android device.
+- [x] AJB1 binary layout, canonicalization, and vectors frozen for implementation
+      (2026-10-10; backup-and-restore.md §9). iOS cross-platform evidence pending.
+- [ ] Argon2id parameters benchmarked on the lowest-supported **physical** Android device
+      (no device available as of 2026-10-10; the emulator is not a substitute).
 - [x] Transcription engine boundary decided: app-owned, on-device (ADR-016).
 - [ ] Live-transcription window/overlap/cadence frozen from device measurements
       (live UX approved, ADR-017).

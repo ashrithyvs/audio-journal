@@ -31,6 +31,7 @@ targets rather than implemented behavior.
 - [Implementation roadmap](implementation-roadmap.md) — milestone order and acceptance gates.
 - [Agent coordination](AGENT_COORDINATION.md) — temporary shared operational memory.
 - [AJ-0 validation](validation/AJ0-progress.md) — current build/test evidence and blockers.
+- [AJ-1 progress](validation/AJ1-progress.md) — AJ-1 checkpoint evidence; the AJ-1 gate is not yet met.
 
 ## Change rule
 

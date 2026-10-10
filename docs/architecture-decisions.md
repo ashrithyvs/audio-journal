@@ -344,7 +344,9 @@ cross-platform vectors are frozen in `backup-and-restore.md`.
 ### Argon2id (PIN copy and AJB1 KEK)
 
 - **Implementation.** The P-H-C reference libargon2, release `20190702`
-  (commit `62358ba2`, archive SHA-256 `daf972a8…442c`, CC0/Apache-2.0),
+  (commit `62358ba2`, archive SHA-256
+  `daf972a89577f8772602bf2eb38b6a3dd3d922bf5724d45e7f9589b5e830442c`,
+  CC0/Apache-2.0),
   compiled into the app's native library. Algorithm Argon2id, version `0x13`.
   One C implementation serves Android now and iOS later, so backups are
   byte-identical across platforms.
@@ -367,12 +369,34 @@ cross-platform vectors are frozen in `backup-and-restore.md`.
   (`net.zetetic:sqlcipher-android:4.19.1`), keyed with the raw HKDF database
   key, in WAL mode, in app-private no-backup storage.
 - **Recordings.** Recordings are 16 kHz mono 16-bit PCM in the `AJR1`
-  container: a header followed by 1-second PCM chunks, each sealed with
-  AES-256-GCM. The nonce is a 4-byte per-file salt plus an 8-byte chunk
-  index, and the additional authenticated data binds the header and the chunk
-  index, so reordering is detected. After a crash, recovery keeps every
-  authenticated chunk and drops the torn tail. Recordings never exist as
-  plaintext files.
+  container: an authenticated header followed by sealed PCM chunks of up to
+  1 second. Recordings never exist as plaintext files. The owner amended the
+  key and nonce design on 2026-10-10 (formerly Open decision 7):
+  - **Per-recording key:** `K_file = HKDF-SHA256(recordingRootKey,
+    fileSalt, encodedInfo, 32)`.
+    - `recordingRootKey` is `HKDF(MK, "aj-rec-v1")`.
+    - `fileSalt` is 16 fresh CSPRNG bytes, stored in the header.
+    - `encodedInfo` is the length-prefixed label
+      `audio-journal/ajr1/recording-key/v1` followed by the length-prefixed
+      ASCII recording ID.
+
+    A new file, or a recreated one, always gets a new salt and therefore a
+    new key. Derived keys are cleared when the recording closes or the vault
+    locks.
+  - **Nonce:** a 4-byte per-file prefix plus the unsigned 64-bit chunk
+    index. Nonces are unique because each file has its own key.
+  - **Authentication:** every frame carries its chunk index. The AAD binds
+    the header hash, the recording ID, and that index. A wrong key, salt,
+    header, recording ID, or index fails authentication.
+  - **Ordering:** indices strictly increase. Gaps are allowed; duplicates,
+    decreases, and reordering are rejected. An index above `2^48 − 1` is
+    rejected, and the writer refuses to overflow.
+  - **Crash recovery** keeps every authenticated frame and drops the torn
+    tail. If torn bytes exist, any index they may have used is never reused
+    under the same key: writing continues at least two past the last
+    authenticated index, and past any readable torn index.
+
+  The byte layout and vectors are in LLD §5.1 and `schemas/ajr1/v1/`.
 
 ### Recording (closes ADR-008 for Android)
 
@@ -381,7 +405,8 @@ cross-platform vectors are frozen in `backup-and-restore.md`.
 - Leaving the foreground auto-pauses and seals the current chunk; a
   foreground service is deferred.
 - Recordings are limited to 60 minutes. Recording won't start with less
-  than 200 MB free and finishes automatically below 50 MB.
+  than 200 MiB free and finishes automatically below 50 MiB (binary units,
+  2^20 bytes; owner clarification, 2026-10-10).
 - Unfinished recordings are reconciled at startup.
 - Recording never depends on transcription: it continues whenever
   transcription is unavailable, slow, cancelled, or failing.
@@ -470,7 +495,15 @@ for v0.1 and keeps ADR-010/011 intact.
 3. Live-transcription window length, overlap, and cadence, set from device
    measurements. The live UX is decided by ADR-017 and the engine by ADR-016.
 4. `journal.organize@1`: decided by ADR-018 (schemas in `schemas/journal/v1/`).
-5. The AJB1 binary layout and hostile/cross-platform vectors, which must be
-   frozen before implementation (the cryptographic design is ADR-017), and
-   non-empty-vault merge semantics (outside v0.1).
+5. ~~The AJB1 binary layout and vectors~~: **frozen for implementation**
+   on 2026-10-10 (backup-and-restore.md §9, with its freeze evidence).
+   Still open: Argon2id parameters (item 1), iOS cross-platform evidence
+   (needs macOS/Xcode), and non-empty-vault merge semantics (outside v0.1).
 6. Retention/deletion behavior for recordings, transcripts, derivations, and tasks.
+   Until it is decided, confirmed discards are tombstoned (rows kept and marked;
+   no cryptographic-erasure claim), and superseded live transcript rows are
+   kept, marked superseded, excluded from normal reads, and bounded to 4,000
+   per recording (owner decisions, 2026-10-10).
+7. ~~AJR1 nonce uniqueness across files~~. **Decided** 2026-10-10 by the
+   owner: per-recording HKDF keys, chunk-index frames, and torn-tail index
+   skipping. See ADR-017's **Recordings** bullet.
