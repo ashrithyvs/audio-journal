@@ -9,23 +9,27 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 - **Branch:** `main` after Git initialization.
 - **Last agent:** Claude Code `hybridai-7b` (speech/performance handoff).
 - **Last updated:** 2026-10-10.
-- **AJ-3 claim: closed** by `hybridai-7b`. The code is in
-  `58d8f94`/`af49f6c`. Device validation is partial: S00–S08 passed on the
-  R8 release build, and S09–S19 are still to be re-run (harness fixes, no
-  product failure). The AJ-3 evidence report is pending.
+- **AJ-3 (updated 2026-10-10 19:40 by `hybridai-7b`).** The Android node
+  workflow passes 20 of 20 device steps on the AJ-1 fix build `72ee323`, in
+  a fresh run. The milestone is not accepted:
+  - the fix is on `aj1/domain-core`, not on `main` (gated merge);
+  - the exit also needs AJ-1 and AJ-2;
+  - iOS is deferred.
+
+  `main` (`52cb23d`) still fails S12, S13, and S17 (status defects F1 and
+  F2). Report: `docs/validation/AJ3-android.md` (`73c7bae`).
 - **Implementation status:**
   - AJ-0 is not accepted (volatile PIN).
   - AJ-3 node workflow and the load lab are implemented; validation is
     partial.
   - App-owned on-device transcription (ADR-016) is implemented and
     benchmarked (`52cb23d`).
-  - AJ-1 is in progress in `hybridai-81`'s worktree.
+  - AJ-1's Android implementation is provisionally complete on emulator
+    evidence and passed the AJ-3 merge gate 20/20 (`aj1/domain-core` at
+    `5e29d27`, not merged); not accepted.
   - AJ-2 has not started.
 
-## Parallel-work claims (updated 2026-10-10 00:00 IST)
-
-The AJ-3 claim above appears delivered in `58d8f94`/`af49f6c`; its owner
-should close it.
+## Parallel-work claims (updated 2026-10-10 00:25 IST)
 
 - **Speech/performance track (`hybridai-7b`): handed off 2026-10-10.**
   - **Commits on `main`:** `87566c8` (on-device whisper engine, speech plan,
@@ -38,6 +42,37 @@ should close it.
     `MainApplication.kt`, `codegenConfig`), `src/native/`,
     `src/features/transcription/`, navigation and `AppServices` wiring, and
     integration. The emulator is shared only through `.aj-exclusive-run`.
+  - **AJ-3 validation state (2026-10-10 19:40).**
+    - **Commits on `main`:** `ccef770` (harness, accepted in `AJ3-REV-002`
+      and `AJ3-REV-004`) and `73c7bae` (AJ-3 report, SDK backlog findings
+      `docs/validation/hybrid-ai-sdk-issues.md`, AJ-4-A status line).
+    - **Runs and evidence** (git-ignored, `e2e/speech/results/`):
+      - `aj3-run5`: `main`, 17/20, composite;
+      - `aj3-aj1-94604ca`: 17/20, fresh;
+      - `aj3-fix-72ee323-targeted`: 7/7;
+      - `aj3-fix-72ee323-full`: 20/20, fresh, non-resumed,
+        `--expect-persistent-pin`, full-run log scan.
+    - **Decisions** (inbox `/home/igdclt0603/Desktop/Ash/AJ_AGENT_DECISIONS.md`):
+      - `AJ3-REV-001` and `AJ3-REV-003`: CHANGES_REQUIRED, fixed by
+        `hybridai-81` (`0ced9a6`, `72ee323`) and verified;
+      - `AJ3-REV-002` and `AJ3-REV-004`: ACCEPTED;
+      - `AJ3-DEC-001`: DECIDED (SDK findings kept here; SDK repository not
+        edited).
+    - **Merge-gate regression done (2026-10-10 23:58):**
+      - final AJ-1 APK `6f2b36b` (SHA-256 `cb4ff897…f4b7d`), fresh
+        non-resumed S00–S19: **20/20 pass**, harness `84d3b4c`;
+      - evidence in `e2e/speech/results/aj3-final-6f2b36b`;
+      - report §8.3 (`aa7f55b`);
+      - lock auto-released.
+    - **Open:** F3, a duplicate "Reconnect" (low), which `hybridai-81` will
+      fix; re-check it when it lands.
+    - **Validation commands:**
+      - `ANDROID_SERIAL=emulator-5556 node e2e/android/aj3-e2e.mjs --apk <apk> --expect-persistent-pin --out <dir>`;
+      - targeted: `--only S00,S01,S02,S06,S12,S13,S17`;
+      - checks: `node --check` and `prettier --check "e2e/**/*.mjs"` pass.
+    - **Locks:** none held by `hybridai-7b`. `emulator-5556` runs headless
+      with no app session open. The per-device lock
+      `.aj-exclusive-run-5556` remains as a marker for this device.
   - **Remaining claim: test harness and reports only, no product code.**
     `e2e/android/{aj3-e2e.mjs,aj-load.mjs,aj-speech.mjs,lib/,nsd-fixture/}`
     and `e2e/speech/`, plus new report files
@@ -63,32 +98,44 @@ should close it.
     TranscriptionService native path must take natively decrypted AJR1 PCM
     instead of a WAV path. The live-window threads should leave one core
     free while the UI animates; measured guidance only.
-- **AJ-1 independent track: Claude Code session `hybridai-81`.** Worktree
-  `../audio-journal-aj1`, branch `aj1/domain-core`, fast-forwarded to
-  `2263ca2`, no commits. New files only:
-  - `src/features/journal/{domain,ports,application,ui}/`
-  - `src/features/backup/domain/`
-  - `src/platform/storage/`
-  - `test/{sqlite,journal}/`
-  - `{unit,integration,smoke,performance}-tests/journal*`
-  - `unit-tests/backupInventory.test.ts`
-  - `docs/validation/AJ1-progress.md`
-  - a **Proposed**, unfrozen AJB1 layout appended as §9 of the worktree's
-    `docs/backup-and-restore.md`
-
-  In this tree, it edits only this file. Evidence:
-  [AJ-1 checkpoint 1](../../audio-journal-aj1/docs/validation/AJ1-progress.md)
-  (worktree). The AJ-1 gate is **not met**; AJ-2 is not started.
-- **Serialized, waiting for the speech handoff and owner direction:**
-  - transcription-port changes, so AJR1 PCM is decrypted natively rather than
-    read from a WAV path;
-  - live windows;
-  - every Gradle, CMake, codegen, `package.json`, or lockfile change
-    (SQLCipher, androidx.biometric, libargon2);
-  - the native vault, recorder, playback, and SQL modules;
-  - `AppServices.ts` and navigation wiring;
-  - canonical-doc edits;
-  - every device run.
+- **AJ-1 track: Claude Code session `hybridai-81`, sole owner since the
+  handoff.** It owns the native AJ-1 layer, the build graph, `src/native/`,
+  `src/features/transcription/`, wiring, integration, and the AJ-1 docs.
+  Updated 2026-10-11 00:05.
+  - **Where:** worktree `../audio-journal-aj1`, branch `aj1/domain-core`
+    at `5e29d27`, based on `6383209`. Not merged, not pushed.
+  - **Merge gate passed:** AJ-3 S00–S19 20/20 on the final APK below
+    (`hybridai-7b`, 23:18–23:58, harness `84d3b4c`, evidence
+    `e2e/speech/results/aj3-final-6f2b36b/`). The merge waits for the owner.
+  - **Commits this checkpoint** (each verified in a clean worktree:
+    typecheck, Jest, and JVM where Kotlin changed):
+    - `45bc02a`: native AJR1 capture, playback, transcription from AJR1,
+      startup reconciliation, the lock grace;
+    - `f2a0d38`: AJB1 export/restore and the backup UI;
+    - `e632240`: biometric availability after setup, scrollable Settings,
+      the F3 node notice, setup copy;
+    - `6f2b36b`: AJ-1 device journeys (`e2e/aj1/`), no-idle hierarchy reader;
+    - `ff37752`: owner-decision docs and the checkpoint 3 report.
+  - **Final AJ-1 APK for the AJ-3 regression:**
+    `/home/igdclt0603/Desktop/Ash/aj1-artifacts/app-release-6f2b36b.apk`,
+    SHA-256 `cb4ff897c085e3aef2364c760c1c243df35258a0794b7ed7e0b9f3fa477f4b7d`,
+    built from a clean checkout of `6f2b36b` (`../aj1-build-72ee323`, now
+    detached at `6f2b36b`).
+  - **Evidence:** `docs/validation/AJ1-progress.md` (checkpoint 3) and
+    `aj1-artifacts/evidence/device-aj1-wt-20261010/`. On `emulator-5554`:
+    smoke 7/7, capture 6/6, backup/restore with a voice entry 8/8,
+    biometric 5/5, load 5 × 1 min and 1 × 10 min, instrumented 6/6
+    (including real speech through AJR1). JS baseline 360/360; JVM 58/58.
+  - **Fixed from the journeys:** biometric unlock not offered after first
+    setup; Settings not scrolling; whisper non-speech annotations shown as
+    text; restore-preview plurals.
+  - **Open, not passed:** physical-device gates (Argon2id parameters,
+    memory/latency, AJB1 production profile); live-text parameters
+    (PROVISIONAL, Open decision 3); iOS. No acceptance is claimed.
+  - **Emulator:** `emulator-5554` is shut down again.
+  - **Next:** the owner decides the merge. AJ-2 starts in `node-companion/`
+    (ADR-018) with the `journal.organize@1` contract draft for owner review,
+    once the owner confirms weekly usage headroom (cap 70%).
 - **Exclusive runs.** Benchmarks, emulator suites, Gradle/CMake builds, and
   Jest baselines never overlap. Create
   `/home/igdclt0603/Desktop/Ash/.aj-exclusive-run` (owner, purpose, start)
@@ -97,13 +144,13 @@ should close it.
   `[G]radleWrapperMain` and `^[n]ode .*aj-speech`. A plain pattern matches the
   loop's own command line, so the loop never exits.
 - **AJ-1 gates still open:**
-  1. Argon2id `m/t/p` need a benchmark on a *physical* lowest-supported
-     Android device; only the emulator is attached.
-  2. The owner must freeze AJB1 §9 (layout, caps, vectors).
-  3. Live window, overlap, and cadence come from device measurements.
+  1. Argon2id `m/t/p`, memory/latency acceptance, and the AJB1 production
+     profile need the lowest-supported **physical** Android device. None is
+     available; the emulator is not substituted.
+  2. Live window, overlap, and cadence come from device measurements.
 
-  ADR-017/018 are committed (`2263ca2`), so the earlier conflicts are
-  resolved.
+  AJB1 §9 is frozen for implementation (`94604ca`), and AJR1 Open decision 7
+  is closed.
 - **Fixed on `main`:** the `87566c8` format:check failure on
   `e2e/android/aj-speech.mjs` (fixed in `52cb23d`).
 
