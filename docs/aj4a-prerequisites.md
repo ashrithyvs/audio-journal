@@ -40,7 +40,9 @@ design or by mocking the stage.
 
 ## What can proceed without these decisions
 
-- AJ-3 (secure node workflow) is complete; see the
+- AJ-3 (secure node workflow) passes all 20 Android device steps on the AJ-1
+  fix build `72ee323`, which is not yet on `main`. The milestone is not
+  accepted: its exit also needs AJ-1 and AJ-2, and iOS is deferred. See the
   [AJ-3 report](validation/AJ3-android.md).
 - Routing diagnostics for `local`, `node`, and `auto` using the existing
   product-neutral capabilities: `document.analyze@1` on the node, and
