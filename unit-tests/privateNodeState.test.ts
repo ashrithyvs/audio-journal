@@ -466,3 +466,105 @@ describe('capability request', () => {
     ).toBe('cancelled');
   });
 });
+
+describe('link failure marks (AJ3-REV-001/003)', () => {
+  const connected = run(
+    [
+      {
+        type: 'SNAPSHOT',
+        status: { state: 'connected', nodeId: NODE_ID },
+        paired: [pairedRecord()],
+      },
+      {
+        type: 'REQUEST_STARTED',
+        requestId: 'r1',
+        execution: 'node',
+        at: 1_000,
+      },
+    ],
+    ready,
+  );
+  const failed = (code: string) =>
+    run(
+      [
+        {
+          type: 'REQUEST_UPDATE',
+          requestId: 'r1',
+          at: 1_100,
+          update: { type: 'failed', failure: { code } },
+        },
+      ],
+      connected,
+    );
+
+  it('marks the active node when a request fails on the link', () => {
+    expect(failed('NODE_TRUST_REVOKED').link.mark).toEqual({
+      nodeId: NODE_ID,
+      code: 'NODE_TRUST_REVOKED',
+    });
+    // A request-level failure says nothing about the link.
+    expect(failed('INVALID_INPUT').link.mark).toBeUndefined();
+  });
+
+  it('clears only on authenticated contact or recovery', () => {
+    const marked = failed('NODE_UNAVAILABLE');
+    const restarted = (target: 'node' | 'local') =>
+      run(
+        [
+          {
+            type: 'REQUEST_STARTED',
+            requestId: 'r2',
+            execution: 'auto',
+            at: 2_000,
+          },
+          {
+            type: 'REQUEST_UPDATE',
+            requestId: 'r2',
+            at: 2_100,
+            update: {
+              type: 'completed',
+              target,
+              routingReason: 'policy',
+              output: { summary: 's', topics: [] },
+            },
+          },
+        ],
+        marked,
+      );
+    expect(restarted('local').link.mark).toBeDefined();
+    expect(restarted('node').link.mark).toBeUndefined();
+    const reconnected = run(
+      [
+        { type: 'CONNECT_STARTED', at: 3_000 },
+        { type: 'CONNECT_FINISHED', at: 3_100 },
+      ],
+      marked,
+    );
+    expect(reconnected.link.mark).toBeUndefined();
+    const forgotten = run(
+      [
+        { type: 'FORGET_STARTED', at: 3_000 },
+        { type: 'FORGET_FINISHED', nodeId: NODE_ID, confirmed: true },
+      ],
+      marked,
+    );
+    expect(forgotten.link.mark).toBeUndefined();
+  });
+
+  it('remembers exactly which node the SDK reports as revoked', () => {
+    const revoked = run(
+      [
+        {
+          type: 'SNAPSHOT',
+          status: { state: 'revoked', nodeId: NODE_ID },
+          paired: [pairedRecord({ active: false, state: 'revoked' })],
+        },
+      ],
+      ready,
+    );
+    expect(revoked.link.mark).toEqual({
+      nodeId: NODE_ID,
+      code: 'NODE_TRUST_REVOKED',
+    });
+  });
+});

@@ -16,7 +16,7 @@ export function SettingsScreen({
   onOpenDiagnostics(): void;
 }) {
   const { lock, state: lockState, setBiometricEnabled } = useAppLock();
-  const { state, activeNode } = usePrivateNode();
+  const { state, focus } = usePrivateNode();
   const { sdk } = state;
   const sdkStatus =
     sdk.phase === 'ready'
@@ -26,8 +26,9 @@ export function SettingsScreen({
       : 'Initializing…';
   const connection = presentConnection(
     state.link.status.state,
-    activeNode,
+    focus,
     state.link.operation === 'connecting',
+    state.link.mark,
   );
 
   return (

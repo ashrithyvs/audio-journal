@@ -149,10 +149,34 @@ missing or invalid.
   revoked, or Pairing key unavailable. It names the active node, shows a short
   node ID, and offers one recovery action: Reconnect, Pair a node, or Forget and
   pair again.
+- **Status after a failed request** (AJ3-REV-001/003). A request that fails on
+  the link is direct evidence, so the pill changes at once; it never keeps
+  saying Connected:
+  - `NODE_UNAVAILABLE` shows Unavailable;
+  - `NODE_AUTHENTICATION_FAILED` shows Identity check failed;
+  - `NODE_TRUST_REVOKED` shows Trust revoked;
+  - `CREDENTIAL_UNAVAILABLE` shows Pairing key unavailable.
+
+  The app then makes at most one secure connection attempt, single-flight
+  and debounced, so the SDK stores the real state. The request is never
+  retried automatically. The status returns to Connected only after a
+  later successful contact or an explicit recovery. The Diary keeps working
+  throughout.
+- **Revoked or unusable trust.** The SDK deactivates a node whose trust
+  failed, so there may be no active node.
+  - The pill then describes that exact node, labelled "Affected node": the
+    one whose failure this session saw, or, after a restart, the only stored
+    node in that state. It offers one action, "Forget and pair again".
+  - If several stored nodes are in that state, none is picked. The pill
+    says Trust revoked, and each node's row offers its own "Forget and pair
+    again".
+  - "No node paired" appears only when nothing is stored. Inactive paired
+    nodes show "No active node".
 - **Paired nodes.** Each node shows Paired · Active, Paired, Revoked,
-  Forgetting…, or Key unavailable, with Make active and Forget. After a forget,
-  the screen says whether the node confirmed it. If not, it asks the user to
-  also remove this device on the node.
+  Forgetting…, or Key unavailable, with Make active and Forget. A revoked or
+  key-unavailable node offers "Forget and pair again" instead of Forget.
+  After a forget, the screen says whether the node confirmed it. If not, it
+  asks the user to also remove this device on the node.
 - **Nearby nodes.** Results appear under an explicit statement that announced
   nodes are unverified and that finding one never pairs it. Every row carries
   an "Unverified" pill. Rows that claim a paired identity, conflict with

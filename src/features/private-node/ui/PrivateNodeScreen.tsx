@@ -29,7 +29,7 @@ import {
 
 export function PrivateNodeScreen({ onPair }: { onPair(): void }) {
   const node = usePrivateNode();
-  const { state, activeNode, candidates } = node;
+  const { state, activeNode, focus, candidates } = node;
   const { link, discovery, sdk, policy } = state;
 
   if (sdk.phase !== 'ready') {
@@ -57,22 +57,18 @@ export function PrivateNodeScreen({ onPair }: { onPair(): void }) {
 
   const connection = presentConnection(
     link.status.state,
-    activeNode,
+    focus,
     link.operation === 'connecting',
+    link.mark,
   );
+  // Trust failed: the one recovery is to forget that exact node and pair again
+  // (UX §7.1, AJ3-REV-001). Several failed nodes each get their own action.
   const revoked =
-    activeNode &&
-    (activeNode.state === 'revoked' ||
-      activeNode.state === 'credential_unavailable' ||
-      link.status.state === 'revoked' ||
-      link.failure?.code === 'NODE_TRUST_REVOKED' ||
-      link.failure?.code === 'CREDENTIAL_UNAVAILABLE');
+    connection.repairNodeId !== undefined || focus.untrusted.length > 1;
   const linkFailure = link.failure && presentFailure(link.failure);
 
-  const forgetAndRepair = async () => {
-    if (activeNode) {
-      await node.forget(activeNode.nodeId);
-    }
+  const forgetAndRepair = async (nodeId: string) => {
+    await node.forget(nodeId);
     onPair();
   };
 
@@ -86,13 +82,13 @@ export function PrivateNodeScreen({ onPair }: { onPair(): void }) {
           testID="node-connection-state"
         />
         <Body>{connection.detail}</Body>
-        {activeNode ? (
+        {focus.node ? (
           <>
-            <Label>Active node</Label>
+            <Label>{focus.node.active ? 'Active node' : 'Affected node'}</Label>
             <Text style={styles.activeName}>
-              {displayUntrustedName(activeNode.nodeName)}
+              {displayUntrustedName(focus.node.nodeName)}
             </Text>
-            <Body>ID {shortNodeId(activeNode.nodeId)}</Body>
+            <Body>ID {shortNodeId(focus.node.nodeId)}</Body>
           </>
         ) : null}
         {link.notice === 'forgotten_confirmed' ? (
@@ -115,10 +111,10 @@ export function PrivateNodeScreen({ onPair }: { onPair(): void }) {
           />
         ) : null}
         <View style={[shared.row, shared.action]}>
-          {revoked ? (
+          {connection.repairNodeId ? (
             <PrimaryButton
               label="Forget and pair again"
-              onPress={forgetAndRepair}
+              onPress={() => forgetAndRepair(connection.repairNodeId!)}
               testID="forget-and-repair"
             />
           ) : null}
@@ -130,7 +126,7 @@ export function PrivateNodeScreen({ onPair }: { onPair(): void }) {
               testID="reconnect"
             />
           ) : null}
-          {!activeNode ? (
+          {!activeNode && !revoked ? (
             <PrimaryButton
               label="Pair a node"
               onPress={onPair}
@@ -176,13 +172,23 @@ export function PrivateNodeScreen({ onPair }: { onPair(): void }) {
                     onPress={() => node.makeActive(paired.nodeId)}
                   />
                 ) : null}
-                <PrimaryButton
-                  label="Forget"
-                  secondary
-                  disabled={link.operation !== 'idle'}
-                  onPress={() => node.forget(paired.nodeId)}
-                  testID="forget-node"
-                />
+                {focus.untrusted.includes(paired) ? (
+                  <PrimaryButton
+                    label="Forget and pair again"
+                    secondary
+                    disabled={link.operation !== 'idle'}
+                    onPress={() => forgetAndRepair(paired.nodeId)}
+                    testID={`forget-and-repair-${shortNodeId(paired.nodeId)}`}
+                  />
+                ) : (
+                  <PrimaryButton
+                    label="Forget"
+                    secondary
+                    disabled={link.operation !== 'idle'}
+                    onPress={() => node.forget(paired.nodeId)}
+                    testID="forget-node"
+                  />
+                )}
               </View>
             </View>
           ))

@@ -53,6 +53,12 @@ export class FakeHybridAiGateway implements HybridAiGateway {
   linkStatus: NodeLinkStatus = { state: 'none' };
   paired: PairedNodeRecord[] = [];
   connectFailure?: HybridAiFailure;
+  /**
+   * How each node itself now regards this device. Like the real node, a
+   * revocation is discovered by the SDK only on connect or refresh; a request
+   * fails (the test emits that) but persists nothing.
+   */
+  nodeSide = new Map<string, 'revoked' | 'credential_unavailable'>();
   forgetConfirmed = true;
   discoveryFailure?: HybridAiFailure;
   private discoveryListener?: (update: DiscoveryUpdate) => void;
@@ -171,16 +177,49 @@ export class FakeHybridAiGateway implements HybridAiGateway {
     listener?.(update);
   }
 
+  /**
+   * Mirrors the SDK (hybridAi 07a8bf7): with no active record the status
+   * becomes `none` and connect fails NODE_NOT_PAIRED (pairing_node.cpp
+   * connect_active). A revoked or unusable credential is persisted on the
+   * record, which the store then deactivates (pairing_node.cpp
+   * handle_untrusted; pairing_store.cpp update).
+   */
   async connect() {
     this.calls.push('connect');
-    if (this.connectFailure) {
-      const failure = this.connectFailure;
-      if (failure.code === 'NODE_TRUST_REVOKED') {
-        this.linkStatus = { state: 'revoked', nodeId: NODE_ID };
+    const active = this.paired.find(node => node.active);
+    if (!active) {
+      this.linkStatus = { state: 'none' };
+      throw new HybridAiGatewayError({ code: 'NODE_NOT_PAIRED' });
+    }
+    const failure = this.connectFailure;
+    const trust =
+      this.nodeSide.get(active.nodeId) ??
+      (failure?.code === 'NODE_TRUST_REVOKED'
+        ? 'revoked'
+        : failure?.code === 'CREDENTIAL_UNAVAILABLE'
+        ? 'credential_unavailable'
+        : undefined);
+    if (trust) {
+      this.paired = this.paired.map(node =>
+        node.nodeId === active.nodeId
+          ? { ...node, state: trust, active: false }
+          : node,
+      );
+      if (trust === 'revoked') {
+        this.linkStatus = { state: 'revoked', nodeId: active.nodeId };
+      }
+      throw new HybridAiGatewayError({
+        code:
+          trust === 'revoked' ? 'NODE_TRUST_REVOKED' : 'CREDENTIAL_UNAVAILABLE',
+      });
+    }
+    if (failure) {
+      if (failure.code === 'NODE_UNAVAILABLE') {
+        this.linkStatus = { state: 'unavailable', nodeId: active.nodeId };
       }
       throw new HybridAiGatewayError(failure);
     }
-    this.linkStatus = { state: 'connected', nodeId: NODE_ID };
+    this.linkStatus = { state: 'connected', nodeId: active.nodeId };
   }
 
   async setActive(nodeId: string) {

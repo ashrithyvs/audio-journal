@@ -13,6 +13,10 @@ import type {
   PairingUpdate,
 } from '../../../platform/hybrid-ai/HybridAiGateway';
 import type { AnalysisCheck } from './analysisResult';
+import {
+  NODE_LINK_CODES,
+  type LinkFailureMark,
+} from './connectionPresentation';
 
 export type SdkState =
   // AJ-FR-035: the SDK is not started until the journal is first unlocked.
@@ -54,6 +58,24 @@ export interface LinkState {
   operationStartedAt?: number;
   failure?: HybridAiFailure;
   notice?: 'forgotten_confirmed' | 'forgotten_unconfirmed';
+  /**
+   * The node's last request or connection failure in this session
+   * (AJ3-REV-001/003); cleared by authenticated contact or recovery.
+   */
+  mark?: LinkFailureMark;
+}
+
+/** The node a link failure concerns: the active one, else the status's. */
+function markFor(
+  state: PrivateNodeState,
+  failure: HybridAiFailure | undefined,
+): LinkFailureMark | undefined {
+  if (!failure || !NODE_LINK_CODES.has(failure.code)) {
+    return undefined;
+  }
+  const nodeId =
+    state.paired.find(node => node.active)?.nodeId ?? state.link.status.nodeId;
+  return nodeId ? { nodeId, code: failure.code } : undefined;
 }
 
 interface RequestBase {
@@ -266,7 +288,12 @@ function reducePairing(
             ),
           update.node,
         ],
-        link: { ...state.link, failure: undefined, notice: undefined },
+        link: {
+          ...state.link,
+          failure: undefined,
+          notice: undefined,
+          mark: undefined,
+        },
         timings: {
           ...state.timings,
           pairingTotalMs: at - pairing.startedAt,
@@ -312,6 +339,11 @@ function reduceRequest(
       const check = action.check ?? { valid: false };
       return {
         ...state,
+        // Only a node completion is authenticated contact with the node.
+        link:
+          update.target === 'node'
+            ? { ...state.link, mark: undefined }
+            : state.link,
         request: {
           phase: 'completed',
           ...base,
@@ -334,6 +366,10 @@ function reduceRequest(
           ...base,
           failure: update.failure,
           totalMs: elapsed,
+        },
+        link: {
+          ...state.link,
+          mark: markFor(state, update.failure) ?? state.link.mark,
         },
         timings,
       };
@@ -388,7 +424,15 @@ export function privateNodeReducer(
         ...state,
         paired: action.paired,
         capabilities: action.capabilities ?? state.capabilities,
-        link: { ...state.link, status: action.status },
+        link: {
+          ...state.link,
+          status: action.status,
+          // The SDK reports which node revoked trust; remember it exactly.
+          mark:
+            action.status.state === 'revoked' && action.status.nodeId
+              ? { nodeId: action.status.nodeId, code: 'NODE_TRUST_REVOKED' }
+              : state.link.mark,
+        },
       };
     case 'STATUS':
       return { ...state, link: { ...state.link, status: action.status } };
@@ -417,6 +461,10 @@ export function privateNodeReducer(
           operation: 'idle',
           operationStartedAt: undefined,
           failure: action.failure,
+          // Success is authenticated contact; a link failure marks the node.
+          mark: action.failure
+            ? markFor(state, action.failure) ?? state.link.mark
+            : undefined,
         },
         timings: action.failure
           ? state.timings
@@ -454,6 +502,10 @@ export function privateNodeReducer(
             state.link.status.nodeId === action.nodeId
               ? { state: 'none' }
               : state.link.status,
+          mark:
+            state.link.mark?.nodeId === action.nodeId
+              ? undefined
+              : state.link.mark,
           operation: 'idle',
           notice: action.confirmed
             ? 'forgotten_confirmed'
