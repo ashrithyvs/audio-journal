@@ -160,3 +160,19 @@ PIN fallback UI, lifecycle relock, background privacy curtain, and Android
 `FLAG_SECURE`. It does not implement persistent credentials or production
 biometrics. The included volatile verifier is process-local, non-cryptographic,
 clearly labelled, and must be replaced—not promoted—after this ADR is resolved.
+
+## 12. AJ-1 lock and backup rules (owner decisions, 2026-10-10)
+
+- **Relock.** Leaving the app locks it immediately, with one bounded
+  exception: while the app's own microphone permission dialog or system
+  document picker is open, the relock waits at most 2 minutes. The privacy
+  curtain and `FLAG_SECURE` stay on (ADR-017, LLD §8.1).
+- **Restore activation** needs the current PIN under the attempt policy,
+  even when the app is unlocked. Someone holding an unlocked phone cannot
+  replace the journal. The biometric copy is removed, and the app locks once
+  activation completes.
+- **Recovery-key confirmation** asks for three CSPRNG-chosen word positions
+  with the phrase hidden. Answers are never logged or stored.
+- **Backups never drop content silently.** A damaged recording stops the
+  export; excluding it needs explicit confirmation, and the result reports the
+  exclusion.

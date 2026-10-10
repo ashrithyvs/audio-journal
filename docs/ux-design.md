@@ -74,6 +74,11 @@ Flow:
 - Biometric failure/lockout/invalidation always exposes PIN fallback.
 - No “forgot PIN” email flow. A local reset action must state exactly what data
   will be lost and require deliberate confirmation.
+- Leaving the app locks it at once. The one exception is system UI the app
+  opens itself: the microphone permission dialog or the document picker for
+  a backup. Those may stay open for up to 2 minutes without locking, and then
+  the app locks anyway. The privacy curtain stays on throughout (ADR-017,
+  owner decision of 2026-10-10).
 
 ## 5. Recording screen
 
@@ -96,9 +101,25 @@ or node-routing decisions while the user is speaking.
 If transcription becomes unavailable, keep the timer/waveform active and show a
 quiet non-blocking status such as “Recording safely; transcription can resume later.”
 
+Leaving the app pauses recording and then locks the journal. Nothing captured
+is lost:
+
+- At the next unlock, the recording is saved as a normal entry, labelled
+  “Recording was interrupted; everything captured up to then was saved.”
+- It is transcribed like any other recording.
+- Only a damaged file shows “needs attention” (ADR-017, owner decision of
+  2026-10-10).
+
 ## 6. Entry detail
 
 - Original audio playback and written source occupy the primary visual hierarchy.
+- The full on-device transcript starts by itself after a recording is saved.
+  Any recording still without one is queued again after each unlock, one at
+  a time.
+  - While a transcript is being made, the entry shows that it is in progress
+    and offers Cancel.
+  - After a failure, it offers Try again; failed passes are not retried
+    automatically in the same session.
 - Transcript segments synchronize with playback and expose correction controls.
 - Derived summary/topics/tasks appear in a separate clearly labeled area.
 - Every derived item offers “View source,” jumping to transcript and audio range.
@@ -252,6 +273,48 @@ backup yet.” It contains two explicit actions:
   backup password or generated recovery key, then opens the OS save picker.
 - **Restore backup** — intended for an empty/new journal, opens the OS file
   picker, requests the backup secret, previews counts/date/size, and confirms restore.
+
+**Recovery key** (owner decision, 2026-10-10):
+
+1. The app shows the 24 words.
+2. It hides them, then asks for the words at three different positions,
+   chosen at random (for example, “word 4, word 11, word 20”).
+3. Each answer must be exactly right, in that order. A wrong answer returns
+   to the word list, and the user can try again.
+
+The answers are never logged or stored. A checkbox alone (“I wrote it down”)
+is never enough. Screenshots stay blocked and the privacy curtain stays on.
+
+**A recording that can no longer be read** (owner decision, 2026-10-10):
+
+- Create backup stops and lists every affected entry: its date, its title,
+  and what is damaged.
+- Only after an explicit choice, “Back up without these entries,” does it
+  continue. That choice is confirmed by typing a short word, for example
+  SKIP.
+- Continuing needs a typed confirmation.
+- The result then says the backup is incomplete and names what was left out.
+- The suggested file name ends in `-incomplete`.
+- Backup history in Settings shows the backup as incomplete, by count only.
+- The journal itself is not changed. Nothing is ever left out silently.
+- **Limitation.** The archive file does not say that it is incomplete
+  (`AJ1-DEC-001`, option B). A renamed copy looks like a full backup.
+
+**Restore** (owner decision, 2026-10-10):
+
+- **Empty journal.** Restore is offered only while the journal shows no
+  entries and has no playable recordings.
+  - Hidden leftovers do not count: discarded or failed attempts.
+  - The confirmation screen counts them and says they will be removed with
+    the old, empty journal.
+  - The user must confirm.
+- **Activating.** The user re-enters the current PIN, even though the app is
+  unlocked; the normal wrong-PIN limits apply. That PIN protects the
+  restored journal. Biometric unlock is turned off.
+- **After activating.** The app locks at once, and the user unlocks into the
+  restored journal.
+- **Failure.** If restoring fails at any point, the journal is exactly as it
+  was.
 
 The create flow must say:
 

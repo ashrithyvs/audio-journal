@@ -223,6 +223,56 @@ where:
 
 `Ajr1VectorsTest` checks the Kotlin codec against the Node reference.
 
+### 5.2 Android capture and playback (AJ-1)
+
+The native code is in `android/app/.../recording/`, behind the
+`AudioJournalRecordings` TurboModule (`src/native/NativeAudioJournalRecordings.ts`).
+JavaScript reaches it through `NativeRecordingService` and
+`NativePlaybackService` in `src/platform/recording/`.
+
+- **Capture (`CaptureSession`).** `AudioRecord` delivers 16 kHz mono s16le
+  in 100 ms reads into a 1-second chunk buffer.
+  - Each full chunk is sealed as one AJR1 frame and fsync'd. Pause, finish,
+    a limit, and close seal the partial chunk, so nothing captured before
+    the last seal is lost.
+  - Plaintext lives only in the chunk buffer, which is zeroed after each
+    seal.
+  - The session stops capturing at the ADR-017 limits by itself (60 minutes;
+    free space below 50 MiB) and reports progress; JavaScript then
+    finishes.
+  - `finish()` reads the file back. It succeeds only if every frame written
+    authenticates with nothing after it, and the digest and length then
+    come from that scan.
+- **Interruptions.** Each of these pauses with a reason:
+  - losing audio focus (`audio_focus_lost`);
+  - being silenced by a higher-priority capture on Android 10+ (also
+    `audio_focus_lost`);
+  - leaving the foreground (`backgrounded`).
+
+  Without focus at start, the capture starts paused. Resuming is always the
+  user's choice.
+- **Microphone permission.** It is requested only when recording is first
+  invoked, before any journal row exists. The dialog is covered by the lock
+  grace (§8.1).
+- **One control thread (`ActiveAudio`).** It owns the single capture and
+  the single playback. The vault's lock and erase submit their close to
+  this thread, so locking never races a pause or a finish. Closing seals
+  what was captured and zeroes the recording key.
+- **Startup scan (`RecordingFiles.scan`).** Unfinished captures are
+  authenticated frame by frame. Every other file is checked by header and
+  length against its stored `byteCount`, so unlock time does not grow with
+  the archive.
+  - `tail` classifies what follows the authenticated frames: `none`,
+    `torn` (a write cut short), or `damaged`.
+  - Only a torn final frame is ever truncated. Unknown files are moved to
+    `recordings-quarantine/`, never deleted.
+- **Playback (`PlaybackSession`).** `Ajr1Reader` finds frames by header,
+  then authenticates each frame in the requested range as it reads it.
+  - PCM goes to an `AudioTrack` in 100 ms slices.
+  - Pause stops at the current position and reports it.
+  - A frame that fails authentication ends playback with `SOURCE_DAMAGED`;
+    the file is never changed.
+
 ## 6. Transcript stream handling
 
 - Key updates by `(recordingId, segmentId)` and require monotonically increasing
@@ -234,6 +284,40 @@ where:
 - Late events after transcript cancellation or terminal state are ignored.
 - Post-recording reconciliation may create a new transcript revision; it does
   not rewrite the first-pass engine history silently.
+
+**AJ-1 implementation (ADR-016, ADR-017):**
+
+- **Final pass.** `TranscriptionController` runs one pass at a time.
+  - It starts after a capture is saved and after each unlock (§9 step 5);
+    the user can cancel it or try again.
+  - Native code (`AudioJournalSpeech.transcribeRecording`) decrypts the
+    sealed AJR1 file in windows (`RecordingPass`) straight into whisper.cpp,
+    so a 60-minute recording never becomes one float array.
+  - **Windows** are at most 5 minutes. Each cut moves to the latest
+    quietest 20 ms within the 2 s before the nominal cut, and segment times
+    are clamped to their window. These are PROVISIONAL defaults, chosen for
+    memory; transcript quality across cuts is checked in validation evidence.
+  - The result is validated (`validateEngineSegments`) before it is stored
+    as a new engine revision.
+  - **Non-speech annotations.** whisper.cpp marks stretches without speech
+    with a bracketed annotation (`[BLANK_AUDIO]`, `[ Silence ]`,
+    `(wind blowing)`). A segment whose whole text is one such annotation is
+    dropped like an empty segment (`isSpokenText`), in the final pass and in
+    live text. Text that only contains brackets is kept. A pass with no
+    other segments is an empty pass ("No speech was found").
+  - Every completed pass, empty ones included, is logged in
+    `transcript_passes` (migration 2), so silence is not transcribed again.
+  - Locking the vault cancels a running pass and zeroes its key
+    (`RecordingJobs`).
+- **Live text.** `LiveTranscriber` copies capture PCM through a
+  non-blocking tap into a ring buffer.
+  - It transcribes the latest window on its own thread, skipping ahead
+    while the engine is busy.
+  - **PROVISIONAL parameters** (Open decision 3): an 8 s window, a 4 s
+    cadence, 2 threads, and the default model, until device measurements.
+  - `planLiveWindow` resolves overlaps (the newer window wins).
+  - `LiveTranscriptController` stores live rows in batches; the final pass
+    supersedes them.
 
 ## 7. Hybrid AI adapter
 
@@ -383,6 +467,9 @@ the volatile verifier, are replaced by the `VaultService` port
 - **Biometric invalidation** is detected when the cipher is initialized,
   including at status time. The biometric copy and its key are deleted, and
   the PIN copy is never touched.
+- **Biometric availability** is re-read from the vault status after first-run
+  setup and after every unlock. First-run setup starts with no vault to probe,
+  and enrollment can change while the app is away, which locks it.
 
 **Journal store:**
 
@@ -398,12 +485,23 @@ unlocked. It opens the database, runs migrations, reconciles recordings,
 and closes everything on lock. If opening or migrating fails, nothing
 changes and the user sees a recoverable error.
 
-**Not yet done:**
+**Lock grace for the app's own system UI** (ADR-017, owner decision of
+2026-10-10):
 
-- Erase-journal UI; the native `erase` exists.
-- Biometric enable/disable UI; the native methods exist.
-- The AJR1 recorder, paused on Open decision 7.
-- Device evidence: no AJ-1 native code has been validated on a device yet.
+- Before the app opens its microphone permission dialog or a system document
+  picker, it registers an expected interruption. The resulting non-active app
+  state then does not lock.
+- The grace ends when the app is active again, or after 2 minutes, whichever
+  comes first. At the 2-minute mark the app locks even if the system UI is
+  still open.
+- Any non-active state with no registered interruption locks immediately, as
+  before.
+- The privacy curtain and `FLAG_SECURE` do not change.
+- Tests cover all of these: grace, cap, expiry, and an unregistered
+  backgrounding.
+
+Erase journal and the biometric toggle have UI (checkpoint 2). Device
+evidence is in `validation/AJ1-progress.md`.
 
 ## 9. Startup and recovery
 
@@ -413,6 +511,22 @@ changes and the user sees a recoverable error.
 4. Promote valid finalized files, expose recoverable partial files, and quarantine
    malformed/unknown files without deleting them automatically.
 5. Resume no AI operation automatically unless a future explicit policy permits it.
+   **Explicit policy** (ADR-017, owner decision of 2026-10-10):
+   - After each unlock, ready recordings without a full transcription pass
+     are queued for the on-device final pass, one at a time.
+   - Queued passes are cancellable and never block capture.
+   - A pass that failed in this session is retried only when the user asks.
+   - Nothing else resumes automatically: no Hybrid AI work, and no node work.
+6. **Interrupted captures** (ADR-017, owner decision of 2026-10-10). An
+   unfinished capture whose authenticated frames end cleanly, or end in a
+   torn final frame, is promoted at reconciliation:
+   - the torn frame is dropped first;
+   - the recording becomes `ready` with finish reason `recovered`, and its
+     digest and length come from the authenticated frames.
+
+   An authentication or ordering failure before the end of the file is
+   damage. The recording stays `recoverable` ("needs attention"), and no
+   byte is removed.
 
 ## 10. Error model
 
@@ -445,6 +559,21 @@ full file paths, or arbitrary SDK error messages that may contain payload data.
 - State-machine tests for recording, transcript revisions, lock/relock, and deletion.
 - Contract fixtures for valid/malformed derivations and provenance escapes.
 - Crash/restart reconciliation with database/file failures at every transition.
+- **AJ-1 device journeys** (`e2e/aj1/`) use the shared `e2e/android/` driver
+  read-only.
+  - A screen that changes every second (the recording timer, the playback
+    position) never gives `uiautomator dump` its one-second idle window.
+  - Those screens are read through `e2e/aj1/tools/LiveDump.java`, which the
+    journeys build on first use (`javac` and `d8`) and run from the shell with
+    `app_process`. It reads the accessibility hierarchy without waiting for
+    idle and never acts on it.
+  - The transcript section's `transcript-kind-<kind>` testID distinguishes a
+    final or empty pass from a live draft.
+  - The emulator's microphone is silent, so real speech reaches the final
+    pass through `RecordingSpeechDeviceTest`: `e2e/aj1/speech.mjs` pushes
+    whisper.cpp's `jfk.wav` (SHA-256 pinned), the test seals it into AJR1, and
+    the production `RecordingPass` decodes it in one window and across a
+    forced cut.
 
 ## 13. Backup and restore service
 
@@ -492,3 +621,49 @@ Rules:
   v0.1 does not merge into a non-empty vault.
 - App PIN/biometric secure-store records and node pairing state never cross the
   backup boundary. A restored journal uses newly created local lock keys.
+
+### 13.1 Android AJB1 codec and procedures (AJ-1)
+
+The codec is native, so PCM and keys never reach JavaScript. It lives in
+`android/app/.../backup/`, and it must pass the frozen vectors
+(`Ajb1VectorsTest`) and rebuild the reference archive byte for byte
+(`BackupCodecTest`).
+
+- **Parts:**
+  - `CanonicalJson`: the §9.4 profile, with strict decoding;
+  - `BackupSecrets`: the BIP-39 wordlist pinned by SHA-256, NFC passwords,
+    and ECMAScript whitespace rules;
+  - `Ajb1`: the header, the §9.10 pre-KDF checks in order, and the injectable
+    PROVISIONAL KDF policy;
+  - `SegmentWriter` and `SegmentReader`: one segment in memory;
+    `authenticateAll` runs before parsing, so §9.10's AUTH_FAILED-first
+    order holds;
+  - `Ajb1Parser`: streams sections with bounded memory, deferring
+    RECORDS-line errors so it reaches the reference parser's verdict;
+  - `Ajb1Records`: §9.6 field and cross-record checks.
+- **Export (`BackupExporter`).**
+  - Pass 1 reads one snapshot. It takes digests of ready recordings from the
+    database and frame lengths from AJR1 headers, and hashes the
+    authenticated prefix of recoverable ones. It then validates every
+    record, applies the limits, and sizes the archive, all before any KDF.
+  - A recording that cannot be read raises `Damaged`, listing the entry and
+    recording. That entry, its recording, and its segments are excluded
+    together, and only when the user explicitly confirms (owner decision
+    2026-10-10; `AJ1-DEC-001` option B: the result, the file name, and
+    local history carry the mark, not the archive).
+  - Pass 2 re-serializes from the same snapshot (it must hash to the pass-1
+    digest) and streams PCM natively. Each recording must match its digest.
+- **Restore (`BackupRestorer`).** `open` runs the pre-KDF checks, the KDF,
+  the unwrap, a full authentication pass, and reads the manifest for the
+  preview. `stage` streams the archive again, re-authenticating every
+  segment, into a staging sink.
+- **Staging and activation.**
+  - The staging vault (`restore/staging-<128-bit hex>/`) has a fresh
+    in-memory master key, its own SQLCipher database, and re-encrypted AJR1
+    files.
+  - The staging database copies the open, migrated journal's schema and
+    migration history (`sqlite_master` in creation order), so migrations
+    exist only in JavaScript.
+  - Activation follows §9.10 steps 6–7: the current PIN, a written vault
+    record, a synced marker, renames, and cleanup. Startup completes it, or
+    deletes staging, so it is never half done.

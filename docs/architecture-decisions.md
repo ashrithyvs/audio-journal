@@ -407,7 +407,8 @@ cross-platform vectors are frozen in `backup-and-restore.md`.
 - Recordings are limited to 60 minutes. Recording won't start with less
   than 200 MiB free and finishes automatically below 50 MiB (binary units,
   2^20 bytes; owner clarification, 2026-10-10).
-- Unfinished recordings are reconciled at startup.
+- Unfinished recordings are reconciled at startup. Interrupted captures
+  are kept as ready recordings (see **Owner decisions of 2026-10-10**).
 - Recording never depends on transcription: it continues whenever
   transcription is unavailable, slow, cancelled, or failing.
 
@@ -445,13 +446,84 @@ cross-platform vectors are frozen in `backup-and-restore.md`.
   biometric state, node pairing, logs, and caches.
 - **Saving.** The archive is saved through the system document picker,
   then reopened and fully authenticated before success is reported.
-- **Restore.** Restore only targets an empty journal. It works in isolated
-  staging and activates atomically after complete verification. The user then
-  sets a new PIN, and the node must be re-paired.
+- **Restore.** Restore only targets an empty journal (as defined below). It
+  works in isolated staging and activates atomically after complete
+  verification. The user re-enters the current PIN, which then protects the
+  restored vault (owner decision, 2026-10-10). The node must be re-paired.
 - **Format first.** The binary layout and its hostile vectors (tampering,
   truncation, downgrade, excessive memory, malformed fields) and
   cross-platform vectors are frozen in `backup-and-restore.md` before any
   implementation.
+
+### Owner decisions of 2026-10-10 (afternoon)
+
+These amend the sections above. Each is reflected in `backup-and-restore.md`,
+`ux-design.md`, and the LLD, and has tests.
+
+1. **System UI the app opens itself (lock grace).**
+   - The app's own microphone permission dialog and system document picker
+     pause the activity.
+   - While one of those is open, relocking is deferred for at most
+     2 minutes. After that, the app locks anyway.
+   - The privacy curtain and `FLAG_SECURE` stay on throughout.
+   - Any other backgrounding (Home, app switch, screen off) still locks
+     immediately.
+2. **Interrupted captures are kept.** A capture that ended without Finish
+   (lock, process death) is handled at the next unlock as follows:
+   - Reconciliation drops a torn final frame.
+   - It then promotes every authenticated chunk to a ready recording, with
+     finish reason `recovered`.
+   - Only real damage keeps a recording in "needs attention" (recoverable):
+     an authentication or ordering failure before the end of the file. The
+     bytes after the damage are kept.
+3. **Final passes restart after unlock.** This is the explicit policy LLD §9
+   step 5 asks for:
+   - Ready recordings without a full pass are queued after unlock, one at a
+     time.
+   - Passes run on-device only, are cancellable, and never block capture.
+   - A pass that fails in a session is retried only when the user asks.
+4. **Damaged recording during backup.**
+   - By default, the backup stops safely and lists every affected entry
+     (date, title, and damaged component).
+   - Continuing without those entries needs explicit confirmation. Content is
+     never excluded silently.
+   - The result reports the exclusion, and the journal is unchanged.
+   - **Where incompleteness is recorded** (`AJ1-DEC-001`, option B, confirmed
+     by the owner): AJB1 v1 stays byte-frozen, with no manifest field. The
+     result screen shows counts and non-sensitive entry labels, the suggested
+     file name ends in `-incomplete`, and local backup history keeps a
+     counts-only incomplete status.
+   - **Known limitation.** A file that is renamed or moved without its local
+     history cannot prove that damaged entries were omitted.
+   - A self-describing incomplete archive is recorded for a future container
+     (AJB2).
+5. **Restore activation needs the current PIN.**
+   - Being unlocked is not enough: the current PIN is re-entered under the
+     normal attempt policy.
+   - That PIN wraps the restored vault's new master key.
+   - The biometric copy is removed; the user can re-enable it later.
+   - The app locks immediately, and a normal unlock opens the restored
+     journal.
+   - Someone holding an unlocked phone cannot replace the journal without the
+     PIN.
+6. **"Empty journal" for restore.** The journal is empty when it has no
+   ready entries, no needs-attention entries, and no playable recording file.
+   - Tombstones, abandoned drafts, and failed recording artifacts do not block
+     restore.
+   - They are counted on the confirmation screen and need explicit
+     confirmation.
+   - They are discarded together with the old journal (rows and files) when
+     activation completes.
+   - If activation fails, the pre-restore vault is unchanged.
+   - Any visible journal content blocks restore.
+7. **Recovery-key confirmation.**
+   - The phrase is hidden first.
+   - The user then types the words at three distinct positions, chosen with
+     the platform CSPRNG, and they are checked exactly and in order.
+   - On failure the user returns to the phrase and may try again.
+   - Answers are never logged or stored, and a checkbox alone never counts as
+     confirmation.
+   - `FLAG_SECURE` and the privacy curtain stay on throughout.
 
 ## ADR-018: `journal.organize@1` served by an Audio Journal node companion
 

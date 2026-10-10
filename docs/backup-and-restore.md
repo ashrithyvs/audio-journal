@@ -28,15 +28,56 @@ drive the user selected; the app itself does not operate a cloud backup service.
 6. App verifies the final file can be reopened, authenticated, and checksummed
    before reporting success.
 
+**Owner decisions of 2026-10-10:**
+
+- **Recovery key confirmation.** After the 24 words are shown, they are
+  hidden. The user then types the words at three distinct positions chosen
+  with the platform CSPRNG, checked exactly and in order.
+  - A failure returns to the words for another attempt.
+  - Answers are never logged or stored, and a checkbox alone never confirms.
+  - `FLAG_SECURE` and the privacy curtain stay on.
+- **Damaged recordings.** If a recording cannot be read in full (decryption
+  or digest failure), the backup stops safely.
+  - It lists every affected entry with its date, title, and damaged
+    component.
+  - It continues without them only after explicit confirmation.
+  - The journal is never changed, and nothing is excluded silently.
+  - **Recording incompleteness** (`AJ1-DEC-001`, option B, confirmed by the
+    owner). The AJB1 v1 container and manifest are unchanged; no field is
+    added.
+    - The immediate result screen lists the excluded entries: counts and
+      non-sensitive labels.
+    - The suggested file name ends in `-incomplete`.
+    - Local backup history records the incomplete status as counts only.
+    - The manifest never carries IDs, dates, titles, paths, or content.
+  - **Known limitation.** If the file is renamed or moved away from its local
+    history, restore cannot prove that damaged entries were omitted.
+  - A self-describing incomplete archive is left to a future container
+    version (AJB2).
+  - Tests cover cancel, typed confirmation, the file name, local history,
+    the unchanged source journal, and the result-screen disclosure.
+
 ### Restore backup
 
-1. On a fresh/empty journal, the user creates a new local app PIN.
+1. On a fresh/empty journal, the user creates a new local app PIN. **Empty**
+   (owner, 2026-10-10) means no ready entries, no needs-attention entries,
+   and no playable recording file.
+   - Tombstones, abandoned drafts, and failed recording artifacts do not
+     block restore. They are counted on the confirmation screen, need
+     explicit confirmation, and are discarded together (rows and files) when
+     activation completes.
+   - Any visible journal content blocks restore.
 2. User chooses Restore backup and selects an `.ajbackup` file.
 3. User supplies the backup password/recovery key.
 4. App authenticates the archive, validates versions and all checksums, then
    shows created date, entry/recording counts, and required storage.
-5. After confirmation, app restores into a staging vault, validates it, and
-   atomically activates it.
+5. After confirmation, app restores into a staging vault and validates it.
+   The user then **re-enters the current PIN** (owner, 2026-10-10).
+   - Being unlocked is not enough, and the normal attempt policy applies.
+   - That PIN wraps the restored vault's master key, and the app activates it
+     atomically.
+   - The biometric copy is removed.
+   - The app locks at once, and a normal unlock opens the restored journal.
 6. User re-enables biometrics and re-pairs the Private AI Node; those credentials
    are deliberately not portable in the archive.
 
@@ -462,6 +503,10 @@ any segment), then the section, manifest, record, and digest codes of
    length, SHA-256, and counts, and every recording's PCM size and
    digest. Ready recordings take the digest from the database;
    recoverable ones are decrypted and hashed chunk by chunk.
+   - A recording that fails decryption or its digest stops the export with
+     the affected entries listed (§2).
+   - It is excluded only after explicit confirmation, together with its
+     entry and segments, so the archive stays referentially complete.
 2. Check limits and free space.
 3. Run the KDF and wrap the DEK.
 4. In pass 2, stream the sections through the segment sealer into
@@ -483,9 +528,25 @@ one record line, plus an AJR1 chunk.
 3. Run the cross-record checks.
 4. Stream each RECORDING, re-encrypting it to AJR1 while hashing it.
 5. Read END and confirm the final segment authenticated.
-6. The user sets the new PIN, which wraps the staging master key.
-7. Activate with one same-filesystem directory rename and a vault-pointer
-   switch.
+6. The user re-enters the current PIN (owner, 2026-10-10).
+   - The attempt policy applies.
+   - The PIN wraps the staging master key in a new vault record.
+   - The biometric copy is not carried over.
+7. Activate with same-filesystem renames and a vault switch, made
+   crash-safe by a marker:
+   1. Write the new vault record beside the vault and sync it.
+   2. Write and sync an activation marker naming the staging directory.
+      Before this point, any failure discards staging, and the pre-restore
+      vault is unchanged.
+   3. Move the old journal directories aside, rename the staging journal
+      and recordings into place, and replace the vault record.
+   4. Delete the marker, the old directories (with any tombstones), and
+      staging.
+
+   At startup, a marker means step 3 is completed or undone from the kept
+   old directories; it is never left half done. Without a marker, every
+   staging leftover is deleted. The app then locks, and the user unlocks
+   into the restored journal.
 
 **Cleanup:**
 
