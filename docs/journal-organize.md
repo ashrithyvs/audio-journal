@@ -10,9 +10,19 @@ capability as an opaque node capability; it is not part of the SDK.
 - `organize-input.schema.json`: the request input (JSON Schema, Draft 7);
 - `organize-output.schema.json`: the result (JSON Schema, Draft 7);
 - `organize-partial.schema.json`: the streamed `partial` delta;
-- `vectors.json` and its case files: deterministic test vectors, rebuilt by
-  `tools/journal-organize/generate-vectors.mjs --check` and checked
-  independently by `tools/journal-organize/verify_vectors.py`.
+- `vectors.json` (manifest: file digests, the §8.1 budget, and counts) and
+  `vectors/`: `fixtures.json` (7 requests, including one exactly at the input
+  cap), `inputs.json` (37 cases), `results.json` (68 cases), `events.json`
+  (12), `envelopes.json` (4 whole messages at and one byte over 61,440
+  bytes), and `request-keys.json` (7, under a published test key).
+  - `node tools/journal-organize/generate-vectors.mjs --check` rebuilds every
+    file byte for byte.
+  - `python3 -I tools/journal-organize/verify_vectors.py schemas/journal/v1`
+    is the independent verifier: written from this text, it interprets the
+    schemas with its own Draft 7 subset, applies §6 and §6.1, recomputes
+    envelope sizes, request keys, and digests, and must report 0 failures.
+  - The schema files also compile in Ajv 6 (Draft 7), which accepts every
+    valid case.
 
 JSON Schema expresses the shape. The cross-field rules in §6 (references,
 digests, ranges, order, duplicates) are normative too; they cannot be stated
@@ -26,7 +36,7 @@ in Draft 7 and are checked by the app and the independent verifier.
 | `version` | `1.0.0` (the SDK sends the major only and binds the highest `1.x.y` the node advertises) |
 | `inputSchema`, `outputSchema` | the two schema files above, inline in the node's `/v1/capabilities` |
 | `streaming` | `true` (otherwise the SDK drops progress and partial events) |
-| `maximumInputBytes` | `61440` |
+| `maximumInputBytes` | `61108` (§8.1) |
 | `preferred` | `node` |
 
 - **Execution is `node` only.** The app calls the SDK's public `stream()`
@@ -40,8 +50,9 @@ in Draft 7 and are checked by the app and the independent verifier.
 ## 2. Request input
 
 The input is one JSON object. Its canonical form (keys sorted, compact,
-UTF-8; §8) is at most **61,440 bytes**. The app refuses to send a larger
-selection and says so; it never truncates content.
+UTF-8; §8) is at most **61,108 bytes**, so that the whole job request,
+envelope included, stays within 61,440 bytes (§8.1). The app refuses to send
+a larger selection and says so; it never truncates content.
 
 ```json
 {
@@ -73,8 +84,9 @@ selection and says so; it never truncates content.
 ```
 
 - **`contract`**: the constant `journal.organize@1`.
-- **`requestKey`**: `org_` plus 26 Crockford base32 characters, new for every
-  user action (§9).
+- **`requestKey`**: `org_` plus 26 Crockford base32 characters, an opaque
+  keyed digest of the rest of the request (§9). It is the same for an
+  identical request and changes whenever the request changes.
 - **`locale`**: `^[a-z]{2,3}(-[A-Z]{2})?$`. **`timeZone`**: an IANA name,
   `^[A-Za-z]+(/[A-Za-z0-9_+-]+){0,2}$`, or `UTC`. Both are context only; v1
   derives no dates (§12, O-1).
@@ -148,8 +160,8 @@ no personal information; they are needed so results can cite their sources.
   engine rule that produced it), and `sources`, 1–8 references. Tasks also
   carry `area`: `work`, `personal`, or `unsorted`.
 - **Bounds.** At most 50 items per list and per section, 1,000 references
-  in total, and 61,440 bytes in canonical form (the SDK carries the whole
-  `completed` event in one WebSocket frame).
+  in total, and **61,387 bytes** in canonical form, so that the whole
+  `completed` event message stays within 61,440 bytes (§8.1).
 - **Text.** Single-line, well-formed UTF-16, no control, bidi override, or
   isolate characters, and not blank. The app renders it as plain text
   (security §7); it is never executed or followed.
@@ -219,7 +231,7 @@ verifier reports the same sub-code for every vector.
 
 | # | Sub-code | Rule |
 |---|---|---|
-| 1 | `RESULT_SIZE` | The canonical output is at most 61,440 bytes, and nesting depth is at most 8. |
+| 1 | `RESULT_SIZE` | The canonical output is at most 61,387 bytes (§8.1), and nesting depth is at most 8. |
 | 2 | `RESULT_SCHEMA` | The output matches `organize-output.schema.json`: types, required and unknown fields, enums, patterns, lengths, and counts. Keys `__proto__`, `constructor`, and `prototype` are unknown fields. |
 | 3 | `RESULT_ECHO` | `contract`, `requestKey`, and `inputSha256` equal the request's. |
 | 4 | `RESULT_KINDS` | Exactly the requested kinds are present; sections are ordered and unique. |
@@ -231,9 +243,38 @@ verifier reports the same sub-code for every vector.
 | 10 | `RESULT_DUPLICATE` | Within a list or section, no two items have the same normalized text (NFC, lower-case, whitespace collapsed). |
 
 Checks run over the output in document order: `summary`, `sections`,
-`tasks`, `ideas`, `people`, `projects`. Request inputs are validated the same
-way by the node (`organize-input.schema.json` plus §2), and an invalid input
-fails with `SCHEMA_VALIDATION_FAILED`.
+`tasks`, `ideas`, `people`, `projects`.
+
+**Definitions used by the rules:**
+
+- **Lengths** are UTF-16 code units, everywhere in this contract. JSON
+  Schema's `maxLength` counts code points, so the schema files are looser;
+  stage 2 enforces the UTF-16 limits.
+- **Forbidden characters** in any text: U+0000–U+001F (except LF and TAB in
+  written input units), U+007F–U+009F, U+2028, U+2029, U+202A–U+202E,
+  U+2066–U+2069, and unpaired surrogates. Output texts allow no LF or TAB.
+- **Blank** means empty after removing every Unicode space separator
+  (category Zs).
+- **Normalized text** (duplicates): NFC, then lower-case (Unicode default
+  case mapping), then each run of Zs characters becomes one U+0020, then
+  leading and trailing U+0020 are removed.
+- **Parse failures** (invalid JSON or UTF-8, duplicate keys, trailing data)
+  are reported as `RESULT_SCHEMA`.
+
+### 6.1 Input validation (node, and the app before sending)
+
+| # | Sub-code | Rule |
+|---|---|---|
+| 1 | `INPUT_SIZE` | Canonical input at most 61,108 bytes (§8.1); nesting depth at most 8. |
+| 2 | `INPUT_SCHEMA` | Matches `organize-input.schema.json` with UTF-16 lengths; at most 400 units in total. |
+| 3 | `INPUT_TEXT` | Unit texts follow the character rules and are not blank. |
+| 4 | `INPUT_DIGEST` | Every unit's `sha256` matches its text. |
+| 5 | `INPUT_DUPLICATE` | `entryId` unique in the request; `unitId` unique in its entry. |
+| 6 | `INPUT_RANGE` | Voice units: `startMs < endMs ≤ durationMs`. Written units: `offset + text.length ≤ 200000`. |
+| 7 | `INPUT_ORDER` | Entries strictly increasing by (`createdAt`, `entryId`); voice units non-decreasing by `startMs`; written units by increasing `offset`, not overlapping. |
+
+The node fails an invalid input with `SCHEMA_VALIDATION_FAILED`; the app
+never sends one.
 
 ## 7. Persistence
 
@@ -259,30 +300,66 @@ shown).
 ## 8. Canonical JSON and digests
 
 Canonical JSON is compact, with object keys sorted by UTF-16 code units,
-strings escaped minimally (`"`, `\`, and control characters as `\uXXXX`
-except `\b \f \n \r \t`), integers without fractions or exponents, and no
-non-integer numbers. `inputSha256` and the 61,440-byte limits use the UTF-8
-bytes of this form. Parsers reject duplicate keys, trailing data, nesting
-deeper than 32, and invalid UTF-8.
+strings escaped minimally (`"`, `\`, control characters and unpaired
+surrogates as lower-case `\uxxxx`, except `\b \f \n \r \t`), integers
+without fractions or exponents, and no non-integer numbers. `inputSha256`
+and every byte limit use the UTF-8 bytes of this form. Parsers reject
+duplicate keys, trailing data, nesting deeper than 32, and invalid UTF-8.
+
+### 8.1 Message budget
+
+Every protocol message carrying journal content is at most **61,440 UTF-8
+bytes, envelope included** (below the SDK's 64 KiB message limit and one
+unfragmented 65,535-byte WebSocket text frame). The envelopes are fixed by
+the SDK's published node schemas, so the content caps follow exactly:
+
+- **Job request** (`POST /v1/jobs`, `job-request.schema.json`): at its
+  largest the envelope adds 332 bytes (a 64-character `requestId`, a
+  128-character `idempotencyKey`, version `99.99.99`, deadline `120000`, and
+  `stream:false`). The input cap is therefore 61,440 − 332 = **61,108**
+  bytes, advertised as `maximumInputBytes`.
+- **`completed` event** (`execution-event.schema.json`,
+  `{"data":{"output":…},"sequence":64,"type":"completed"}`): the envelope adds
+  53 bytes, so the output cap is 61,440 − 53 = **61,387** bytes. The
+  companion also measures each serialized event message it sends and fails
+  the job rather than send one over 61,440 bytes.
+
+The vectors include requests and results exactly at these caps and one byte
+over them.
 
 ## 9. Idempotency and retry safety
 
 - **SDK level.** The SDK creates one idempotency key per `stream()` call and
   the node replays a job for the same key and body (SDK ADR-021).
-- **App level.** `requestKey` is unique per user action and unique in
-  `derivations`, so one action can never be stored twice, even if a result
-  were delivered twice.
-- **Node level.** The node keeps a completed result for `(pairing,
-  requestKey)` for the job retention window and returns it again for the same
+- **The request key.** `requestKey` is `org_` plus the first 26 characters
+  of the Crockford base32 encoding (lower-case alphabet
+  `0123456789abcdefghjkmnpqrstvwxyz`, most significant bit first) of
+  `HMAC-SHA256(K, "journal.organize@1" || 0x00 || C)`, where `C` is the
+  canonical input with the `requestKey` member removed, and `K` is a random
+  32-byte key the app creates once and keeps in its encrypted database. It
+  is opaque: it reveals nothing about the journal, even to someone who can
+  guess candidate content, and it changes whenever the request changes.
+- **Reuse.** A retry of an identical request (same entries, text, digests,
+  kinds, locale, and time zone) reuses the same `requestKey`; any change gives
+  a new one.
+- **App level.** `requestKey` is unique in `derivations`. When an identical
+  request was already stored, the app shows that derivation and stores
+  nothing new, so a result can never be stored twice.
+- **Node level.** Within the job retention window, the node returns the same
+  result again for the same `(pairing, requestKey)` and the same
   `inputSha256`; the same `requestKey` with a different input fails with
-  `EXECUTION_FAILED`.
-- **Retry.** "Try again" is a new action with a new `requestKey`. Because the
-  engine is deterministic, the same input gives byte-identical output.
+  `EXECUTION_FAILED`. Job-level replay for the SDK's idempotency key is
+  separate and follows SDK ADR-021.
+- **Determinism.** The same input gives byte-identical output.
 
 ## 10. Node companion obligations
 
 The companion (`node-companion/`, ADR-018) is a Private AI Node in its own
-right. For this capability it must: advertise the descriptor in §1;
+right, built only from the SDK's published protocol (ADR-021, ADR-022),
+schemas, and vectors. It keeps the frozen Android support profile: TLS 1.3,
+and for Android API 26–28 TLS 1.2 restricted to ECDHE-ECDSA AES-GCM or
+ChaCha20-Poly1305 with Extended Master Secret, refusing a TLS 1.2 session
+without EMS. For this capability it must: advertise the descriptor in §1;
 validate every input (§2, §6 order for inputs); produce only results that
 pass §6; keep job inputs and results in memory only, for at most the
 protocol's retention (32 jobs, 15 minutes); and log no journal content, only
@@ -310,6 +387,8 @@ codes, counts, and durations.
    is stored.
 10. **Selection** is whole entries, 1–20, within the size limit.
 11. **IDs** sent are the real opaque local IDs.
+12. **Retry key** is an opaque keyed digest of the request (§9), reused only
+    for an identical request.
 
 ## 12. Open questions (not frozen)
 
@@ -321,4 +400,3 @@ codes, counts, and durations.
 | O-4 | Retention and deletion of derivations and tasks (Open decision 6). | Deletion features; nothing is deleted in v1. |
 | O-5 | Including derivations and task states in backups (AJB1 domain schema v2, reserved). Until then backups do not carry them, and a restore has none. | AJB1 v2. |
 | O-6 | Whether the companion also serves `document.analyze@1`, so the AJ-3 diagnostics test works against it. | Diagnostics against the companion only. |
-| O-7 | Companion TLS 1.2 with EMS for Android 8.0–9 (API 26–28). v1 accepts TLS 1.3 only. | Pairing from Android 9 and older. |

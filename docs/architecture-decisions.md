@@ -580,9 +580,10 @@ code, character ranges, and which items must cite sources.
 **Decision:** `docs/journal-organize.md` is the normative contract, with the
 schemas and vectors in `schemas/journal/v1/`. In summary:
 
-- **Capability:** `journal.organize` `1.0.0`, streaming, at most 61,440 input
-  bytes, executed only on the paired node (`execution: 'node'`), with a
-  60 s deadline and no fallback.
+- **Capability:** `journal.organize` `1.0.0`, streaming, executed only on
+  the paired node (`execution: 'node'`), with a 60 s deadline and no
+  fallback. Every message carrying journal content is at most 61,440 bytes
+  with its envelope: inputs up to 61,108 bytes and results up to 61,387.
 - **Input:** 1–20 whole entries. Voice entries send the current transcript
   (newest full pass, correction heads) with segment IDs and timings; written
   entries send paragraph units with their offsets. Every unit carries a
@@ -592,6 +593,8 @@ schemas and vectors in `schemas/journal/v1/`. In summary:
   projects, as requested. Every item cites 1–8 source references with exact
   UTF-16 character ranges and, for voice, an audio range inside the cited
   segment. The result echoes `requestKey` and the input digest.
+  `requestKey` is an opaque HMAC of the canonical request under an app-local
+  key: reused only for an identical request, never revealing content.
 - **Validation:** a fixed rule order (`journal-organize.md` §6) with
   diagnostic sub-codes; any violation discards the result as
   `INVALID_RESULT`. Partials carry counts only and are never persisted.
@@ -599,14 +602,20 @@ schemas and vectors in `schemas/journal/v1/`. In summary:
   its scope, tasks, and references; `requestKey` is unique, so a delivery
   can never be stored twice. Sources are never written.
 - **Companion:** an independent ADR-021/ADR-022 node in `node-companion/`
-  (Node.js 22, no dependencies), TLS 1.3 only in v1, holding job content in
-  memory only, within the protocol's retention.
+  (Node.js 22), built only from the SDK's published protocol, schemas, and
+  vectors. It keeps the frozen Android support profile: TLS 1.3, and on
+  API 26–28 the restricted TLS 1.2 profile (ECDHE-ECDSA AEAD suites with
+  Extended Master Secret, refused without EMS). Certificates and ASN.1 come
+  from a pinned, established dependency, never hand-written DER; primitives
+  come from Node's OpenSSL. Job content stays in memory only, within the
+  protocol's retention.
 
 **Consequences:** the LLD `local | auto` wording, `AI_RESULT_INVALID`, and
 single `segmentId` references are superseded for this capability (§11 of the
-contract). Open questions O-1 to O-7 (due dates, stale-source display,
-editing, retention, AJB1 v2, diagnostics on the companion, and TLS 1.2 with
-EMS) block only the work they name.
+contract). Open questions O-1 to O-6 (due dates, stale-source display,
+editing, retention, AJB1 v2, and diagnostics on the companion) block only
+the work they name. F5 and request-path revocation remain SDK defects
+(SDK-AJ-1, SDK-AJ-2); the app keeps its compatibility workaround.
 
 ## Open decisions before implementation
 

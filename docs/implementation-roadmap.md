@@ -169,7 +169,7 @@ to the Hybrid AI SDK release evidence where required.
       (live UX approved, ADR-017).
 - [x] `journal.organize@1` ownership and runtime decided (ADR-018); contract,
       schemas, and vectors frozen in AJ-2.0 (ADR-019, `journal-organize.md`),
-      with open questions O-1 to O-7 listed there.
+      with open questions O-1 to O-6 listed there.
 - [x] Android minimum API 26 reconciled with the SDK; compile API 36 is required
       by React Native 0.87 while target API remains 35.
 - [ ] iOS minimum version reconciled and built on macOS/Xcode.

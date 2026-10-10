@@ -139,7 +139,7 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
     `schemas/journal/v1/`, `tools/journal-organize/`, `node-companion/`,
     `src/features/organize/`, `src/platform/hybrid-ai/`, storage migration 3,
     and their tests. The Hybrid AI SDK repository is read only.
-  - **Open questions:** `docs/journal-organize.md` §12 (O-1 to O-7).
+  - **Open questions:** `docs/journal-organize.md` §12 (O-1 to O-6).
 - **Exclusive runs.** Benchmarks, emulator suites, Gradle/CMake builds, and
   Jest baselines never overlap. Create
   `/home/igdclt0603/Desktop/Ash/.aj-exclusive-run` (owner, purpose, start)
