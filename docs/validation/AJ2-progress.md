@@ -1,6 +1,6 @@
 # AJ-2 Progress Validation
 
-**Date:** 2026-10-11, amended 2026-10-12
+**Date:** 2026-10-11, amended 2026-10-12 (AJ-2.2, §9)
 **Branch:** `aj2/organize` (worktree `../audio-journal-aj2`), from `main`
 `c5fb510`. Not merged, not pushed, not released.
 
@@ -21,8 +21,9 @@ AJ-2 is **not accepted**:
 
 - final cancellation acceptance is blocked by SDK-AJ-5 until a fixed
   packaged SDK is re-tested;
-- the full Organized and Tasks UI (AJ-2.2) waits for the owner's decisions
-  on O-1 to O-3;
+- AJ-2.2 (Organized and Tasks, after the owner's approval of O-1 to O-3
+  with amendments) is implemented and validated on emulators (§9), but not
+  accepted;
 - O-4 to O-6, and the chunking part of O-7, stay deferred;
 - the physical-device and iOS gates are deferred, not passed.
 
@@ -58,12 +59,16 @@ AJ-2 is **not accepted**:
 - amendment A1 (owner decision on O-7, 2026-10-11): a result that leaves out
   lower-ranked items is explicitly `partial`, with per-kind `omitted`
   counts. It is validated by `RESULT_COMPLETENESS` and disclosed in the UI;
-  nothing is dropped silently, and there is no chunk-and-merge in v1.
+  nothing is dropped silently, and there is no chunk-and-merge in v1;
+- amendment A2 (owner decision on O-1, 2026-10-12): explicit English due
+  dates, re-derived by the app (`RESULT_DUE`);
+- ADR-020 (owner decisions on O-2 and O-3, 2026-10-12): history per
+  canonical selection, computed staleness, task states, and conservative
+  carry-over.
 
-**Proposed, not frozen:** the open questions O-1 to O-7 in §12 (due dates,
-stale-source display, editing and task carry-over, retention, backups,
-diagnostics on the companion, and entries too long for one request). They
-block only the stages named there.
+**Proposed, not frozen:** the open questions O-4 to O-6, and the chunking
+part of O-7, in §12 (retention, backups, diagnostics on the companion, and
+entries too long for one request). They block only the stages named there.
 
 **Implementation choices recorded in the LLD (§7.2), not contract
 changes:**
@@ -77,9 +82,10 @@ changes:**
 
 | Artifact | Count |
 |---|---|
-| Fixtures | 7, one exactly at the 61,108-byte input cap |
-| Input cases | 37 (7 valid) |
-| Result cases | 79 (10 valid): exactly at the 61,387-byte output cap, one byte over, and (amendment A1) partial results, including one at the cap, plus 9 completeness cases |
+| Fixtures | 8, one exactly at the 61,108-byte input cap, and (A2) one dated |
+| Input cases | 38 (8 valid) |
+| Result cases | 93 (11 valid): exactly at the 61,387-byte output cap, one byte over, and (amendment A1) partial results, including one at the cap, plus 9 completeness cases; (A2) 14 due-date cases |
+| Due-date cases (A2) | 68 (40 valid), each with a literal expected date or rejection |
 | Event sequences | 12 |
 | Whole-message envelopes | 4: request and completed event, each at 61,440 bytes and one byte over |
 | Request keys | 7, under a published test key |
@@ -92,7 +98,7 @@ Four independent checks pass on these artifacts:
 - the app's TypeScript validator reaches every verdict and sub-code
   (`unit-tests/organizeContract.test.ts`).
 
-The app's request builder rebuilds all 7 fixtures byte for byte from journal
+The app's request builder rebuilds all 8 fixtures byte for byte from journal
 entries, including the one at the input cap
 (`unit-tests/organizeController.test.ts`).
 
@@ -178,7 +184,9 @@ overhead, not model-backed inference or organization quality.
 See the [organize performance suite](AJ2-organize-performance.md#5-results).
 In summary:
 
-The current run is `perf-api35-run2` on the amended build `ad430fc`:
+This was the current run for the A1 amendments: `perf-api35-run2` on the
+amended build `ad430fc`. The cumulative AJ-2.2 rerun, `perf-api35-run3`,
+supersedes it (§9).
 
 - all 126 organize runs completed and were validated, with persistence
   rehearsed in rolled-back transactions; none was committed (the stored
@@ -289,7 +297,6 @@ the "Source · 0:00–0:11" citation.
 
 ## 7. Deferred gates
 
-- The full Organized and Tasks UI, which depends on O-1 to O-3.
 - Physical-device runs. Only emulators were used.
 - iOS: no macOS/Xcode evidence.
 - Cancellation acceptance: blocked by SDK-AJ-5 until a fixed packaged SDK
@@ -307,4 +314,109 @@ the "Source · 0:00–0:11" citation.
 | 3 | SDK-AJ-5 is a blocker for cancellation acceptance, handed to the SDK owner; the SDK stays read only | done; **blocker open** | [SDK-AJ-5](hybrid-ai-sdk-issues.md#sdk-aj-5-a-cancel-during-a-pending-event-read-is-not-sent-to-the-node): root cause, reproduction, and the re-test (`--expect-node-cancel`). Node-side readiness is proven on the host (protocol test "a cancelled job keeps no result") |
 | 4 | A real voice-entry device journey through to the cited audio range | done | §5.4: 7/7 on `cc763bd`. It covers capture, the on-device final pass, organize through the public SDK, provenance validation, persistence, the cited line, and playback of the exact range. The synthetic duration ladder stays in the performance suite |
 | 5 | The performance runs are rehearsed (rolled-back) persistence, not committed derivations | done | The benchmark's outcome is `rehearsed`; the reports are reworded. The committed storage evidence is §5.1 and §5.4 |
+
+## 9. AJ-2.2: Organized and Tasks (2026-10-12)
+
+The owner approved O-1, O-2, and O-3 with amendments (2026-10-12). AJ-2.2
+is implemented on `aj2/organize`. It is not merged, pushed, released, or
+accepted.
+
+**Decisions** (permanent records):
+
+- O-1, due dates: contract §3.3 and amendment A2 (ADR-019);
+- O-2, history and staleness: ADR-020;
+- O-3, task states and carry-over: ADR-020.
+
+| Commit | Content |
+|---|---|
+| `c0edd93` | Amendment A2 and ADR-020: due-date grammar, schemas, vectors (68 literal due-date cases), Python verifier, companion engine and validator, app validator |
+| `10ced20` | Migration 4 (due date, predecessor, immutability trigger), canonical scope, computed staleness, conservative carry-over, repository queries, lineage tests |
+| `d865385` | Organized, History, and Tasks views; source labels with the entry's moment; the edited-source view; UX §7, LLD §7.3, HLD, UML, roadmap |
+| this commit | The Organized and Tasks device journey, shared voice helpers, evidence, these reports, coordination |
+
+**Required cases, and where each is tested:**
+
+| Case | Test |
+|---|---|
+| Due-date vectors (boundary, leap year, month end, time-zone crossing, rejected phrases) | `vectors/due-dates.json`: the Python verifier, the companion (`test/dates.test.mjs`), and the app (`unit-tests/organizeContract.test.ts`) agree on all 68 |
+| A date the app cannot reproduce is rejected | result vectors `due-*`, including `due-tz-crossing-utc-date` (`RESULT_DUE`) |
+| Canonical selection identity (reordered, repeated) | `unit-tests/organizeViews.test.ts`, `organizeRequest.test.ts`, `integration-tests/organizeLineage.test.tsx` |
+| Duplicate task, corrected line, re-transcription, changed written text, reordered output | `unit-tests/organizeCarryOver.test.ts` (7), `integration-tests/organizeLineage.test.tsx` (6) on SQLite |
+| Stale marks, the cited source as cited and as now, explicit Reorganize with consent, history, carried state | `integration-tests/organizedTasks.test.tsx` (3) and the device journey below |
+| Due-date groups and Done, Dismiss, and Restore | `integration-tests/organizedTasks.test.tsx`, `unit-tests/organizeViews.test.ts`, and the device journey |
+
+**Host validation (`d865385`):**
+
+| Suite | Result |
+|---|---|
+| `npm run test:baseline` | format, typecheck, lint; unit 308, smoke 3, integration 153, performance 6 |
+| Companion `npm test` | 42/42 |
+| Vectors `--check`, Python verifier | 8 fixtures, 38 input, 93 result, 68 due-date cases; 0 mismatches, 0 failures |
+| Engine golden, contract copies | 8 fixtures unchanged; 0 problems |
+| JVM `:app:testDebugUnitTest` | 61/61 |
+| Builds | release and `e2e` pass; archived in `aj2-device/apk-d865385/` with SHA-256 |
+
+**Organized and Tasks device journey** (`e2e/aj2/organized-tasks.mjs`,
+API 35 emulator, `e2e` build, run 4: **11/11**). The emulator's zone is
+Asia/Kolkata. The entry was saved at about 02:12 IST on Monday 12 October,
+which is 20:42 UTC on 11 October, so the run crosses the UTC date line.
+
+| Step | Proves |
+|---|---|
+| T01 | The companion's engine dates four tasks. The app's validator re-derives each date on Hermes and stores the result (a disagreement would be `RESULT_DUE`). The host derives the same dates independently: today 2026-10-12 (not the UTC date), tomorrow 2026-10-13, "by Friday" 2026-10-16, "14 November" 2026-11-14 |
+| T02 | Tasks groups them as Today, Upcoming (in date order), and No date, with labels "Due today" and "Due Tue 13 Oct 2026" |
+| T03 | Done, Restore, Dismiss, and Restore move rows between groups |
+| T04 | A task's source reads "Source · Oct 12, 2:12 AM · paragraph 3" and opens the cited sentence |
+| T05–T06 | A recorded voice entry, with its first line corrected, is organized; its task is marked done |
+| T07 | A second correction marks the result and the task stale, without hiding either. The source opens as cited ("I need to call the plumber.") and as it reads now ("So I need to call the plumber.") |
+| T08 | Reorganize sends nothing before consent. After it, revision 2 is current and not stale, and the task stays done, "kept from earlier" |
+| T09 | History lists both revisions; revision 1 stays marked stale |
+| T10 | No entry phrase in the device log or the companion log |
+
+Runs 1 to 3 failed on harness defects, which are now fixed; the app was
+unchanged across all four runs:
+
+- run 1: the Diary tab reopened on the last entry, not the timeline;
+- run 2: a card heading "Tasks" was tapped instead of the tab;
+- run 3: the privacy scan matched the word "rent" inside system identifiers
+  such as `currentUser`. Both logs contained none of the entry's phrases;
+  the scan now looks for whole phrases.
+
+**Cumulative suites on the AJ-2.2 builds** (API 35 emulator `aj-api35-4g`,
+run one after another under `.aj-exclusive-run`; APKs from `d865385`):
+
+| Suite | Build | Result | Notes |
+|---|---|---|---|
+| Functional `organize-e2e.mjs` O00–O08 (`functional-aj22-api35/`) | release | **9/9** | O03: nothing stored, but the node finished the job 45.8 s after the cancel (SDK-AJ-5, unchanged SDK). O06: a 60,045-byte request and a completed message of exactly 61,440 bytes. O07: 5 runs, p50 4,334 ms. O08: logs clean, every handshake on the profile |
+| Voice journey `voice-journey.mjs` V00–V06 (`voice-aj22-api35/`) | `e2e` | **7/7** | Uses the shared `lib/voice.mjs` helpers |
+| Organized and Tasks `organized-tasks.mjs` T00–T10 (`organized-api35-run4/`) | `e2e` | **11/11** | Above |
+| AJ-3 regression `e2e/android/aj3-e2e.mjs` S00–S19 (`aj3-regression-d865385/`) | release | **20/20** | One fresh, non-resumed run (attempt 1), 02:50–03:32 IST, APK SHA-256 `98ac7e4b…58eb`, against the SDK repository's reference node (read only), with `--expect-persistent-pin`. S19: logs clean |
+| Performance `organize-perf.mjs` (`perf-api35-run3/`) | release | **complete** | 126/126 measured runs validated and rehearsed (42 explicitly partial); 20/20 typed refusals and rejections; 5/5 cancelled app-side, none at the node (SDK-AJ-5); 3/3 deadlines. Warm completion 41–55 ms p50 from 30 s to 10 min, 160 ms at the cap. A2 dates one fixture sentence, so 10 minutes now omits 4 items, not 3 ([performance §5](AJ2-organize-performance.md#5-results)) |
+
+**Harness changes in this stage** (test code only; the app is unchanged):
+
+- `e2e/aj2/organized-tasks.mjs` is new.
+- `e2e/aj2/lib/voice.mjs` holds the pinned sample, capture, and
+  child-text helpers. The voice journey now uses it, and passed 7/7 after
+  the move.
+- `e2e/android/aj3-e2e.mjs`: `openDiagnostics` scrolls to the request card
+  and back to the top. AJ-2.1 (`491dfd9`) added the Organize benchmark
+  card above it, which put the card below the fold, so the unscrolled wait
+  failed at S02 on the first attempt (`aj3-regression-d865385-attempt1-s02-fold/`).
+  An attempt before that stopped before S00 because the NSD fixture APK is
+  built only in the main checkout; the runs pass it with `--fixture`.
+
+**SDK-AJ-5 and cancellation acceptance.** SDK-AJ-5 still blocks final AJ-2
+cancellation acceptance:
+
+- the closing test, `organize-e2e.mjs --only O00,O03 --expect-node-cancel`,
+  is prepared but cannot pass until a fixed packaged SDK is installed;
+- on this build, O03 and the performance suite's cancel block reproduce
+  the defect again;
+- the companion's own `DELETE` handling is proven by direct calls to the
+  companion ("a cancelled job keeps no result"). That proves the companion
+  only; it does not close the SDK defect.
+
+**Not done here:** physical-device and iOS runs (deferred gates); O-4 to
+O-6 and the chunking part of O-7 (deferred by the owner).
 

@@ -6,11 +6,11 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 ## Current snapshot
 
 - **Phase:** AJ-1 (Android, emulator evidence) and the AJ-3 node workflow are on
-  `main`; neither milestone is accepted. AJ-2.0 and AJ-2.1 are implemented on
-  branch `aj2/organize` (not merged); AJ-2 is not accepted.
+  `main`; neither milestone is accepted. AJ-2.0, AJ-2.1, and AJ-2.2 are
+  implemented on branch `aj2/organize` (not merged); AJ-2 is not accepted.
 - **Branch:** `main`.
-- **Last agent:** Claude Code `hybridai-81` (AJ-2.0/2.1 on `aj2/organize`).
-- **Last updated:** 2026-10-11.
+- **Last agent:** Claude Code `hybridai-81` (AJ-2.2 on `aj2/organize`).
+- **Last updated:** 2026-10-12.
 - **AJ-3 (updated 2026-10-10 19:40 by `hybridai-7b`).** The Android node
   workflow passes 20 of 20 device steps on the AJ-1 fix build `72ee323`, in
   a fresh run. The milestone is not accepted:
@@ -33,8 +33,10 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
   - AJ-2.0 and AJ-2.1 are implemented on `aj2/organize`
     ([AJ-2 progress](validation/AJ2-progress.md)): the frozen
     `journal.organize@1` contract, `node-companion/`, and the app
-    integration through the public SDK. The Organized/Tasks UI has not
-    started.
+    integration through the public SDK. AJ-2.2 (due dates, history,
+    staleness, task states, and the Organized and Tasks UI) is implemented
+    and validated on emulators
+    ([AJ-2 progress §9](validation/AJ2-progress.md#9-aj-22-organized-and-tasks-2026-10-12)).
 
 ## Parallel-work claims (updated 2026-10-10 00:25 IST)
 
@@ -211,6 +213,33 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
     - `node-companion/` (engine and validator);
     - `src/features/organize/`, storage migration 4, `src/app/navigation/`;
     - `e2e/aj2/`, and the UX, LLD, and validation documents.
+  - **AJ-2.2 handoff (2026-10-12):** implemented and validated on emulators;
+    not merged, pushed, released, or accepted.
+    - **Commits:** `c0edd93` (A2, ADR-020), `10ced20` (migration 4,
+      carry-over, staleness), `d865385` (Organized, History, and Tasks
+      views), and the evidence commit.
+    - **Permanent docs:** contract §3.3 and A2, ADR-019, ADR-020, UX §7,
+      LLD §7.3, HLD, UML, roadmap §4,
+      [AJ-2 progress §9](validation/AJ2-progress.md#9-aj-22-organized-and-tasks-2026-10-12),
+      and SDK-AJ-5 in `hybrid-ai-sdk-issues.md`.
+    - **Validation:** `npm run test:baseline` (unit 308, smoke 3,
+      integration 153, performance 6); companion 42/42; vectors `--check`
+      and the verifier with 0 failures (68 due-date cases); JVM 61/61;
+      release and `e2e` builds. Device (API 35 emulator, sequential under
+      the lock): Organized and Tasks 11/11, functional 9/9, voice journey
+      7/7, the performance rerun complete (`perf-api35-run3`), and the AJ-3
+      regression S00–S19 20/20 (fresh run, `aj3-regression-d865385`).
+      Evidence: `aj1-artifacts/evidence/aj2-device/`.
+    - **Harness fixes:** the AJ-3 harness scrolls to the diagnostics request
+      card, which AJ-2.1's benchmark card pushed below the fold; the voice
+      helpers moved to `e2e/aj2/lib/voice.mjs`.
+    - **Blocked:** final cancellation acceptance, on SDK-AJ-5. The
+      re-test (`--expect-node-cancel`) is prepared but cannot pass until a
+      fixed packaged SDK is installed. Companion `DELETE` evidence proves
+      the companion only. It still reproduces on `d865385` (O03).
+    - **Remaining:** owner review of AJ-2.2; the SDK-AJ-5 fix and re-test;
+      O-4 to O-6 and O-7 chunking (deferred); physical-device and iOS
+      gates.
   - **Emulators:** stopped; `.aj-exclusive-run` is released.
 - **Exclusive runs.** Benchmarks, emulator suites, Gradle/CMake builds, and
   Jest baselines never overlap. Create

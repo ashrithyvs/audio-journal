@@ -18,7 +18,6 @@
 // No audio is committed: the sample comes from the speech engine's pinned
 // whisper.cpp source tree. The synthetic duration ladder for repeatable
 // performance stays in organize-perf.mjs.
-import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -35,6 +34,7 @@ import {
 } from '../aj1/lib/liveScreen.mjs';
 import { startCompanion } from './lib/companion.mjs';
 import { done, organize, reachPanel } from './lib/flows.mjs';
+import { recordSample, sample, seconds, textsWithin } from './lib/voice.mjs';
 
 const { values: args } = parseArgs({
   options: {
@@ -59,33 +59,8 @@ if (!args.apk) throw new Error('--apk is required (an e2e build)');
 fs.mkdirSync(args.out, { recursive: true });
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..');
-const SAMPLE_SHA256 =
-  '59dfb9a4acb36fe2a2affc14bacbee2920ff435cb13cc314a08c13f66ba7860e';
 // Words of the sample that must reach the transcript, and never a log.
 const SPOKEN = ['fellow americans', 'your country'];
-const INPUT = `/sdcard/Android/data/${d.PACKAGE}/files/test-audio`;
-
-/** The pinned sample from the speech engine's whisper.cpp source tree. */
-function sample() {
-  const cxx = path.join(ROOT, 'android', 'speech-engine', '.cxx');
-  const found = [];
-  const walk = dir => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (full.endsWith(path.join('whisper-src', 'samples', 'jfk.wav')))
-        found.push(full);
-    }
-  };
-  if (fs.existsSync(cxx)) walk(cxx);
-  const file = found.find(
-    f =>
-      createHash('sha256').update(fs.readFileSync(f)).digest('hex') ===
-      SAMPLE_SHA256,
-  );
-  if (!file) throw new Error('jfk.wav with the pinned SHA-256 not found');
-  return file;
-}
 
 const results = [];
 const evidence = [];
@@ -120,29 +95,6 @@ async function step(id, title, work) {
   }
 }
 
-const seconds = text => {
-  const match = /(\d+):(\d\d)/.exec(text ?? '');
-  return match ? Number(match[1]) * 60 + Number(match[2]) : NaN;
-};
-
-/** The texts drawn inside a node (uiautomator lists children separately). */
-function textsWithin(id) {
-  const nodes = liveDump();
-  const box = nodes.find(n => n.id === id)?.bounds;
-  if (!box) return [];
-  return nodes
-    .filter(
-      n =>
-        n.text &&
-        n.bounds &&
-        n.bounds[0] >= box[0] &&
-        n.bounds[1] >= box[1] &&
-        n.bounds[2] <= box[2] &&
-        n.bounds[3] <= box[3],
-    )
-    .map(n => n.text);
-}
-
 let transcript = '';
 let cited;
 
@@ -172,25 +124,7 @@ try {
     'V01',
     'record the sample through the app capture path',
     async () => {
-      // The e2e build creates INPUT as the app when the journal opens; a
-      // directory made by `adb shell` would not be readable to the app.
-      expect(
-        d.shell('ls', '-d', INPUT).trim() === INPUT,
-        'the e2e build did not create its test input directory',
-      );
-      d.adb('push', sample(), `${INPUT}/input.wav`);
-      await d.tap({ text: 'Diary' });
-      await d.tap({ id: 'diary-record' });
-      await liveWaitFor({ id: 'recording-pause' }, { timeoutMs: 30_000 });
-      await d.sleep(13_000); // the 11 s sample, then silence
-      await liveTap({ id: 'recording-finish' });
-      await liveWaitFor({ id: 'recording-open-entry' }, { timeoutMs: 30_000 });
-      const captured = seconds(liveTextOf({ id: 'recording-timer' }));
-      expect(captured >= 12, `captured only ${captured} s`);
-      const consumed = !d.shell('ls', INPUT).includes('input.wav');
-      expect(consumed, 'the capture did not read the test input');
-      await liveTap({ id: 'recording-open-entry' });
-      await liveWaitFor({ id: 'entry-recording' }, { timeoutMs: 30_000 });
+      const captured = await recordSample();
       return { capturedSeconds: captured };
     },
   );

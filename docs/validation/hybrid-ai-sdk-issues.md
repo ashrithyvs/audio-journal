@@ -282,3 +282,13 @@ Audio Journal:
    "a cancelled job keeps no result" (`node-companion/test/protocol.test.mjs`)
    shows that after a DELETE the job is `cancelled`, has no `output`, keeps
    no replay record, and an identical retry is recomputed.
+
+The re-test is prepared but **cannot pass** until a fixed packaged SDK is
+installed. The companion evidence in step 3 is direct `DELETE` calls to the
+companion. It proves the companion's cancellation behaviour only and does
+not close this SDK defect.
+
+**Still reproduced, 2026-10-12** (AJ-2.2 build `d865385`, the same packaged
+SDK): O03 in `aj2-device/functional-aj22-api35/`. The app showed Cancelled
+and stored nothing; the node's job ended `completed`, 45.8 s after the
+cancel.
