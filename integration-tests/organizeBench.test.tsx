@@ -49,7 +49,7 @@ it('refuses the 60-minute fixture with a typed reason and sends nothing', async 
   expect(gateway.calls.filter(c => c.startsWith('run'))).toEqual([]);
 });
 
-it('measures a stored run and rehearses persistence without keeping it', async () => {
+it('measures a run and rehearses persistence without keeping it', async () => {
   const { view, gateway, journal, log } = await openBench();
   await fireEvent.press(view.getByTestId('bench-run-v30s'));
   await flush();
@@ -79,6 +79,7 @@ it('measures a stored run and rehearses persistence without keeping it', async (
         requestKey: input.requestKey,
         inputSha256: testOrganizeCrypto.sha256Hex(canonicalJson(input)),
         engine: { id: 'aj.rules', version: '1.0.0' },
+        completeness: 'complete',
         summary: { text: 'A short day.', sources: [ref] },
         sections: [],
         tasks: [{ text: 'Call Priya', area: 'work', sources: [ref] }],
@@ -96,7 +97,7 @@ it('measures a stored run and rehearses persistence without keeping it', async (
   const [sample] = lines(log, 'AJ_ORGANIZE_PERF');
   expect(sample).toMatchObject({
     scenario: 'v30s',
-    outcome: 'stored',
+    outcome: 'rehearsed',
     words: 70,
     inputBytes: expect.any(Number),
   });

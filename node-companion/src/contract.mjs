@@ -281,6 +281,11 @@ export function validateOutput(raw, input) {
   const areas = (out.sections ?? []).map(s => s.area).join();
   if (!['', 'work', 'personal', 'work,personal'].includes(areas))
     reject('RESULT_KINDS');
+  // Amendment A1 (§3.2): `omitted` exactly when partial, requested kinds only.
+  if ((out.completeness === 'partial') !== own(out, 'omitted'))
+    reject('RESULT_COMPLETENESS');
+  if (Object.keys(out.omitted ?? {}).some(k => !input.kinds.includes(k)))
+    reject('RESULT_COMPLETENESS');
   for (const { text } of itemsInOrder(out))
     if (!textOk(text, false)) reject('RESULT_TEXT');
 

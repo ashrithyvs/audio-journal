@@ -99,6 +99,10 @@ export interface OrganizeOutput {
   ideas?: OrganizeItem[];
   people?: NamedItem[];
   projects?: NamedItem[];
+  /** Amendment A1 (§3.2): whether the result carries everything found. */
+  completeness: 'complete' | 'partial';
+  /** Per requested list kind, the lowest-ranked items left out. */
+  omitted?: Partial<Record<Exclude<OrganizeKind, 'summary'>, number>>;
 }
 
 export type ResultCode =
@@ -106,6 +110,7 @@ export type ResultCode =
   | 'RESULT_SCHEMA'
   | 'RESULT_ECHO'
   | 'RESULT_KINDS'
+  | 'RESULT_COMPLETENESS'
   | 'RESULT_TEXT'
   | 'RESULT_REFERENCE'
   | 'RESULT_DIGEST'
@@ -393,6 +398,17 @@ export function resultViolation(
     )
   ) {
     return 'RESULT_KINDS';
+  }
+  // Amendment A1 (§3.2): `omitted` exactly when partial, requested kinds only.
+  if ((out.completeness === 'partial') !== own(out, 'omitted')) {
+    return 'RESULT_COMPLETENESS';
+  }
+  if (
+    Object.keys(out.omitted ?? {}).some(
+      kind => !input.kinds.includes(kind as OrganizeKind),
+    )
+  ) {
+    return 'RESULT_COMPLETENESS';
   }
   for (const { text } of items) if (!textOk(text)) return 'RESULT_TEXT';
 

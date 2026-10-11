@@ -76,6 +76,7 @@ function resultFor(input: OrganizeInput, inputSha256: string): OrganizeOutput {
     requestKey: input.requestKey,
     inputSha256,
     engine: { id: 'aj.rules', version: '1.0.0' },
+    completeness: 'complete',
     summary: { text: 'A short day.', sources: [ref(0)] },
     sections: [],
     tasks: input.entries.map((_, i) => ({
@@ -191,6 +192,7 @@ it('stores a valid result in one transaction and never touches sources', async (
     revision: 1,
     entryIds: [writtenId, voiceId],
     engine: { id: 'aj.rules', version: '1.0.0' },
+    output: { completeness: 'complete' },
     tasks: [
       { ordinal: 0, text: 'Task 1', area: 'work', state: 'open' },
       { ordinal: 1, text: 'Task 2', area: 'work', state: 'open' },

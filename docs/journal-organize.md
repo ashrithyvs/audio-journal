@@ -2,6 +2,11 @@
 
 **Status:** Frozen for implementation on 2026-10-11 (ADR-019), except the
 items in §12, which stay Open and block only the work named there.
+
+**Amendment A1** (2026-10-11, owner decision on O-7) makes partial results
+explicit (§3.2). It adds the required `completeness` and conditional
+`omitted` fields, and validation rule `RESULT_COMPLETENESS`. It was made
+before any release, so the capability stays `1.0.0`.
 **Owner:** Audio Journal (ADR-010, ADR-018). The Hybrid AI SDK carries this
 capability as an opaque node capability; it is not part of the SDK.
 
@@ -12,7 +17,7 @@ capability as an opaque node capability; it is not part of the SDK.
 - `organize-partial.schema.json`: the streamed `partial` delta;
 - `vectors.json` (manifest: file digests, the §8.1 budget, and counts) and
   `vectors/`: `fixtures.json` (7 requests, including one exactly at the input
-  cap), `inputs.json` (37 cases), `results.json` (68 cases), `events.json`
+  cap), `inputs.json` (37 cases), `results.json` (79 cases), `events.json`
   (12), `envelopes.json` (4 whole messages at and one byte over 61,440
   bytes), and `request-keys.json` (7, under a published test key).
   - `node tools/journal-organize/generate-vectors.mjs --check` rebuilds every
@@ -140,7 +145,9 @@ no personal information; they are needed so results can cite their sources.
   "tasks": [{ "text": "…", "area": "work", "rule": "task.need-to", "sources": [ … ] }],
   "ideas": [{ "text": "…", "sources": [ … ] }],
   "people": [{ "name": "…", "sources": [ … ] }],
-  "projects": [{ "name": "…", "sources": [ … ] }]
+  "projects": [{ "name": "…", "sources": [ … ] }],
+  "completeness": "partial",
+  "omitted": { "tasks": 3 }
 }
 ```
 
@@ -161,7 +168,10 @@ no personal information; they are needed so results can cite their sources.
   carry `area`: `work`, `personal`, or `unsorted`.
 - **Bounds.** At most 50 items per list and per section, 1,000 references
   in total, and **61,387 bytes** in canonical form, so that the whole
-  `completed` event message stays within 61,440 bytes (§8.1).
+  `completed` event message stays within 61,440 bytes (§8.1). Items left
+  out to meet these bounds are never dropped silently (§3.2).
+- **`completeness`** (required): `complete` or `partial`, with `omitted`
+  for a partial result (§3.2).
 - **Text.** Single-line, well-formed UTF-16, no control, bidi override, or
   isolate characters, and not blank. The app renders it as plain text
   (security §7); it is never executed or followed.
@@ -194,6 +204,36 @@ Every derived item cites its evidence. There is no unattributed output.
 
 Different items may cite the same evidence: one sentence may be both a task
 and a Work item.
+
+### 3.2 Completeness and omitted items (amendment A1)
+
+A result says whether it carries everything the engine found.
+
+- **Rank.** Each list, and each section's items, is in the engine's rank
+  order, highest first. For `aj.rules`, rank is first occurrence in the
+  selection: entry order, then unit order, then character offset. A later
+  engine may rank differently but keeps the rules below.
+- **`completeness`** is `partial` when the engine found more items for a
+  requested kind than the result carries, because of the 50-item bound or
+  the 61,387-byte output budget (§3, §8.1). Otherwise it is `complete`.
+- **Lowest-ranked first.** The omitted items are always the lowest-ranked of
+  their list or section: what is sent is a prefix of the complete ranked
+  list. The summary is never omitted; its length bound is part of its
+  definition.
+- **`omitted`** is present exactly when `completeness` is `partial`. It maps
+  each requested list kind with omissions (`sections`, `tasks`, `ideas`,
+  `people`, `projects`) to the number of items left out, at least 1. Kinds
+  with nothing omitted are absent.
+- **Never silent.** A node must not leave out an item without counting it
+  here. A partial result is valid: it is stored like any other result and
+  is not `INVALID_RESULT`.
+- **Disclosure.** The app keeps the marker with the derivation. Every view of
+  a partial result must say that some lower-ranked items were omitted, with
+  the counts (UX §7).
+- **Not chunking.** Input above 61,108 bytes is still refused with a typed
+  reason and never truncated (§2). Organizing one entry in several requests
+  and merging the results is not part of v1 without a separate approval
+  (§12, O-7).
 
 ## 4. Events
 
@@ -235,12 +275,13 @@ verifier reports the same sub-code for every vector.
 | 2 | `RESULT_SCHEMA` | The output matches `organize-output.schema.json`: types, required and unknown fields, enums, patterns, lengths, and counts. Keys `__proto__`, `constructor`, and `prototype` are unknown fields. |
 | 3 | `RESULT_ECHO` | `contract`, `requestKey`, and `inputSha256` equal the request's. |
 | 4 | `RESULT_KINDS` | Exactly the requested kinds are present; sections are ordered and unique. |
-| 5 | `RESULT_TEXT` | Every text is well-formed, single-line, free of control, bidi override, and isolate characters, and not blank. |
-| 6 | `RESULT_REFERENCE` | Every `entryId` and `unitId` names a unit in the request. |
-| 7 | `RESULT_DIGEST` | Every `unitSha256` equals the cited unit's `sha256`. |
-| 8 | `RESULT_RANGE` | Character ranges are inside the unit and do not split a surrogate pair; voice references carry an audio range inside the unit; written references carry none. |
-| 9 | `RESULT_ORDER` | Within an item, references are ordered, unique, and non-overlapping per unit. |
-| 10 | `RESULT_DUPLICATE` | Within a list or section, no two items have the same normalized text (NFC, lower-case, whitespace collapsed). |
+| 5 | `RESULT_COMPLETENESS` | `omitted` is present exactly when `completeness` is `partial`, and it names only requested list kinds (§3.2). |
+| 6 | `RESULT_TEXT` | Every text is well-formed, single-line, free of control, bidi override, and isolate characters, and not blank. |
+| 7 | `RESULT_REFERENCE` | Every `entryId` and `unitId` names a unit in the request. |
+| 8 | `RESULT_DIGEST` | Every `unitSha256` equals the cited unit's `sha256`. |
+| 9 | `RESULT_RANGE` | Character ranges are inside the unit and do not split a surrogate pair; voice references carry an audio range inside the unit; written references carry none. |
+| 10 | `RESULT_ORDER` | Within an item, references are ordered, unique, and non-overlapping per unit. |
+| 11 | `RESULT_DUPLICATE` | Within a list or section, no two items have the same normalized text (NFC, lower-case, whitespace collapsed). |
 
 Checks run over the output in document order: `summary`, `sections`,
 `tasks`, `ideas`, `people`, `projects`.
@@ -389,6 +430,11 @@ codes, counts, and durations.
 11. **IDs** sent are the real opaque local IDs.
 12. **Retry key** is an opaque keyed digest of the request (§9), reused only
     for an identical request.
+13. **Lossy output is explicit** (amendment A1, owner decision on O-7,
+    2026-10-11). A result that leaves items out is marked `partial`, with
+    per-kind `omitted` counts of the lowest-ranked items, and the app
+    discloses it. Nothing is dropped silently, and there is no
+    chunk-and-merge in v1.
 
 ## 12. Open questions (not frozen)
 
@@ -400,4 +446,4 @@ codes, counts, and durations.
 | O-4 | Retention and deletion of derivations and tasks (Open decision 6). | Deletion features; nothing is deleted in v1. |
 | O-5 | Including derivations and task states in backups (AJB1 domain schema v2, reserved). Until then backups do not carry them, and a restore has none. | AJB1 v2. |
 | O-6 | Whether the companion also serves `document.analyze@1`, so the AJ-3 diagnostics test works against it. | Diagnostics against the companion only. |
-| O-7 | Entries longer than about 26.5 minutes of speech exceed one request (the 61,108-byte input cap; the 400-unit cap near 42 minutes) and are refused, never truncated. The options are to keep the refusal, or to select or chunk by time range with merged results. Chunking would change §2 and §7 and needs an ADR. Measured by the [organize performance suite](validation/AJ2-organize-performance.md). | Organizing long entries only. |
+| O-7 | Entries longer than about 26.5 minutes of speech exceed one request (the 61,108-byte input cap; the 400-unit cap near 42 minutes) and are refused, never truncated. **The lossy-output part is resolved by amendment A1** (§3.2): a result that fits the request but not the output budget is explicitly partial and disclosed. Still open: whether to organize long entries in several requests and merge the results (chunk-and-merge). It is not approved for v1; it would change §2 and §7 and needs an ADR. Measured by the [organize performance suite](validation/AJ2-organize-performance.md). | Organizing entries above the input cap only. |

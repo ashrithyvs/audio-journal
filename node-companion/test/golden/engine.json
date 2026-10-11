@@ -184,7 +184,8 @@
             ]
           }
         ],
-        "projects": []
+        "projects": [],
+        "completeness": "complete"
       }
     },
     {
@@ -337,7 +338,8 @@
               }
             ]
           }
-        ]
+        ],
+        "completeness": "complete"
       }
     },
     {
@@ -729,7 +731,8 @@
               }
             ]
           }
-        ]
+        ],
+        "completeness": "complete"
       }
     },
     {
@@ -792,7 +795,8 @@
               }
             ]
           }
-        ]
+        ],
+        "completeness": "complete"
       }
     },
     {
@@ -870,7 +874,8 @@
               }
             ]
           }
-        ]
+        ],
+        "completeness": "complete"
       }
     },
     {
@@ -895,7 +900,8 @@
               "charEnd": 50
             }
           ]
-        }
+        },
+        "completeness": "complete"
       }
     },
     {
@@ -1069,7 +1075,8 @@
         "tasks": [],
         "ideas": [],
         "people": [],
-        "projects": []
+        "projects": [],
+        "completeness": "complete"
       }
     }
   ]

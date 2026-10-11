@@ -344,17 +344,37 @@ export function organize(input, { step = () => {}, partial = () => {} } = {}) {
       sources: lead.map(s => ref(s)),
     };
   }
+  // Lists are in rank order (first occurrence in the selection). Anything
+  // left out is counted, never dropped silently (contract §3.2).
+  const omitted = {};
+  const omit = (kind, n) => {
+    if (n > 0) omitted[kind] = (omitted[kind] ?? 0) + n;
+  };
   if (input.kinds.includes('sections')) {
     out.sections = ['work', 'personal']
       .filter(a => lists[a].length)
-      .map(a => ({ area: a, items: lists[a].slice(0, 50).map(finish) }));
+      .map(a => {
+        omit('sections', lists[a].length - 50);
+        return { area: a, items: lists[a].slice(0, 50).map(finish) };
+      });
   }
   for (const kind of ['tasks', 'ideas', 'people', 'projects']) {
-    if (input.kinds.includes(kind))
+    if (input.kinds.includes(kind)) {
+      omit(kind, lists[kind].length - 50);
       out[kind] = lists[kind].slice(0, 50).map(finish);
+    }
   }
+  const mark = () => {
+    const kinds = KINDS.filter(k => omitted[k]);
+    out.completeness = kinds.length ? 'partial' : 'complete';
+    if (kinds.length)
+      out.omitted = Object.fromEntries(kinds.map(k => [k, omitted[k]]));
+    else delete out.omitted;
+  };
+  mark();
 
-  // Keep within the output cap: drop the last item of the longest list.
+  // Keep within the output cap: drop the lowest-ranked item of the longest
+  // list, count it, and mark the result partial.
   for (
     let guard = 0;
     Buffer.byteLength(canonical(out), 'utf8') > OUTPUT_CAP;
@@ -363,13 +383,19 @@ export function organize(input, { step = () => {}, partial = () => {} } = {}) {
     const candidates = [
       ...['tasks', 'ideas', 'people', 'projects']
         .filter(k => out[k]?.length)
-        .map(k => [k, out[k]]),
-      ...(out.sections ?? []).map(s => [`section:${s.area}`, s.items]),
+        .map(k => [k, out[k], k]),
+      ...(out.sections ?? []).map(s => [
+        `section:${s.area}`,
+        s.items,
+        'sections',
+      ]),
     ].sort((a, b) => b[1].length - a[1].length || (a[0] < b[0] ? -1 : 1));
     if (!candidates.length || guard > 10_000)
       throw new EngineError('cannot fit the output cap');
     candidates[0][1].pop();
+    omit(candidates[0][2], 1);
     if (out.sections) out.sections = out.sections.filter(s => s.items.length);
+    mark();
   }
   validateOutput(out, input); // the node never sends what the app would reject
   step('checking', 1);

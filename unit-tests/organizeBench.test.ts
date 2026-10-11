@@ -125,6 +125,7 @@ function resultFor(input: OrganizeInput): OrganizeOutput {
     requestKey: input.requestKey,
     inputSha256: testOrganizeCrypto.sha256Hex(canonicalJson(input)),
     engine: { id: 'aj.rules', version: '1.0.0' },
+    completeness: 'complete',
     summary: { text: 'A day.', sources: [ref] },
     sections: [],
     tasks: [],
@@ -154,7 +155,7 @@ function dependencies(
   return result;
 }
 
-it('times every phase of a stored run and rehearses persistence', async () => {
+it('times every phase of a run and rehearses persistence (rolled back)', async () => {
   const gateway = node(input => [
     { type: 'accepted' },
     { type: 'progress', stage: 'received', fraction: 0.1 },
@@ -171,7 +172,7 @@ it('times every phase of a stored run and rehearses persistence', async () => {
   const sample = await runSample(s, s.fixture(), 3, d);
   expect(sample).toMatchObject({
     scenario: 'v1m',
-    outcome: 'stored',
+    outcome: 'rehearsed',
     words: 139,
     inputBytes: 2_588,
     events: 4,

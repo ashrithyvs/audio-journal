@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '../../../theme/colors';
 import { PrimaryButton } from '../../app-lock/ui/PrimaryButton';
@@ -14,7 +14,9 @@ import type {
   OrganizeOutcome,
   PreparedRequest,
 } from '../application/OrganizeController';
-import type { OrganizeKind } from '../domain/contract';
+import { formatRange } from '../../journal/domain/format';
+import type { OrganizeKind, SourceRef } from '../domain/contract';
+import { omissionNotice } from '../domain/presentation';
 import type { RefusalReason } from '../domain/request';
 import type { StoredDerivation } from '../ports/DerivationRepository';
 
@@ -61,7 +63,9 @@ function refusalText(reason: RefusalReason): string {
 function outcomeText(outcome: OrganizeOutcome): string {
   switch (outcome.kind) {
     case 'stored':
-      return 'Organized. Your entry is unchanged.';
+      return omissionNotice(outcome.derivation.output)
+        ? 'Organized, but the result is partial: some lower-ranked items were omitted. Your entry is unchanged.'
+        : 'Organized. Your entry is unchanged.';
     case 'duplicate':
       return 'Already organized. Nothing new was saved.';
     case 'invalid':
@@ -90,7 +94,48 @@ function counted(output: StoredDerivation['output']): string {
   return parts.join(' · ');
 }
 
-function DerivationSummary({ derivation }: { derivation: StoredDerivation }) {
+/** The cited excerpt's label: its audio range, or its paragraph. */
+function sourceLabel(source: SourceRef): string {
+  if (source.audioStartMs !== undefined && source.audioEndMs !== undefined) {
+    return `Source · ${formatRange(source.audioStartMs, source.audioEndMs)}`;
+  }
+  const paragraph = /^w(\d+)$/.exec(source.unitId);
+  return paragraph
+    ? `Source · paragraph ${Number(paragraph[1]) + 1}`
+    : 'Source';
+}
+
+function SourceLink({
+  source,
+  onOpen,
+  testID,
+}: {
+  source?: SourceRef;
+  onOpen?(source: SourceRef): void;
+  testID: string;
+}) {
+  if (!source || !onOpen) {
+    return null;
+  }
+  return (
+    <Pressable
+      accessibilityHint="Opens the cited part of the entry"
+      accessibilityRole="link"
+      onPress={() => onOpen(source)}
+      testID={testID}
+    >
+      <Text style={styles.source}>{sourceLabel(source)}</Text>
+    </Pressable>
+  );
+}
+
+function DerivationSummary({
+  derivation,
+  onOpenSource,
+}: {
+  derivation: StoredDerivation;
+  onOpenSource?(source: SourceRef): void;
+}) {
   const { output } = derivation;
   return (
     <View style={styles.block} testID="organize-result">
@@ -98,24 +143,46 @@ function DerivationSummary({ derivation }: { derivation: StoredDerivation }) {
         {`Organized by your Private AI Node · revision ${derivation.revision}`}
       </Text>
       {output.summary ? (
-        <Text
-          style={[journalStyles.body, styles.gap]}
-          testID="organize-summary"
-        >
-          {output.summary.text}
-        </Text>
+        <>
+          <Text
+            style={[journalStyles.body, styles.gap]}
+            testID="organize-summary"
+          >
+            {output.summary.text}
+          </Text>
+          <SourceLink
+            source={output.summary.sources[0]}
+            onOpen={onOpenSource}
+            testID="organize-summary-source"
+          />
+        </>
       ) : null}
       <Text style={[journalStyles.muted, styles.gap]} testID="organize-counts">
         {counted(output)}
       </Text>
-      {derivation.tasks.map(task => (
+      {omissionNotice(output) ? (
         <Text
-          key={task.id}
+          accessibilityRole="alert"
           style={[journalStyles.body, styles.gap]}
-          testID={`organize-task-${task.ordinal}`}
+          testID="organize-partial"
         >
-          {`• ${task.text}`}
+          {omissionNotice(output)}
         </Text>
+      ) : null}
+      {derivation.tasks.map(task => (
+        <View key={task.id}>
+          <Text
+            style={[journalStyles.body, styles.gap]}
+            testID={`organize-task-${task.ordinal}`}
+          >
+            {`• ${task.text}`}
+          </Text>
+          <SourceLink
+            source={output.tasks?.[task.ordinal]?.sources[0]}
+            onOpen={onOpenSource}
+            testID={`organize-task-${task.ordinal}-source`}
+          />
+        </View>
       ))}
     </View>
   );
@@ -184,17 +251,28 @@ function ConsentSheet({
 }
 
 /** Present only where the app provides organize (inside the open journal). */
-export function OrganizePanel({ entryId }: { entryId: string }) {
+export function OrganizePanel({
+  entryId,
+  onOpenSource,
+}: {
+  entryId: string;
+  /** Opens the entry at a cited source (contract §3.1, UX §7). */
+  onOpenSource?(source: SourceRef): void;
+}) {
   const organize = useOrganize();
-  return organize ? <Panel entryId={entryId} organize={organize} /> : null;
+  return organize ? (
+    <Panel entryId={entryId} organize={organize} onOpenSource={onOpenSource} />
+  ) : null;
 }
 
 function Panel({
   entryId,
   organize,
+  onOpenSource,
 }: {
   entryId: string;
   organize: NonNullable<ReturnType<typeof useOrganize>>;
+  onOpenSource?(source: SourceRef): void;
 }) {
   const snapshot = useOrganizeSnapshot(organize.controller);
   const { state, activeNode } = usePrivateNode();
@@ -225,7 +303,9 @@ function Panel({
       <Text accessibilityRole="header" style={styles.heading}>
         Organize
       </Text>
-      {latest ? <DerivationSummary derivation={latest} /> : null}
+      {latest ? (
+        <DerivationSummary derivation={latest} onOpenSource={onOpenSource} />
+      ) : null}
 
       {view.phase === 'idle' ? (
         <>
@@ -349,4 +429,10 @@ const styles = StyleSheet.create({
   heading: { color: colors.ink, fontFamily: 'serif', fontSize: 20 },
   block: { marginTop: 8 },
   gap: { marginTop: 8 },
+  source: {
+    color: colors.moss,
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 4,
+  },
 });

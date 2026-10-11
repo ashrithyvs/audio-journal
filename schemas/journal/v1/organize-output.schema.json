@@ -8,7 +8,8 @@
     "contract",
     "requestKey",
     "inputSha256",
-    "engine"
+    "engine",
+    "completeness"
   ],
   "properties": {
     "contract": {
@@ -500,6 +501,44 @@
               }
             }
           }
+        }
+      }
+    },
+    "completeness": {
+      "enum": [
+        "complete",
+        "partial"
+      ]
+    },
+    "omitted": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "sections": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "tasks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "ideas": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "people": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "projects": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
         }
       }
     }

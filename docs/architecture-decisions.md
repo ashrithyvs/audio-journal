@@ -610,11 +610,28 @@ schemas and vectors in `schemas/journal/v1/`. In summary:
   come from Node's OpenSSL. Job content stays in memory only, within the
   protocol's retention.
 
+**Amendment A1 (2026-10-11, owner decision on O-7):** lossy output is
+explicit.
+
+- A result that leaves out items found by the engine, because of the
+  50-item bound or the 61,387-byte output budget, carries
+  `completeness: "partial"` and per-kind `omitted` counts.
+- The omitted items are always the lowest-ranked of their list.
+- The app stores the marker and discloses it in every view of the result.
+- Validation adds `RESULT_COMPLETENESS` after `RESULT_KINDS`.
+- Input over 61,108 bytes is still a typed refusal, never truncated.
+- Multi-request chunk-and-merge is not part of v1 unless separately
+  approved.
+
+The amendment came before any release, so the capability version stays
+`1.0.0`. The schemas, vectors, validators, companion, and UI requirements
+changed together (contract §3.2, §6, §11 decision 13).
+
 **Consequences:** the LLD `local | auto` wording, `AI_RESULT_INVALID`, and
 single `segmentId` references are superseded for this capability (§11 of the
 contract). Open questions O-1 to O-7 (due dates, stale-source display,
-editing, retention, AJB1 v2, diagnostics on the companion, and entries too
-long for one request) block only the work they name. F5 and request-path revocation remain SDK defects
+editing, retention, AJB1 v2, diagnostics on the companion, and organizing
+entries above the input cap) block only the work they name. F5 and request-path revocation remain SDK defects
 (SDK-AJ-1, SDK-AJ-2); the app keeps its compatibility workaround.
 
 ## Open decisions before implementation

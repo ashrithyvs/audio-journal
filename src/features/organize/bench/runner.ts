@@ -54,7 +54,14 @@ export interface BenchSample {
   scenario: string;
   mode: BenchMode;
   run: number;
-  outcome: 'stored' | 'invalid' | 'failed' | 'cancelled' | 'refused';
+  /**
+   * `rehearsed`: completed, validated, and persistence rehearsed in a
+   * transaction that was rolled back. Nothing is committed by the benchmark.
+   */
+  outcome: 'rehearsed' | 'invalid' | 'failed' | 'cancelled' | 'refused';
+  /** The result's completeness (contract §3.2) and its omitted items. */
+  completeness?: 'complete' | 'partial';
+  omittedItems?: number;
   code?: string;
   durationMs: number;
   words: number;
@@ -322,6 +329,12 @@ export async function runSample(
   } else if (terminal?.type === 'completed') {
     const output = terminal.output;
     sample.outputBytes = canonicalBytes(output);
+    const result = output as Partial<OrganizeOutput>;
+    sample.completeness = result.completeness;
+    sample.omittedItems = Object.values(result.omitted ?? {}).reduce(
+      (n, count) => n + (count ?? 0),
+      0,
+    );
     const validateStart = now();
     const code = resultViolation(output, input, inputSha256);
     sample.validateMs = now() - validateStart;
@@ -337,7 +350,7 @@ export async function runSample(
         createdAt: Date.now(),
       });
       sample.persistMs = now() - persistStart;
-      sample.outcome = 'stored';
+      sample.outcome = 'rehearsed';
     }
   } else {
     sample.outcome = 'failed';

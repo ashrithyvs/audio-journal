@@ -31,6 +31,7 @@ function resultFor(input: OrganizeInput): OrganizeOutput {
     requestKey: input.requestKey,
     inputSha256: testOrganizeCrypto.sha256Hex(canonicalJson(input)),
     engine: { id: 'aj.rules', version: '1.0.0' },
+    completeness: 'complete',
     summary: { text: 'Budget and a call.', sources: [ref] },
     sections: [{ area: 'work', items: [{ text: unit.text, sources: [ref] }] }],
     tasks: [
@@ -125,6 +126,37 @@ it('asks consent, streams progress, and shows the stored result', async () => {
   // The source entry is shown exactly as written.
   expect(view.getByTestId('entry-source-text').props.children).toBe(TEXT);
   expect(await derivationCount(journal)).toBe(1);
+});
+
+it('stores a partial result and discloses the omitted items', async () => {
+  const { view, gateway, journal } = await writtenEntryOpen();
+  await fireEvent.press(view.getByTestId('organize-start'));
+  await fireEvent.press(await view.findByTestId('organize-confirm'));
+  const output = resultFor(gateway.lastRequest!.input as OrganizeInput);
+  output.completeness = 'partial';
+  output.omitted = { tasks: 3, people: 1 };
+  await act(async () => {
+    gateway.emitRun({
+      type: 'completed',
+      output,
+      target: 'node',
+      routingReason: 'EXPLICIT_NODE',
+    });
+  });
+  await flush();
+  expect(await view.findByTestId('organize-stored')).toHaveTextContent(
+    /the result is partial/,
+  );
+  expect(await view.findByTestId('organize-partial')).toHaveTextContent(
+    'This result is partial. Some lower-ranked items were omitted to fit: 3 tasks, 1 person.',
+  );
+  const row = await journal.db.get<{ payload: string }>(
+    'SELECT payload FROM derivations',
+  );
+  expect(JSON.parse(row!.payload)).toMatchObject({
+    completeness: 'partial',
+    omitted: { tasks: 3, people: 1 },
+  });
 });
 
 it('cancels through the SDK and stores nothing', async () => {

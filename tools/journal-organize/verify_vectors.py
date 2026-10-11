@@ -327,6 +327,12 @@ def validate_result(raw: bytes, req, schema, cap):
     areas = [s["area"] for s in out.get("sections", [])]
     if areas not in ([], ["work"], ["personal"], ["work", "personal"]):
         raise Reject("RESULT_KINDS")
+    # Amendment A1 (contract section 3.2): `omitted` exactly when partial,
+    # naming only requested list kinds.
+    if (out["completeness"] == "partial") != ("omitted" in out):
+        raise Reject("RESULT_COMPLETENESS")
+    if any(k not in req["kinds"] for k in out.get("omitted", {})):
+        raise Reject("RESULT_COMPLETENESS")
     for _, _, text in items_in_order(out):
         if not text_ok(text, False):
             raise Reject("RESULT_TEXT")

@@ -264,7 +264,7 @@ const outputSchema = (() => {
     title: 'journal.organize@1 result',
     type: 'object',
     additionalProperties: false,
-    required: ['contract', 'requestKey', 'inputSha256', 'engine'],
+    required: ['contract', 'requestKey', 'inputSha256', 'engine', 'completeness'],
     properties: {
       contract: { const: 'journal.organize@1' },
       requestKey: ID('org'),
@@ -314,6 +314,20 @@ const outputSchema = (() => {
       ideas: list(item(400)),
       people: list(named),
       projects: list(named),
+      // Amendment A1 (§3.2): a result says whether it carries everything the
+      // engine found; `omitted` counts the lowest-ranked items left out.
+      completeness: { enum: ['complete', 'partial'] },
+      omitted: {
+        type: 'object',
+        additionalProperties: false,
+        minProperties: 1,
+        properties: Object.fromEntries(
+          ['sections', 'tasks', 'ideas', 'people', 'projects'].map(k => [
+            k,
+            { type: 'integer', minimum: 1, maximum: 100000 },
+          ]),
+        ),
+      },
     },
   };
 })();
@@ -530,6 +544,7 @@ function envelope(req) {
     requestKey: req.requestKey,
     inputSha256: sha256(canonical(req)),
     engine: { id: 'aj.rules', version: '1.0.0' },
+    completeness: 'complete',
   };
 }
 
@@ -777,13 +792,25 @@ const VALID = {
     return { ...envelope(r), tasks: [], people: [] };
   },
   maxOutput: () => sizeOutputTo(fillOutput(), OUTPUT_CAP),
+  // Amendment A1 (§3.2): explicitly partial results, one at the output cap.
+  partial: () => ({
+    ...validMixed(),
+    completeness: 'partial',
+    omitted: { tasks: 2, ideas: 1 },
+  }),
+  maxOutputPartial: () =>
+    sizeOutputTo(
+      fillOutput({ completeness: 'partial', omitted: { tasks: 7, ideas: 9 } }),
+      OUTPUT_CAP,
+    ),
 };
 
 /** As many distinct items as fit under the output cap. */
-function fillOutput() {
+function fillOutput(extra = {}) {
   const r = FIXTURES.mixed;
   const out = {
     ...envelope(r),
+    ...extra,
     summary: validMixed().summary,
     sections: [],
     tasks: [],
@@ -856,7 +883,11 @@ function invalid(name, fixture, code, result) {
 }
 for (const [name, build] of Object.entries(VALID)) {
   const fixture =
-    name === 'emptyLists' ? 'corrected' : name === 'maxOutput' ? 'mixed' : name;
+    name === 'emptyLists'
+      ? 'corrected'
+      : ['maxOutput', 'maxOutputPartial', 'partial'].includes(name)
+      ? 'mixed'
+      : name;
   valid(`valid-${name}`, fixture, build());
 }
 
@@ -978,7 +1009,43 @@ mutate('sections-out-of-order', 'RESULT_KINDS', r => r.sections.reverse());
 mutate('sections-duplicate-area', 'RESULT_KINDS', r => {
   r.sections[1].area = 'work';
 });
-// 5. Text
+// 5. Completeness (amendment A1, §3.2)
+mutate('completeness-missing', 'RESULT_SCHEMA', r => {
+  delete r.completeness;
+});
+mutate('completeness-unknown', 'RESULT_SCHEMA', r => {
+  r.completeness = 'truncated';
+});
+mutate('omitted-empty', 'RESULT_SCHEMA', r => {
+  r.completeness = 'partial';
+  r.omitted = {};
+});
+mutate('omitted-zero', 'RESULT_SCHEMA', r => {
+  r.completeness = 'partial';
+  r.omitted = { tasks: 0 };
+});
+mutate('omitted-summary', 'RESULT_SCHEMA', r => {
+  r.completeness = 'partial';
+  r.omitted = { summary: 1 };
+});
+mutate('partial-without-omitted', 'RESULT_COMPLETENESS', r => {
+  r.completeness = 'partial';
+});
+mutate('omitted-on-complete', 'RESULT_COMPLETENESS', r => {
+  r.omitted = { tasks: 1 };
+});
+mutate('completeness-before-text', 'RESULT_COMPLETENESS', r => {
+  r.completeness = 'partial';
+  r.tasks[0].text = '   ';
+});
+invalid('omitted-unrequested-kind', 'summaryOnly', 'RESULT_COMPLETENESS', {
+  result: {
+    ...VALID.summaryOnly(),
+    completeness: 'partial',
+    omitted: { tasks: 1 },
+  },
+});
+// 6. Text
 mutate('bidi-override', 'RESULT_TEXT', r => {
   r.ideas[0].text = 'Reading club ‮gnirps';
 });
@@ -1006,7 +1073,7 @@ invalid('lone-surrogate', 'mixed', 'RESULT_TEXT', {
     'A weekend \\ud800 club',
   ),
 });
-// 6. Reference
+// 7. Reference
 mutate('fabricated-entry', 'RESULT_REFERENCE', r => {
   firstTaskRef(r).entryId = id('ent', 4040);
 });
@@ -1023,14 +1090,14 @@ mutate('superseded-segment', 'RESULT_REFERENCE', r => {
     unitId: id('seg', 401),
   };
 });
-// 7. Digest
+// 8. Digest
 mutate('digest-mismatch', 'RESULT_DIGEST', r => {
   firstTaskRef(r).unitSha256 = sha256('stale text');
 });
 mutate('digest-of-other-unit', 'RESULT_DIGEST', r => {
   voiceTaskRef(r).unitSha256 = FIXTURES.mixed.entries[2].units[0].sha256;
 });
-// 8. Range
+// 9. Range
 mutate('range-past-end', 'RESULT_RANGE', r => {
   firstTaskRef(r).charEnd = 4000;
 });
@@ -1073,7 +1140,7 @@ invalid('range-splits-surrogate', 'unicode', 'RESULT_RANGE', {
     return r;
   })(),
 });
-// 9. Order
+// 10. Order
 mutate('refs-out-of-order', 'RESULT_ORDER', r => r.summary.sources.reverse());
 mutate('refs-duplicate', 'RESULT_ORDER', r => {
   r.ideas[0].sources.push({ ...r.ideas[0].sources[0] });
@@ -1085,7 +1152,7 @@ mutate('refs-overlapping', 'RESULT_ORDER', r => {
     { ...s, charStart: 10, charEnd: 30 },
   ];
 });
-// 10. Duplicate
+// 11. Duplicate
 mutate('duplicate-task', 'RESULT_DUPLICATE', r => {
   r.tasks.push({
     ...clone(r.tasks[0]),
