@@ -86,9 +86,10 @@ sizes.
 **30 and 60 minutes.** The frozen contract (ADR-019) has no chunking
 strategy. A selection is whole entries, and an oversized one is refused,
 never truncated. So these fixtures verify the expected typed refusal. At
-140 wpm, about 26.5 minutes of speech fits one request. Whether to add a
-selection or chunking strategy for longer entries is an open product
-question for the Organized UI stage (O-7, proposed in §6).
+140 wpm, about 26.5 minutes of speech fits one request. Chunk-and-merge for
+longer entries is not approved for v1 (O-7). A request that fits but whose
+full result exceeds the output budget is explicitly partial (amendment A1,
+§5.1).
 
 ## 3. Measurements
 
@@ -136,63 +137,72 @@ statistics), and each companion instance's log (counts only).
 
 ## 5. Results
 
-**Run:** `perf-api35-run1`, 2026-10-11. APK `491dfd9`, release build
-(`app-release-aj2-491dfd9.apk`, SHA-256 `8a22bb05…6258`). Emulator
-`aj-api35-4g`: Android SDK built for x86_64, API 35, 4 GB. Host: Intel Core
-Ultra 7 155U, 14 CPUs. Companion `491dfd9` on the same host over
-`adb reverse`. 20 warm runs per fixture.
+These are the deterministic `aj.rules` baseline: protocol and SDK overhead,
+not model inference or quality. They are development baselines from an
+emulator.
 
-Evidence is in `aj1-artifacts/evidence/aj2-device/perf-api35-run1/`
+**Current run:** `perf-api35-run2`, 2026-10-11, on the amended contract (A1).
+
+- APK: `ad430fc` release build (`app-release-aj2-ad430fc.apk`, SHA-256
+  `f3e9fa0e…3472`).
+- Emulator: `aj-api35-4g`, Android SDK built for x86_64, API 35, 4 GB.
+- Host: Intel Core Ultra 7 155U, 14 CPUs. The companion runs on the same
+  host over `adb reverse`.
+- 20 warm runs per fixture.
+
+Evidence is in `aj1-artifacts/evidence/aj2-device/perf-api35-run2/`
 (`blocks.json`, `report.json`, `companion-*.log`), outside the repository.
-
-**These are development baselines, not product numbers.** The emulator,
-the loopback link, and a shared host make them optimistic for a phone and
-LAN. AJ-4 repeats the matrix on physical hardware.
+The first run, `perf-api35-run1` on `491dfd9` before A1, gave the same
+timings to within run-to-run variance. It is kept as history.
 
 ### 5.1 Organized fixtures
 
 All 126 runs completed. Each result passed the app's §6 validation, and
-its persistence was rehearsed in a transaction that was rolled back. None
-was committed: these are not 126 stored derivations. The committed storage
-evidence is the functional suite (O01, O04, O07, and the voice journey).
-Times are in
-milliseconds: p50 / p95 for 20 warm runs, a single value for the cold run.
-"Completion" is SDK invocation to the terminal event; "On screen" is
-invocation to the first frame showing the result.
+its persistence was rehearsed in a transaction that was rolled back.
+**None was committed**: these are not stored derivations. The committed
+storage evidence is the functional suite and the voice journey (AJ-2
+progress §5).
 
-| Fixture | Words | Request bytes | Result bytes | Accepted | 1st progress | 1st partial | Completion | Validate | Persist (rehearsed) | On screen | Node job | Node engine | Completion CV |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 30 s cold | 70 | 1,413 | 3,233 | 20 | 50 | 50 | 51 | 1.0 | 6.0 | 73 | 17 | 12 | – |
-| 30 s warm | 70 | 1,413 | 3,233 | 23 / 31 | 40 / 51 | 40 / 51 | 41 / 49 | 1.0 / 2.0 | 5.7 / 9.4 | 64 / 66 | 2 / 3 | 1 / 2 | 0.22 |
-| 1 min cold | 139 | 2,588 | 5,487 | 26 | 48 | 48 | 49 | 1.6 | 5.7 | 72 | 16 | 11 | – |
-| 1 min warm | 139 | 2,588 | 5,487 | 20 / 31 | 38 / 55 | 38 / 55 | 38 / 48 | 1.7 / 2.6 | 8.9 / 14.4 | 64 / 80 | 3 / 5 | 2 / 2 | 0.17 |
-| 3 min cold | 422 | 7,199 | 18,668 | 25 | 51 | 52 | 56 | 3.0 | 19.9 | 92 | 20 | 14 | – |
-| 3 min warm | 422 | 7,199 | 18,668 | 23 / 35 | 38 / 55 | 38 / 55 | 41 / 52 | 3.6 / 8.2 | 18.1 / 31.4 | 76 / 94 | 6 / 8 | 3 / 5 | 0.17 |
-| 5 min cold | 696 | 12,000 | 31,801 | 26 | 65 | 65 | 72 | 6.2 | 32.1 | 127 | 32 | 22 | – |
-| 5 min warm | 696 | 12,000 | 31,801 | 18 / 30 | 39 / 50 | 39 / 50 | 43 / 55 | 6.7 / 10.5 | 26.5 / 33.6 | 88 / 106 | 8 / 10 | 5 / 7 | 0.15 |
-| 10 min cold | 1,401 | 22,970 | 61,121 | 23 | 61 | 61 | 69 | 11.7 | 61.4 | 164 | 28 | 21 | – |
-| 10 min warm | 1,401 | 22,970 | 61,121 | 20 / 27 | 43 / 81 | 43 / 81 | 52 / 61 | 12.3 / 14.6 | 49.2 / 67.0 | 128 / 154 | 15 / 20 | 11 / 14 | 0.18 |
-| Cap cold | 3,888 | **61,108** | 61,154 | 35 | 160 | 160 | 166 | 18.5 | 59.5 | 266 | 118 | 103 | – |
-| Cap warm | 3,888 | **61,108** | 61,154 | 27 / 40 | 134 / 160 | 134 / 160 | 143 / 154 | 14.7 / 17.9 | 54.4 / 63.3 | 230 / 240 | 101 / 106 | 94 / 105 | 0.14 |
+Times are in milliseconds: p50 / p95 for 20 warm runs, a single value for
+the cold run. "Completion" is SDK invocation to the terminal event; "On
+screen" is invocation to the first frame showing the result.
+"Completeness" is the result's §3.2 marker.
+
+| Fixture | Words | Request bytes | Result bytes | Completeness | Accepted | 1st progress | 1st partial | Completion | Validate | Persist (rehearsed) | On screen | Node job | Node engine | Completion CV |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 30 s cold | 70 | 1,413 | 3,259 | complete | 16 | 41 | 41 | 43 | 0.6 | 6.2 | 70 | 11 | 9 | – |
+| 30 s warm | 70 | 1,413 | 3,259 | complete ×20 | 19 / 31 | 41 / 55 | 41 / 55 | 42 / 49 | 1.0 / 1.6 | 6.6 / 8.6 | 65 / 66 | 2 / 4 | 1 / 5 | 0.14 |
+| 1 min cold | 139 | 2,588 | 5,513 | complete | 21 | 47 | 47 | 50 | 1.6 | 7.3 | 73 | 22 | 17 | – |
+| 1 min warm | 139 | 2,588 | 5,513 | complete ×20 | 21 / 29 | 40 / 45 | 40 / 45 | 40 / 46 | 1.5 / 1.7 | 7.1 / 11.4 | 64 / 81 | 3 / 7 | 1 / 5 | 0.09 |
+| 3 min cold | 422 | 7,199 | 18,694 | complete | 18 | 56 | 56 | 59 | 3.8 | 24.7 | 98 | 27 | 20 | – |
+| 3 min warm | 422 | 7,199 | 18,694 | complete ×20 | 23 / 38 | 39 / 63 | 39 / 63 | 41 / 50 | 3.8 / 5.4 | 16.5 / 25.1 | 77 / 95 | 5 / 8 | 3 / 5 | 0.16 |
+| 5 min cold | 696 | 12,000 | 31,827 | complete | 21 | 62 | 63 | 69 | 5.5 | 24.5 | 112 | 33 | 22 | – |
+| 5 min warm | 696 | 12,000 | 31,827 | complete ×20 | 30 / 35 | 44 / 52 | 44 / 52 | 47 / 55 | 6.5 / 9.4 | 28.0 / 32.9 | 90 / 108 | 7 / 9 | 4 / 6 | 0.12 |
+| 10 min cold | 1,401 | 22,970 | 61,171 | **partial, 3 omitted** | 23 | 64 | 64 | 73 | 12.3 | 51.2 | 161 | 34 | 25 | – |
+| 10 min warm | 1,401 | 22,970 | 61,171 | **partial ×20, 3 omitted** | 21 / 27 | 44 / 62 | 44 / 62 | 52 / 63 | 12.1 / 16.3 | 47.0 / 55.5 | 131 / 148 | 15 / 19 | 11 / 14 | 0.10 |
+| Cap cold | 3,888 | **61,108** | 61,227 | **partial, 155 omitted** | 44 | 187 | 188 | 195 | 13.4 | 65.9 | 295 | 137 | 117 | – |
+| Cap warm | 3,888 | **61,108** | 61,227 | **partial ×20, 155 omitted** | 27 / 41 | 132 / 163 | 132 / 163 | 137 / 144 | 14.0 / 18.5 | 52.4 / 64.8 | 222 / 247 | 96 / 103 | 90 / 98 | 0.14 |
 
 **What the figures show:**
 
 - Total time grows with the request's size, not the speech duration as
   such. From 30 s to 10 min (1.4 KB to 23 KB of request), warm completion
-  stays at 38–52 ms p50. The time on screen grows from 64 to 128 ms,
+  stays at 40–52 ms p50. The time on screen grows from 65 to 131 ms,
   mostly through persistence and rendering.
 - At the exact 61,108-byte cap (about 26.5 minutes of speech), completion
-  is 143 ms p50. The companion's engine is 94 ms of it.
-- From about 10 minutes of speech, results reach the 61,387-byte output
-  budget. The `aj.rules` engine then drops items from its longest list
-  until the result fits; lists also hold at most 50 items (§3). That is why
-  the result bytes stop growing (61,121 and 61,154). Long entries therefore
-  get a bounded result, with some lower-ranked items omitted. This is
-  recorded as a finding (§6).
-- Cold runs, after an app and companion restart, add 10–25 ms to completion
-  and 9–36 ms on screen.
+  is 137 ms p50; the companion's engine is 90 ms of it.
+- **Partial results (amendment A1).** From 10 minutes of speech, the
+  engine's full result no longer fits the 61,387-byte output budget, and
+  these fixtures produce explicitly partial results:
+  - 10 minutes: 3 items omitted;
+  - the cap: 155 items omitted.
+
+  Every one carried `completeness: "partial"` and its `omitted` counts.
+  Before A1 the same items were dropped silently. The marker adds at most
+  about 40 bytes.
+- Cold runs, after an app and companion restart, add 2–58 ms to completion.
 - Run-to-run variance is low: the completion coefficient of variation is
-  0.14–0.22.
+  0.09–0.16.
 
 ### 5.2 Resources and network
 
@@ -202,55 +212,57 @@ companion's sockets per run, in each direction, handshakes included.
 
 | Block | App CPU (block) | App peak RSS | Companion CPU (block) | Companion RSS | Wire bytes in / run | Wire bytes out / run |
 |---|---|---|---|---|---|---|
-| 30 s warm (20 runs) | 1,080 ms | 210 MB | 264 ms | 89 MB | 3,368 | 6,299 |
-| 1 min warm | 1,240 ms | 215 MB | 306 ms | 90 MB | 4,543 | 8,553 |
-| 3 min warm | 1,800 ms | 211 MB | 354 ms | 96 MB | 9,154 | 21,758 |
-| 5 min warm | 2,320 ms | 213 MB | 433 ms | 99 MB | 13,956 | 34,891 |
-| 10 min warm | 3,380 ms | 214 MB | 689 ms | 105 MB | 24,948 | 64,255 |
-| Cap warm | 5,940 ms | 233 MB | 2,595 ms | 136 MB | 63,130 | 64,290 |
-| Cap cold (1 run) | 1,770 ms | 216 MB | 191 ms | 96 MB | 63,129 | 64,314 |
+| 30 s warm (20 runs) | 1,150 ms | 210 MB | 283 ms | 93 MB | 3,370 | 6,321 |
+| 1 min warm | 1,210 ms | 211 MB | 295 ms | 96 MB | 4,545 | 8,575 |
+| 3 min warm | 1,780 ms | 216 MB | 345 ms | 98 MB | 9,156 | 21,780 |
+| 5 min warm | 2,340 ms | 215 MB | 418 ms | 95 MB | 13,958 | 34,913 |
+| 10 min warm | 3,390 ms | 214 MB | 670 ms | 110 MB | 24,951 | 64,301 |
+| Cap warm | 5,880 ms | 233 MB | 2,541 ms | 136 MB | 63,133 | 64,359 |
+| Cap cold (1 run) | 1,870 ms | 209 MB | 209 ms | 98 MB | 63,131 | 64,383 |
 
 The app's RSS includes its on-device speech runtime (ADR-016), so the
-organize path adds at most about 20 MB at the cap. Per warm run, app CPU
-is about 54 ms at 30 s and 297 ms at the cap.
+organize path adds at most about 25 MB at the cap. Per warm run, app CPU is
+about 58 ms at 30 s and 294 ms at the cap.
 
 ### 5.3 Boundaries, refusals, cancellation, and deadline
 
 | Block | Runs | Outcome | Time | Request bytes | Sent to the node |
 |---|---|---|---|---|---|
-| Cap + 1 (app builder) | 5 | `TOO_LARGE` ×5 | build 13.7 ms p50 | 61,109 | nothing (0 bytes, 0 jobs) |
-| 30 min (app builder) | 5 | `TOO_LARGE` ×5 | build 15.3 ms | 69,686 | nothing |
-| 60 min (app builder) | 5 | `TOO_MANY_UNITS` ×5 | build 17.8 ms | 138,212 (558 units) | nothing |
-| Cap + 1 sent straight to the SDK | 5 | `SCHEMA_VALIDATION_FAILED` ×5 (the SDK's "Input exceeds capability byte limit") | 3 / 4 ms to the terminal | 61,109 | nothing |
-| Cancel 300 ms after the first progress (node slowed to 2 s stages) | 5 | `cancelled` ×5 | cancel → terminal 96 / 101 ms | 12,000 | the job; it was **not** cancelled at the node (SDK-AJ-5) |
-| Deadline (node slowed to 25 s stages) | 3 | `DEADLINE_EXCEEDED` ×3 | the terminal 2.8 / 3.3 ms after the 60 s deadline | 2,588 | the job; the node ended it at 60,000–60,003 ms |
+| Cap + 1 (app builder) | 5 | `TOO_LARGE` ×5 | build 13.3 ms p50 | 61,109 | nothing (0 bytes, 0 jobs) |
+| 30 min (app builder) | 5 | `TOO_LARGE` ×5 | build 15.5 ms | 69,686 | nothing |
+| 60 min (app builder) | 5 | `TOO_MANY_UNITS` ×5 | build 18.3 ms | 138,212 (558 units) | nothing |
+| Cap + 1 sent straight to the SDK | 5 | `SCHEMA_VALIDATION_FAILED` ×5 (the SDK's "Input exceeds capability byte limit") | 2.7 / 3.9 ms to the terminal | 61,109 | nothing |
+| Cancel 300 ms after the first progress (node slowed to 2 s stages) | 5 | `cancelled` ×5 | cancel → terminal 93 / 96 ms | 12,000 | the job; it was **not** cancelled at the node (SDK-AJ-5) |
+| Deadline (node slowed to 25 s stages) | 3 | `DEADLINE_EXCEEDED` ×3 | the terminal 2.6 ms after the 60 s deadline | 2,588 | the job; the node ended it at 60 s |
 
 **Success and failure rates:**
 
-- Measured fixtures: 126/126 completed, validated, and rehearsed (rolled
-  back, not committed).
+- Measured fixtures: 126/126 completed, validated, and rehearsed; 46 of
+  them were partial, as marked.
 - Refusals and rejections: 20/20 typed as expected.
-- Cancels: 5/5 cancelled.
+- Cancels: 5/5 cancelled app-side.
 - Deadlines: 3/3 `DEADLINE_EXCEEDED`.
 - There were no unexpected outcomes.
 
-**Cancellation at the node.** The 5 cancelled jobs logged no `cancelled`
-end at the companion. A DELETE is acted on immediately, so none reached it:
-SDK-AJ-5, reproduced. The app-side latency is unaffected.
+**Cancellation at the node.** None of the 5 cancelled jobs logged a
+`cancelled` end at the companion, so no DELETE reached it: SDK-AJ-5,
+reproduced again. SDK-AJ-5 blocks final AJ-2 cancellation acceptance; the
+re-test is in the SDK findings. The app-side latency is unaffected.
 
 ## 6. Findings and open questions
 
 - **The result budget binds before the request budget.** From about 10
   minutes of speech, the engine's full result for these fixtures exceeds
-  61,387 bytes, so items are dropped to fit. No source is changed, and the
-  dropped items are not shown. Whether to show that a result is partial,
-  or to organize long entries in parts, is part of O-7.
+  61,387 bytes. **Resolved by amendment A1:** such results are explicitly
+  partial, with per-kind `omitted` counts of the lowest-ranked items, and
+  the app discloses it. Organizing long entries in several requests
+  (chunk-and-merge) is still not approved for v1 (O-7).
 
-- **O-7 (proposed, not frozen):** entries longer than about 26.5 minutes of
-  speech cannot be organized in one request. The options are to refuse (the
-  current behaviour), or to select or chunk by time range with merged
-  results. Chunking would change the contract (§2, §7) and needs an ADR. It
-  blocks only long-entry organization.
+- **O-7, remaining part (not frozen):** entries longer than about 26.5
+  minutes of speech cannot be organized in one request and are refused with
+  a typed reason. Chunk-and-merge would change the contract (§2, §7), needs
+  an ADR, and is not approved for v1. It blocks only organizing entries
+  above the input cap.
 - **SDK-AJ-5:** a cancel during a pending event read is not sent to the
   node, so node work continues. The app-side cancel latency is unaffected.
   See [SDK findings](hybrid-ai-sdk-issues.md#sdk-aj-5-a-cancel-during-a-pending-event-read-is-not-sent-to-the-node).

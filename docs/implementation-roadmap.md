@@ -127,6 +127,15 @@ all failure paths leave source entries unchanged.
     integration through the public SDK, with consent, streaming, cancel,
     validation, and atomic storage.
 - Evidence: [AJ-2 progress](validation/AJ2-progress.md).
+- AJ-2.0 and AJ-2.1 are accepted by the owner as development checkpoints
+  (2026-10-11); AJ-2 itself is not accepted.
+- Amendments before AJ-2.2 are done:
+  - explicit partial results (ADR-019 A1);
+  - cited-source navigation;
+  - a real voice-entry device journey;
+  - the performance wording and labels.
+- Blocked: final cancellation acceptance, on SDK-AJ-5 (an SDK fix and a
+  re-test).
 - Required for completion: the
   [organize performance suite](validation/AJ2-organize-performance.md) for
   `journal.organize@1` through the public SDK.

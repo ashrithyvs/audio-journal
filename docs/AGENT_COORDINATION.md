@@ -175,22 +175,30 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
   - **Owner decision, 2026-10-11:** AJ-2.0 and AJ-2.1 are accepted as
     completed development checkpoints. This is not AJ-2 acceptance, and
     there is no merge.
-  - **In progress (amendments before AJ-2.2):**
-    1. label the performance results as the deterministic `aj.rules`
+  - **Amendments before AJ-2.2: done** (`b4aea98`, `ad430fc`, `cc763bd`,
+    and the evidence commit). See
+    [AJ-2 progress §8](validation/AJ2-progress.md#8-owner-amendments-before-aj-22-2026-10-11):
+    1. the performance results are labelled the deterministic `aj.rules`
        baseline;
-    2. resolve O-7's lossy output with an explicit partial result,
-       disclosed in the UI (ADR-019, schemas, vectors, validators,
-       companion, UI, performance evidence);
-    3. record SDK-AJ-5 as a blocker for cancellation acceptance and hand it
-       to the SDK owner;
-    4. a real voice-entry device journey through to the cited audio range;
-    5. correct the wording on rehearsed (rolled-back) persistence.
-
-    The AJ-2.2 UI waits for decisions on O-1 to O-3.
-  - **Touches now:** `docs/journal-organize.md`, ADR-019,
-    `schemas/journal/v1/`, `tools/journal-organize/`, `node-companion/`,
-    `src/features/organize/`, `e2e/aj2/`, and the UX and validation
-    documents.
+    2. amendment A1 makes partial results explicit (ADR-019, schemas,
+       vectors, validators, companion, UI, UX, performance rerun);
+    3. SDK-AJ-5 is recorded as the blocker for cancellation acceptance,
+       with the handoff and re-test in `hybrid-ai-sdk-issues.md`;
+    4. the real voice-entry journey passed 7/7 on the `e2e` build;
+    5. the wording on rehearsed persistence is corrected.
+  - **Validation (amended build):**
+    - JS: unit 289, smoke 3, integration 144, performance 6.
+    - Companion 40/40; vectors `--check` and the verifier pass with 0
+      failures; JVM 61/61.
+    - Release and `e2e` builds pass.
+    - Device (API 35 emulator): functional 9/9 (`ad430fc`), voice journey
+      7/7 (`cc763bd`), and the performance rerun complete.
+  - **Blocked:** final AJ-2 cancellation acceptance, on SDK-AJ-5 (an SDK
+    fix and a re-test). The SDK repository was not changed. The handoff is
+    the SDK-AJ-5 section; no peer session is identified as the SDK owner.
+  - **Next:** AJ-2.2 (the Organized and Tasks UI), after the owner decides
+    O-1 to O-3. The recommendations were sent with the amendment report.
+  - **Emulators:** stopped; `.aj-exclusive-run` is released.
 - **Exclusive runs.** Benchmarks, emulator suites, Gradle/CMake builds, and
   Jest baselines never overlap. Create
   `/home/igdclt0603/Desktop/Ash/.aj-exclusive-run` (owner, purpose, start)

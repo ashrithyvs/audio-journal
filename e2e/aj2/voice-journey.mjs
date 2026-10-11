@@ -227,7 +227,8 @@ try {
       await done();
       await reachPanel();
       await d.findScrolling({ id: 'organize-summary-source' });
-      const label = d.textOf({ id: 'organize-summary-source' });
+      // The link's label is drawn by a child Text node.
+      const label = textsWithin('organize-summary-source').join(' ');
       const range = /Source · (\d+:\d\d)–(\d+:\d\d)/.exec(label ?? '');
       expect(range, `the summary cites no audio range: ${label}`);
       cited = { start: seconds(range[1]), end: seconds(range[2]), label };
@@ -253,16 +254,35 @@ try {
       const excerpt = (liveTextOf({ id: 'cited-text' }) ?? '').toLowerCase();
       expect(excerpt.length > 0, 'no cited excerpt');
       await d.findScrolling({ id: 'transcript-cited' });
-      const line = textsWithin('transcript-cited');
-      // The line's own timestamp is its segment start: the cited range begins there.
+      const texts = textsWithin('transcript-cited');
+      const lineText = texts.find(t => !/^\d+:\d\d$/.test(t)) ?? '';
       expect(
-        seconds(line[0]) === cited.start,
-        `cited line starts at ${line[0]}, the range at ${cited.start} s`,
-      );
-      expect(
-        line.slice(1).join(' ').toLowerCase().includes(excerpt),
+        lineText.toLowerCase().includes(excerpt),
         'the excerpt is not in the cited transcript line',
       );
+      // The line's own timestamp (its segment start) is the nearest
+      // time-only text before the line's text: the cited range begins there.
+      const nodes = liveDump();
+      const box = nodes.find(n => n.id === 'transcript-cited')?.bounds;
+      // The same words also appear in the excerpt and the summary: take the
+      // copy inside the highlighted line.
+      const at = nodes.findIndex(
+        n =>
+          n.text === lineText &&
+          box &&
+          n.bounds &&
+          n.bounds[1] >= box[1] &&
+          n.bounds[3] <= box[3],
+      );
+      const stamp = nodes
+        .slice(0, at)
+        .reverse()
+        .find(n => /^\d+:\d\d$/.test(n.text))?.text;
+      expect(
+        seconds(stamp) === cited.start,
+        `cited line starts at ${stamp}, the range at ${cited.start} s`,
+      );
+      const line = [stamp, lineText];
       return { citedLine: line };
     },
   );

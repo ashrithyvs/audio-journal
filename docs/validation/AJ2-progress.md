@@ -1,17 +1,29 @@
 # AJ-2 Progress Validation
 
-**Date:** 2026-10-11
+**Date:** 2026-10-11, amended 2026-10-12
 **Branch:** `aj2/organize` (worktree `../audio-journal-aj2`), from `main`
 `c5fb510`. Not merged, not pushed, not released.
 
 **Status:** AJ-2.0 (the `journal.organize@1` contract) and AJ-2.1 (the node
 companion and the minimum app integration through the public SDK) are
-implemented. They are validated on the host, on the Android emulator, and
-for the TLS profile on API 26 and 28 emulators (§5), and the organize
-performance suite has a development baseline. AJ-2 is **not accepted**:
+**accepted by the owner as completed development checkpoints**
+(2026-10-11). This is not AJ-2 acceptance, and there is no merge.
 
-- the full Organized and Tasks UI is the next stage and has not started;
-- open questions O-1 to O-7 (`journal-organize.md` §12) are not decided;
+The owner's amendments before AJ-2.2 are done (§8):
+
+- the explicit partial-result contract (amendment A1);
+- cited-source navigation;
+- a real voice-entry journey;
+- the corrected performance wording and labels;
+- SDK-AJ-5 recorded as a blocker.
+
+AJ-2 is **not accepted**:
+
+- final cancellation acceptance is blocked by SDK-AJ-5 until a fixed
+  packaged SDK is re-tested;
+- the full Organized and Tasks UI (AJ-2.2) waits for the owner's decisions
+  on O-1 to O-3;
+- O-4 to O-6, and the chunking part of O-7, stay deferred;
 - the physical-device and iOS gates are deferred, not passed.
 
 ## 1. Commits
@@ -25,7 +37,11 @@ performance suite has a development baseline. AJ-2 is **not accepted**:
 | `0b064f8` | App integration through the public SDK, migration 3, minimal UI, tests |
 | `c33a2f1` | Companion: pairing trust persisted only after both sides accept (§6), count-only job logs, test-only result padding |
 | `491dfd9` | Organize performance suite (developer benchmark, fixtures, harness), device harnesses, companion counters, SDK-AJ-4/5, O-7 |
-| this commit | Device evidence, these reports, coordination; the harness keyboard fix for API 26 |
+| `05166b2` | Device evidence, these reports, coordination; the harness keyboard fix for API 26 |
+| `b4aea98` | Amendment A1: explicit partial results (contract, ADR-019, schemas, vectors, verifier, companion, app, UI disclosure); the benchmark's `rehearsed` outcome |
+| `ad430fc` | Cited-source navigation; the `e2e` build type and voice journey; SDK-AJ-5 blocker and re-test readiness; wording and labels |
+| `cc763bd` | The `e2e` build creates its test input directory as the app |
+| this commit | Amended device evidence (functional, performance, voice journey), these reports, coordination |
 
 ## 2. Frozen and proposed decisions
 
@@ -125,6 +141,10 @@ companion counts, and the device log.
 
 ### 5.1 Functional suite (`e2e/aj2/organize-e2e.mjs`, API 35)
 
+**On the amended build (A1):** run 4 (`api35-run4/`) passed **9/9** on
+`ad430fc` (`app-release-aj2-ad430fc.apk`, SHA-256 `f3e9fa0e…3472`). O03
+again recorded SDK-AJ-5. The run-3 detail below, on `491dfd9`, is kept.
+
 Run 3 passed **9/9** on emulator `aj-api35-4g` (`api35-run3/`). All steps
 go through the real app UI, the packaged SDK, and the companion:
 
@@ -158,15 +178,22 @@ overhead, not model-backed inference or organization quality.
 See the [organize performance suite](AJ2-organize-performance.md#5-results).
 In summary:
 
+The current run is `perf-api35-run2` on the amended build `ad430fc`:
+
 - all 126 organize runs completed and were validated, with persistence
   rehearsed in rolled-back transactions; none was committed (the stored
-  derivations are the functional cases in §5.1);
-- warm completion is 38–52 ms p50 from 30 s to 10 min of speech, and
-  143 ms p50 at the exact 61,108-byte cap;
-- the result is on screen at 64–230 ms p50;
+  derivations are the functional cases in §5.1 and the voice journey in
+  §5.4);
+- warm completion is 40–52 ms p50 from 30 s to 10 min of speech, and
+  137 ms p50 at the exact 61,108-byte cap;
+- the result is on screen at 65–222 ms p50;
+- results for 30 s – 5 min were complete. Every 10-minute result was
+  explicitly partial, with 3 items omitted, and every result at the cap
+  with 155 omitted (amendment A1; before A1 these were dropped silently);
 - the typed refusals sent nothing;
 - the SDK rejected cap + 1 with `SCHEMA_VALIDATION_FAILED`;
-- the deadline ended 3 ms after 60 s.
+- the deadline ended 2.6 ms after 60 s;
+- the cancel took 93 ms app-side, but did not reach the node (SDK-AJ-5).
 
 These are development baselines.
 
@@ -196,6 +223,34 @@ The first attempts failed only in the harness:
 
 Even so, the API 28 attempt had already paired over the same TLS 1.2 + EMS
 profile (`tls-api28/`).
+
+### 5.4 Real voice-entry journey (`e2e/aj2/voice-journey.mjs`, API 35)
+
+Run 4 (`voice-api35-run4/`) passed **7/7** on the `e2e` build `cc763bd`
+(`app-e2e-aj2-cc763bd.apk`, SHA-256 `b4532186…901c`). The `e2e` build is
+release-like with the JS bundled, and adds one thing: the next capture reads
+a pushed WAV instead of the emulator's silent microphone. The release APK
+contains none of that code; its `TestAudioInput` is a stub.
+
+| Step | Result | Evidence |
+|---|---|---|
+| V00 install, PIN, companion, pairing | pass | The sample is whisper.cpp's `jfk.wav` with the AJ-1 speech harness's pinned SHA-256, from the speech engine's source tree; no audio is committed. |
+| V01 capture through the app | pass | Diary → Record → Finish; a 15 s recording (the 11 s sample, then silence), sealed into AJR1 by the production capture path. The capture consumed the input. |
+| V02 on-device final pass | pass | whisper.cpp's final pass made the transcript "And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country." (0:00). |
+| V03 organize | pass | The consent says text only. The request went through the public SDK to the companion; the app validated the result (§6, including the voice audio ranges) and stored it. The summary cites "Source · 0:00–0:11". |
+| V04 open the cited source | pass | The organized item opens the entry at the cited source. The range and excerpt are shown, and the cited transcript line (0:00, the sentence above) is highlighted. The range starts at that line's segment start, and the excerpt is in that line. |
+| V05 play the cited range | pass | "Play this part" played positions 0, 1, 4, 5, 7, 8, 10 s, all inside 0–11 s, then "Played". |
+| V06 privacy | pass | Neither the device log nor the companion log holds "fellow americans" or "your country". |
+
+Runs 1–3 failed only in the harness, and each failure was fixed:
+
+- run 1: the input directory was made by `adb shell`, so the app could not
+  read it (fixed in `cc763bd`);
+- run 2: the link label is a child Text node;
+- run 3: the cited line's timestamp was read by bounds.
+
+Their app-side steps passed. Run 2 already showed the same transcript and
+the "Source · 0:00–0:11" citation.
 
 ## 6. Findings
 
@@ -237,7 +292,19 @@ profile (`tls-api28/`).
 - The full Organized and Tasks UI, which depends on O-1 to O-3.
 - Physical-device runs. Only emulators were used.
 - iOS: no macOS/Xcode evidence.
-- Voice entries on the device: the request builder, validator, and storage
-  cover voice units and audio ranges on the host (§4). The device suite
-  organizes written entries, because a final transcript on the emulator
-  needs the speech harness.
+- Cancellation acceptance: blocked by SDK-AJ-5 until a fixed packaged SDK
+  passes the re-test (`--expect-node-cancel`).
+- The voice journey uses a recorded sample instead of a live microphone.
+  Live-microphone capture on a physical device belongs to the
+  physical-device gates.
+
+## 8. Owner amendments before AJ-2.2 (2026-10-11)
+
+| # | Requirement | Done | Evidence |
+|---|---|---|---|
+| 1 | Label the performance results as the deterministic `aj.rules` baseline; keep it as the protocol and SDK overhead baseline | done | [Performance suite](AJ2-organize-performance.md), "Labels"; a model-backed engine needs its own baseline |
+| 2 | Resolve O-7's lossy output with an explicit partial result, disclosed in the UI, with no silent drops and no chunk-and-merge | done | Amendment A1 (contract §3.2, ADR-019, `RESULT_COMPLETENESS`). It is consistent across the schemas, the 79 result vectors, the Python verifier, Ajv, the companion engine and validator, the app validator, the UI (`organize-partial`), UX §7, and the performance rerun (10 min and the cap are explicitly partial) |
+| 3 | SDK-AJ-5 is a blocker for cancellation acceptance, handed to the SDK owner; the SDK stays read only | done; **blocker open** | [SDK-AJ-5](hybrid-ai-sdk-issues.md#sdk-aj-5-a-cancel-during-a-pending-event-read-is-not-sent-to-the-node): root cause, reproduction, and the re-test (`--expect-node-cancel`). Node-side readiness is proven on the host (protocol test "a cancelled job keeps no result") |
+| 4 | A real voice-entry device journey through to the cited audio range | done | §5.4: 7/7 on `cc763bd`. It covers capture, the on-device final pass, organize through the public SDK, provenance validation, persistence, the cited line, and playback of the exact range. The synthetic duration ladder stays in the performance suite |
+| 5 | The performance runs are rehearsed (rolled-back) persistence, not committed derivations | done | The benchmark's outcome is `rehearsed`; the reports are reworded. The committed storage evidence is §5.1 and §5.4 |
+
