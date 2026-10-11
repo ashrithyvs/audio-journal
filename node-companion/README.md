@@ -41,7 +41,7 @@ to confirm that the phone shows the same code. `pairings` lists devices;
 | Area | Behaviour |
 |---|---|
 | TLS | TLS 1.3; TLS 1.2 only with ECDHE-ECDSA AES-GCM or ChaCha20-Poly1305 **and** Extended Master Secret (read from the session's `SSL_SESS_FLAG_EXTMS`, as ADR-022 publishes), for Android API 26–28. Anything else is refused. No session resumption. Client certificates are requested, not CA verified; every protected request is authorized by the client key's pin against the pairing table. |
-| Pairing | ADR-022 ceremony: one active QR session (≤ 300 s, single use), HKDF-SHA-256 key schedule, HMAC transcripts T1–T5, six-digit code, operator approval, at most 64 pairings, `DELETE /v1/pairing/self`, `GET /v1/pairing/node-key`. Unauthenticated pairing calls are rate limited (20 per minute per address). |
+| Pairing | ADR-022 ceremony: one active QR session (≤ 300 s, single use), HKDF-SHA-256 key schedule, HMAC transcripts T1–T5, six-digit code, operator approval, at most 64 pairings, `DELETE /v1/pairing/self`, `GET /v1/pairing/node-key`. Trust is persisted only after both the device and the operator accept, in either order; an operator approval followed by a device reject leaves no record. Unauthenticated pairing calls are rate limited (20 per minute per address). |
 | Jobs | Idempotency scoped to `(pairing, idempotencyKey)` over the canonical `{capability, deadlineMs, input, stream}`; replay returns the same job, a different body `IDEMPOTENCY_CONFLICT`; at most 4,096 records, never evicted. At most 32 retained jobs for 15 minutes (the oldest finished job makes room; 32 running jobs refuse a new one with `NODE_UNAVAILABLE`). Deadline 1–120,000 ms, armed once at acceptance. Idempotent cancel. Other pairings' jobs are `JOB_NOT_RETAINED`. |
 | Events | Sequences from 1 without gaps, at most 64, exactly one terminal; every event message at most 61,440 bytes (a larger result fails the job); unmasked, unfragmented RFC 6455 text frames; `afterSequence` replay. |
 | Request key | A completed result is kept for `(pairing, requestKey)` within retention and replayed for the same input digest; the same key with another input fails (contract §9). |
@@ -58,7 +58,23 @@ emulator (`docs/validation/AJ2-progress.md`), not assumed from SDK source.
 Job inputs and results live in memory only and disappear after retention,
 cancellation, revocation, or exit. The companion logs only codes, counts,
 durations, and TLS handshake facts (protocol, suite, EMS), never journal
-text, names, or IDs from requests. Nothing is sent anywhere else.
+text, names, or IDs from requests. A finished job logs its state, event
+count, input bytes, last message bytes, and duration. Nothing is sent
+anywhere else.
+
+## Test-only options
+
+These options are off by default. Device suites use them; a real
+deployment never should.
+
+- `--stage-delay-ms N` slows each engine stage. It is used for the
+  cancellation and deadline tests.
+- `--test-pad-results` adds `Padding idea …` items to each result that
+  requests ideas (`src/testPad.mjs`), until the canonical output is exactly
+  61,387 bytes. The completed message is then exactly 61,440 bytes, so a
+  suite can prove that the SDK accepts a message at the contract's budget.
+  The padded result still passes every contract §6 rule; when that cannot
+  be achieved, the engine's own result is sent instead.
 
 ## Dependencies and threat boundary
 
@@ -95,7 +111,7 @@ every package to an exact version with its npm `sha512` integrity hash;
 ## Tests
 
 ```sh
-npm test                                   # 33 tests
+npm test                                   # 35 tests
 node scripts/engine-golden.mjs --check     # pinned engine outputs
 node scripts/load.mjs --fixture max        # development load run
 ```

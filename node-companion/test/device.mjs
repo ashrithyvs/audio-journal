@@ -82,8 +82,17 @@ export async function makeDevice(
     });
   }
 
-  /** Runs the ceremony; `operator(code)` returns 'approve' or 'reject'. */
-  async function pair(service, endpoints, operator = () => 'approve') {
+  /**
+   * Runs the ceremony; `operator(code)` returns 'approve' or 'reject'. With
+   * `operatorFirst`, the operator decides before the device sends its own
+   * `deviceDecision`.
+   */
+  async function pair(
+    service,
+    endpoints,
+    operator = () => 'approve',
+    { operatorFirst = false, deviceDecision = 'accept' } = {},
+  ) {
     const { qr } = service.issue({ endpoints });
     const bootstrap = JSON.parse(
       Buffer.from(qr.slice('hybrid-ai-pair:'.length), 'base64url').toString(
@@ -110,26 +119,30 @@ export async function makeDevice(
     const confirm = {
       v: 1,
       pairingId: started.body.pairingId,
-      decision: 'accept',
+      decision: deviceDecision,
     };
     confirm.proof = mac(keys.device, {
       ctx: 'hybrid-ai/pair/v1/confirm',
-      decision: 'accept',
+      decision: deviceDecision,
       t1: t.t1h,
       t2: t.t2h,
     });
-    const confirming = request('POST', '/v1/pairing/confirm', confirm);
     let pending;
-    for (let i = 0; i < 100 && !pending; i += 1) {
-      pending = service
-        .pendingList()
-        .find(p => p.pairingId === started.body.pairingId);
-      if (!pending) await new Promise(r => setTimeout(r, 10));
-    }
-    service.decide(
-      started.body.pairingId,
-      pending && pending.code === code ? operator(code) : 'reject',
-    );
+    const decide = async () => {
+      for (let i = 0; i < 100 && !pending; i += 1) {
+        pending = service
+          .pendingList()
+          .find(p => p.pairingId === started.body.pairingId);
+        if (!pending) await new Promise(r => setTimeout(r, 10));
+      }
+      service.decide(
+        started.body.pairingId,
+        pending && pending.code === code ? operator(code) : 'reject',
+      );
+    };
+    if (operatorFirst) await decide();
+    const confirming = request('POST', '/v1/pairing/confirm', confirm);
+    if (!operatorFirst) await decide();
     const confirmed = await confirming;
     return { started, confirmed, code, nodeCode: pending?.code, bootstrap };
   }

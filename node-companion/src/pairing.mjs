@@ -378,7 +378,13 @@ export class PairingService {
         state: 'rejected',
       });
     }
-    if (pending.decision) return Promise.resolve(this.answer(pending));
+    // ADR-022 step 5: trust is persisted only after both accept, so the
+    // device's accept is recorded and the commit waits for the operator.
+    pending.deviceAccepted = true;
+    if (pending.decision) {
+      if (pending.decision === 'approve') this.commit(pending);
+      return Promise.resolve(this.answer(pending));
+    }
     return new Promise((resolve, reject) => {
       const wait = Math.max(0, pending.deadline - this.monotonic());
       const timer = setTimeout(() => {
@@ -405,20 +411,29 @@ export class PairingService {
     return pairedResponse(pending, this.identity.nodeId);
   }
 
-  /** The operator's decision for a pending pairing, after comparing codes. */
+  /** Persists trust once both the device and the operator accepted. */
+  commit(pending) {
+    if (pending.committed) return;
+    pending.committed = true;
+    this.pairings.push({
+      pairingId: pending.pairingId,
+      deviceKey: pending.deviceKey,
+      deviceName: pending.deviceName,
+      pairedAt: Math.floor(this.now() / 1000),
+    });
+    this.save();
+  }
+
+  /**
+   * The operator's decision for a pending pairing, after comparing codes. An
+   * approval before the device's accept is held; a device reject discards it.
+   */
   decide(pairingId, decision) {
     const pending = this.pending.get(pairingId);
     if (!pending || pending.decision) return false;
     pending.decision = decision === 'approve' ? 'approve' : 'reject';
-    if (pending.decision === 'approve') {
-      this.pairings.push({
-        pairingId,
-        deviceKey: pending.deviceKey,
-        deviceName: pending.deviceName,
-        pairedAt: Math.floor(this.now() / 1000),
-      });
-      this.save();
-    }
+    if (pending.decision === 'approve' && pending.deviceAccepted)
+      this.commit(pending);
     for (const waiter of pending.waiters.splice(0)) waiter();
     return true;
   }

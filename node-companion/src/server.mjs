@@ -100,11 +100,12 @@ export async function startCompanion(
     adminPort = 0,
     endpoints,
     stageDelayMs = 0,
+    padResults = false,
     log = () => {},
   } = {},
 ) {
   const pairing = new PairingService(identity);
-  const jobs = new JobStore({ stageDelayMs, log });
+  const jobs = new JobStore({ stageDelayMs, padResults, log });
   pairing.onRevoke = record => jobs.revokePairing(record.pairingId);
   const handshakes = [];
   const limited = rateLimiter();

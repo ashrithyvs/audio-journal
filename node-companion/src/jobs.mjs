@@ -12,7 +12,8 @@ import {
   validateInput,
 } from './contract.mjs';
 import { ENGINE, organize } from './engine.mjs';
-import { canonical, own } from './json.mjs';
+import { byteLength, canonical, own } from './json.mjs';
+import { padToCap } from './testPad.mjs';
 
 export const RETENTION_MS = 15 * 60_000;
 export const MAX_JOBS = 32;
@@ -81,15 +82,19 @@ function checkJobRequest(body) {
 export class JobStore {
   /**
    * `stageDelayMs` slows each engine stage (tests of deadlines and
-   * cancellation only); `monotonic` and `timers` are injectable for tests.
+   * cancellation only); `padResults` grows results to the exact output cap
+   * (device boundary tests only, src/testPad.mjs); `monotonic` and `timers`
+   * are injectable for tests.
    */
   constructor({
     monotonic = () => performance.now(),
     stageDelayMs = 0,
+    padResults = false,
     log = () => {},
   } = {}) {
     this.monotonic = monotonic;
     this.stageDelayMs = stageDelayMs;
+    this.padResults = padResults;
     this.log = log;
     this.jobs = new Map();
     this.idempotency = new Map();
@@ -250,6 +255,7 @@ export class JobStore {
             counts = c;
           },
         });
+        if (this.padResults) output = padToCap(output, input);
       } catch (error) {
         this.log({ event: 'engine-failed', reason: error.code ?? 'error' });
         this.end(job, 'failed', {
@@ -319,11 +325,15 @@ export class JobStore {
     else if (type === 'cancelled')
       this.emit(job, 'cancelled', { reason: data });
     else this.emit(job, 'failed', data);
+    // Counts and durations only, never content (contract §10).
     if (!silent)
       this.log({
         event: 'job-ended',
         state: job.state,
         sequence: job.sequence,
+        inputBytes: job.input === undefined ? null : byteLength(job.input),
+        lastMessageBytes: byteLength(job.events.at(-1)),
+        ms: Math.round(this.monotonic() - (job.createdMono ?? 0)),
       });
   }
 

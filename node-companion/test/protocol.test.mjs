@@ -148,6 +148,40 @@ test('pairing: a mismatched code is rejected and a second start for the session 
   assert.equal(again.status, 403);
 });
 
+test('pairing: trust is persisted only after both the device and the operator accept', async t => {
+  const n = await startNode();
+  t.after(() => n.node.close());
+  const endpoints = [{ host: '127.0.0.1', port: n.port }];
+
+  // The operator approves first; the device then rejects: no trust.
+  const refusing = await makeDevice(n);
+  const refused = await refusing.pair(n.node.pairing, endpoints, undefined, {
+    operatorFirst: true,
+    deviceDecision: 'reject',
+  });
+  assert.equal(refused.confirmed.body.state, 'rejected');
+  assert.equal(n.node.pairing.pairings.length, 0);
+  assert.equal((await refusing.request('GET', '/v1/info')).status, 403);
+
+  // The device accepts first; the operator then rejects: no trust.
+  const rejected = await makeDevice(n);
+  const no = await rejected.pair(n.node.pairing, endpoints, () => 'reject');
+  assert.equal(no.confirmed.body.state, 'rejected');
+  assert.equal(n.node.pairing.pairings.length, 0);
+
+  // Both accept, in either order: one record each.
+  const first = await makeDevice(n);
+  const a = await first.pair(n.node.pairing, endpoints, undefined, {
+    operatorFirst: true,
+  });
+  assert.equal(a.confirmed.body.state, 'paired');
+  const second = await makeDevice(n);
+  const b = await second.pair(n.node.pairing, endpoints);
+  assert.equal(b.confirmed.body.state, 'paired');
+  assert.equal(n.node.pairing.pairings.length, 2);
+  assert.equal((await first.request('GET', '/v1/info')).status, 200);
+});
+
 test('a job streams accepted, progress, one partial, and one valid completed', async t => {
   const { node, device } = await paired();
   t.after(() => node.close());

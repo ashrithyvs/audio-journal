@@ -33,6 +33,8 @@ const { values, positionals } = parseArgs({
     'admin-port': { type: 'string', default: '0' },
     lifetime: { type: 'string', default: '120' },
     'stage-delay-ms': { type: 'string', default: '0' },
+    // Test-only: results grown to the exact output cap (src/testPad.mjs).
+    'test-pad-results': { type: 'boolean', default: false },
   },
 });
 const command = positionals[0] ?? 'serve';
@@ -76,6 +78,7 @@ if (command === 'serve') {
     adminPort: Number(values['admin-port']),
     endpoints: endpoints ?? (port ? lanEndpoints(port) : undefined),
     stageDelayMs: Number(values['stage-delay-ms']),
+    padResults: values['test-pad-results'],
     log: entry =>
       process.stderr.write(
         `${JSON.stringify({ at: new Date().toISOString(), ...entry })}\n`,
