@@ -7,10 +7,16 @@ import {
   type OrganizeOutput,
   type SourceRef,
 } from '../../features/organize/domain/contract';
+import {
+  matchCarryOver,
+  type PreviousTask,
+} from '../../features/organize/domain/carryOver';
+import { scopeKeyOf } from '../../features/organize/domain/scope';
 import type {
   DerivationRepository,
   DerivedTask,
   StoredDerivation,
+  TaskState,
   ValidatedResult,
 } from '../../features/organize/ports/DerivationRepository';
 import type { SqlDatabase, SqlExecutor } from './SqlDatabase';
@@ -22,6 +28,7 @@ import type { SqlDatabase, SqlExecutor } from './SqlDatabase';
 type DerivationRow = {
   id: string;
   request_key: string;
+  scope_key: string;
   engine_id: string;
   engine_version: string;
   revision: number;
@@ -34,6 +41,9 @@ type TaskRow = {
   text: string;
   area: DerivedTask['area'];
   state: DerivedTask['state'];
+  state_changed_at: number | null;
+  due_date: string | null;
+  predecessor_task_id: string | null;
 };
 
 /** Thrown to roll a rehearsal back; never escapes rehearseSave. */
@@ -114,6 +124,34 @@ export class SqliteDerivationRepository implements DerivationRepository {
     );
   }
 
+  async newestPerScope(): Promise<StoredDerivation[]> {
+    const rows = await this.db.all<DerivationRow>(
+      `SELECT d.* FROM derivations d
+        WHERE d.revision = (SELECT MAX(x.revision) FROM derivations x
+          WHERE x.scope_key = d.scope_key)
+        ORDER BY d.created_at DESC, d.rowid DESC`,
+    );
+    return Promise.all(rows.map(row => this.hydrate(this.db, row)));
+  }
+
+  async history(scopeKey: string): Promise<StoredDerivation[]> {
+    const rows = await this.db.all<DerivationRow>(
+      'SELECT * FROM derivations WHERE scope_key = ? ORDER BY revision DESC',
+      [scopeKey],
+    );
+    return Promise.all(rows.map(row => this.hydrate(this.db, row)));
+  }
+
+  async setTaskState(taskId: string, state: TaskState, at: number) {
+    const { changes } = await this.db.run(
+      'UPDATE derived_tasks SET state = ?, state_changed_at = ? WHERE id = ?',
+      [state, at, taskId],
+    );
+    if (changes !== 1) {
+      throw new Error('task not found');
+    }
+  }
+
   async saveValidated(
     result: ValidatedResult,
   ): Promise<{ derivation: StoredDerivation; duplicate: boolean }> {
@@ -168,11 +206,12 @@ export class SqliteDerivationRepository implements DerivationRepository {
   ): Promise<string> {
     const { input, inputSha256, output, createdAt } = result;
     const entryIds = input.entries.map(entry => entry.entryId);
-    const scopeKey = [...entryIds].sort().join(',');
+    const scopeKey = scopeKeyOf(entryIds);
     const latest = await tx.get<{ revision: number | null }>(
       'SELECT MAX(revision) AS revision FROM derivations WHERE scope_key = ?',
       [scopeKey],
     );
+    const carried = await this.carryOver(tx, scopeKey, entryIds, output);
     const id = this.ids.next('drv');
     await tx.run(
       `INSERT INTO derivations (id, request_key, contract, engine_id, engine_version,
@@ -198,10 +237,24 @@ export class SqliteDerivationRepository implements DerivationRepository {
       );
     }
     for (const [ordinal, task] of (output.tasks ?? []).entries()) {
+      // ADR-020: a proven, unambiguous predecessor's state carries over;
+      // anything else starts open. The predecessor's own row is unchanged.
+      const predecessor = carried.get(ordinal);
       await tx.run(
-        `INSERT INTO derived_tasks (id, derivation_id, ordinal, text, area, state)
-            VALUES (?, ?, ?, ?, ?, 'open')`,
-        [this.ids.next('tsk'), id, ordinal, task.text, task.area],
+        `INSERT INTO derived_tasks (id, derivation_id, ordinal, text, area,
+            state, state_changed_at, due_date, predecessor_task_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          this.ids.next('tsk'),
+          id,
+          ordinal,
+          task.text,
+          task.area,
+          predecessor?.state ?? 'open',
+          predecessor?.stateChangedAt ?? null,
+          task.due?.date ?? null,
+          predecessor?.id ?? null,
+        ],
       );
     }
     const voice = new Set(
@@ -243,9 +296,13 @@ export class SqliteDerivationRepository implements DerivationRepository {
     params: readonly string[],
   ): Promise<StoredDerivation | undefined> {
     const row = await tx.get<DerivationRow>(sql, params);
-    if (!row) {
-      return undefined;
-    }
+    return row ? this.hydrate(tx, row) : undefined;
+  }
+
+  private async hydrate(
+    tx: SqlExecutor,
+    row: DerivationRow,
+  ): Promise<StoredDerivation> {
     const scope = await tx.all<{ entry_id: string }>(
       `SELECT s.entry_id FROM derivation_entries s
         JOIN journal_entries e ON e.id = s.entry_id
@@ -253,19 +310,93 @@ export class SqliteDerivationRepository implements DerivationRepository {
       [row.id],
     );
     const tasks = await tx.all<TaskRow>(
-      'SELECT id, ordinal, text, area, state FROM derived_tasks WHERE derivation_id = ? ORDER BY ordinal',
+      `SELECT id, ordinal, text, area, state, state_changed_at, due_date,
+          predecessor_task_id
+        FROM derived_tasks WHERE derivation_id = ? ORDER BY ordinal`,
       [row.id],
     );
     const output = JSON.parse(row.payload) as OrganizeOutput;
     return {
       id: row.id,
       requestKey: row.request_key,
+      scopeKey: row.scope_key,
       revision: row.revision,
       createdAt: row.created_at,
       engine: { id: row.engine_id, version: row.engine_version },
       entryIds: scope.map(s => s.entry_id),
       output,
-      tasks: tasks.map(task => ({ ...task })),
+      tasks: tasks.map(task => ({
+        id: task.id,
+        ordinal: task.ordinal,
+        text: task.text,
+        area: task.area,
+        state: task.state,
+        ...(task.state_changed_at === null
+          ? {}
+          : { stateChangedAt: task.state_changed_at }),
+        ...(task.due_date === null ? {} : { dueDate: task.due_date }),
+        ...(task.predecessor_task_id === null
+          ? {}
+          : { predecessorTaskId: task.predecessor_task_id }),
+      })),
     };
+  }
+
+  /**
+   * ADR-020 carry-over: the previous revision of this scope, matched against
+   * the new tasks with the correction lineage of the scope's transcripts.
+   */
+  private async carryOver(
+    tx: SqlExecutor,
+    scopeKey: string,
+    entryIds: readonly string[],
+    output: OrganizeOutput,
+  ): Promise<Map<number, PreviousTask>> {
+    const previousRow = await tx.get<DerivationRow>(
+      `SELECT * FROM derivations WHERE scope_key = ?
+        ORDER BY revision DESC LIMIT 1`,
+      [scopeKey],
+    );
+    if (!previousRow || !output.tasks?.length) {
+      return new Map();
+    }
+    const previousOutput = JSON.parse(previousRow.payload) as OrganizeOutput;
+    const rows = await tx.all<TaskRow>(
+      `SELECT id, ordinal, text, area, state, state_changed_at, due_date,
+          predecessor_task_id
+        FROM derived_tasks WHERE derivation_id = ? ORDER BY ordinal`,
+      [previousRow.id],
+    );
+    const previous: PreviousTask[] = rows.map(row => ({
+      id: row.id,
+      ordinal: row.ordinal,
+      text: row.text,
+      state: row.state,
+      ...(row.state_changed_at === null
+        ? {}
+        : { stateChangedAt: row.state_changed_at }),
+      sources: previousOutput.tasks?.[row.ordinal]?.sources ?? [],
+    }));
+    const lineage = new Map<string, string>();
+    const marks = entryIds.map(() => '?').join(', ');
+    for (const segment of await tx.all<{
+      id: string;
+      supersedes_segment_id: string | null;
+    }>(
+      `SELECT id, supersedes_segment_id FROM transcript_segments
+        WHERE entry_id IN (${marks}) AND supersedes_segment_id IS NOT NULL`,
+      entryIds,
+    )) {
+      lineage.set(segment.id, segment.supersedes_segment_id!);
+    }
+    return matchCarryOver(
+      previous,
+      output.tasks.map((task, ordinal) => ({
+        ordinal,
+        text: task.text,
+        sources: task.sources,
+      })),
+      segmentId => lineage.get(segmentId),
+    );
   }
 }

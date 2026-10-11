@@ -397,7 +397,7 @@ it('keeps one request-key secret per journal, outside app settings', async () =>
   ).rejects.toThrow();
 });
 
-it('upgrades a v2 journal to v3 without touching its rows, then organizes', async () => {
+it('upgrades a v2 journal to the latest schema without touching its rows, then organizes', async () => {
   const db = new NodeSqliteDatabase();
   await migrate(db, 1, MIGRATIONS.slice(0, 2));
   const ids = sequentialIds(700);
@@ -409,7 +409,7 @@ it('upgrades a v2 journal to v3 without touching its rows, then organizes', asyn
   } as Journal;
   const { writtenId, voiceId } = await seed(v2);
   const before = await sourceRows(v2);
-  expect(await migrate(db, 9)).toEqual({ from: 2, to: 3, applied: [3] });
+  expect(await migrate(db, 9)).toEqual({ from: 2, to: 4, applied: [3, 4] });
   expect(await sourceRows(v2)).toEqual(before);
 
   derivations = new SqliteDerivationRepository(db, ids);

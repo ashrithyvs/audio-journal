@@ -100,6 +100,13 @@ class MemoryDerivations implements DerivationRepository {
   async latestForEntry() {
     return undefined;
   }
+  async newestPerScope() {
+    return [...this.stored.values()];
+  }
+  async history() {
+    return [];
+  }
+  async setTaskState() {}
   async saveValidated(result: ValidatedResult) {
     const existing = this.stored.get(result.input.requestKey);
     if (existing) {
@@ -108,6 +115,7 @@ class MemoryDerivations implements DerivationRepository {
     const derivation: StoredDerivation = {
       id: `drv_${String(this.stored.size).padStart(26, '0')}`,
       requestKey: result.input.requestKey,
+      scopeKey: result.input.entries.map(e => e.entryId).join(','),
       revision: 1,
       createdAt: result.createdAt,
       engine: result.output.engine,

@@ -221,6 +221,18 @@ describe('building a request', () => {
     ]);
   });
 
+  it('sends a repeated or reordered selection once, identically (ADR-020)', () => {
+    const a = written(1, 'Call the bank.');
+    const b = written(2, 'Water the plants.');
+    const once = build([a, b]);
+    const again = build([b, a, b, a]);
+    if (!once.ok || !again.ok) throw new Error('not built');
+    expect(canonicalJson(again.input)).toBe(canonicalJson(once.input));
+    expect(
+      build(Array.from({ length: 25 }, () => written(1, 'Same entry.'))),
+    ).toMatchObject({ ok: true });
+  });
+
   it('refuses instead of truncating or rewriting', () => {
     expect(build([voice(1, [], { kind: 'none' })])).toMatchObject({
       ok: false,

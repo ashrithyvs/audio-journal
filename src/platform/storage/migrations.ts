@@ -231,6 +231,24 @@ export const MIGRATIONS: readonly Migration[] = [
       ) STRICT`,
     ],
   },
+  {
+    // ADR-019 amendment A2 and ADR-020: a task's due date (from its validated
+    // result) and the task it carried its state from on a reorganize. Both
+    // are written once with the task and never change.
+    version: 4,
+    name: 'aj2_task_due_and_lineage',
+    statements: [
+      `ALTER TABLE derived_tasks ADD COLUMN due_date TEXT
+        CHECK (due_date IS NULL OR (length(due_date) = 10
+          AND due_date GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'))`,
+      `ALTER TABLE derived_tasks ADD COLUMN predecessor_task_id TEXT
+        REFERENCES derived_tasks(id)`,
+      `CREATE INDEX derived_tasks_predecessor ON derived_tasks(predecessor_task_id)`,
+      `CREATE TRIGGER derived_tasks_lineage_immutable
+        BEFORE UPDATE OF due_date, predecessor_task_id ON derived_tasks
+        BEGIN SELECT RAISE(ABORT, 'derived task content is immutable'); END`,
+    ],
+  },
 ];
 
 /** Deterministic, dependency-free fingerprint; detects edits, not attacks. */

@@ -66,7 +66,7 @@ describe('migrations', () => {
     expect(await migrate(db, 2)).toEqual({
       from: 1,
       to: latest,
-      applied: [2, 3],
+      applied: [2, 3, 4],
     });
     expect(
       await db.get(

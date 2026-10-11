@@ -12,11 +12,18 @@ export interface DerivedTask {
   text: string;
   area: 'work' | 'personal' | 'unsorted';
   state: TaskState;
+  stateChangedAt?: number;
+  /** ISO calendar date from the validated result (contract §3.3). */
+  dueDate?: string;
+  /** The previous revision's task whose state this one carried (ADR-020). */
+  predecessorTaskId?: string;
 }
 
 export interface StoredDerivation {
   id: string;
   requestKey: string;
+  /** The canonical selection identity (ADR-020, `scopeKeyOf`). */
+  scopeKey: string;
   /** One higher than the latest derivation over exactly the same entries. */
   revision: number;
   createdAt: number;
@@ -50,6 +57,12 @@ export interface DerivationRepository {
   ): Promise<{ derivation: StoredDerivation; duplicate: boolean }>;
   /** The newest derivation whose scope includes the entry. */
   latestForEntry(entryId: string): Promise<StoredDerivation | undefined>;
+  /** The newest revision of every scope, newest first (ADR-020). */
+  newestPerScope(): Promise<StoredDerivation[]>;
+  /** Every revision of one scope, newest first. */
+  history(scopeKey: string): Promise<StoredDerivation[]>;
+  /** A task transition: done, dismissed, or restored to open. */
+  setTaskState(taskId: string, state: TaskState, at: number): Promise<void>;
   /**
    * Benchmark only: performs saveValidated's writes in a transaction that
    * is always rolled back, so the organize performance suite can time

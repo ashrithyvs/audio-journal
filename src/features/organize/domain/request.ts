@@ -241,11 +241,20 @@ export function buildOrganizeRequest(options: {
 }): BuiltRequest {
   const { selection, keyHex, crypto } = options;
   const excluded: Exclusion[] = [];
-  if (selection.length > ORGANIZE_LIMITS.maxEntries) {
+  if (
+    new Set(selection.map(detail => detail.entry.id)).size >
+    ORGANIZE_LIMITS.maxEntries
+  ) {
     return { ok: false, reason: 'TOO_MANY_ENTRIES', excluded };
   }
   const entries: OrganizeEntry[] = [];
+  // A repeated entry is the same selection (ADR-020): each is sent once.
+  const seen = new Set<string>();
   for (const detail of selection) {
+    if (seen.has(detail.entry.id)) {
+      continue;
+    }
+    seen.add(detail.entry.id);
     const built = entryOf(detail, crypto);
     if (built === 'UNSENDABLE_TEXT') {
       return { ok: false, reason: built, excluded, entryId: detail.entry.id };
