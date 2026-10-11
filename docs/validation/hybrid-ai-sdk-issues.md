@@ -173,3 +173,88 @@ instead of failing with `DEADLINE_EXCEEDED`.
 
 **Where:** `core/src/local_executor.cpp` checks cancellation but not the
 end-to-end deadline.
+
+## SDK-AJ-4: the node protocol leaves job-creation status and framing undocumented
+
+**Affected:** the published node protocol (SDK ADR-021, `schemas/v1/node/`)
+at the same SDK version.
+
+**Severity:** low (documentation). Found while building the Audio Journal
+node companion (AJ-2), the first node not written in the SDK repository.
+
+**Observed:** the published documents fix the resources, envelopes, limits,
+and error codes. They do not fix:
+
+- the HTTP status of `POST /v1/jobs` for a new job and for an idempotent
+  replay;
+- the response framing (`Content-Length` or chunked transfer encoding);
+- the WebSocket framing of event messages (fragmentation, masking, and
+  frame size) beyond the 64 KiB payload limit.
+
+A third-party node therefore has to choose, and could choose something that
+the packaged SDK does not accept. The framing choices are in fact hard
+requirements: the SDK's frame reader (`core/src/node_http.cpp`, read while
+diagnosing SDK-AJ-5) rejects fragmented frames, masked frames, and frames
+with a 64-bit length.
+
+**Audio Journal's choice:** `201` for a new job, `200` for a replay, an
+explicit `Content-Length` on every response, and unfragmented, unmasked
+RFC 6455 text frames. These are proven end to end against the packaged SDK on
+the emulator ([AJ-2 report](AJ2-progress.md)), not taken from SDK source.
+
+**Suggested fix:** state these choices, or the accepted alternatives, in
+ADR-021 or the node schemas.
+
+## SDK-AJ-5: a cancel during a pending event read is not sent to the node
+
+**Affected:** the same SDK version and artifacts as SDK-AJ-1, with any node.
+
+**Severity:** medium. No data is affected; node work and retention are
+wasted. Found by the AJ-2 device suite on 2026-10-11.
+
+**Observed:** the app cancels a `journal.organize@1` run after the node
+accepted the job. This is suite step O03, with the companion slowed to four
+10-second stages. Then:
+
+- the app receives `cancelled` at once and stores nothing, as required;
+- the node never receives `DELETE /v1/jobs/{jobId}`. It runs the job to
+  completion: `"state":"completed","ms":50062` in
+  `aj2-device/api35-run2/companion-2.log`.
+
+**Reproduce:**
+
+```sh
+ANDROID_SERIAL=emulator-5554 node e2e/aj2/organize-e2e.mjs --apk <app.apk> --only O00,O03
+```
+
+The step records the node's final job state.
+
+**Root cause** (from the SDK source, read only):
+
+- `NodeClient::stream` (`core/src/node_client.cpp`) sends `cancel(job_id)`,
+  which is `DELETE /v1/jobs/{jobId}`, only when it finds the token cancelled
+  at the top of its loops.
+- The WebSocket `receive` (`core/src/node_http.cpp:195`) is itself
+  cancellation-aware: `read_exact` returns `Cancelled` while it waits for
+  the next frame.
+- `stream` then returns `frame.error()` from its receive-error branch
+  without calling `cancel(job_id)`. A cancel almost always arrives during
+  that wait, so in practice the DELETE is skipped.
+- The same applies when `connect_events` itself returns `Cancelled`.
+
+**Impact:**
+
+- The node keeps computing until completion or the deadline (up to 120 s).
+- Its job stays retained until then.
+- Repeated cancels pile up node work.
+- The job lifecycle in the SDK's LLD §10 (RUNNING → CANCELLED) and
+  `NodeClient::cancel` are therefore not exercised for the common case.
+
+**Audio Journal:** no workaround is possible through the public API, and
+none is needed for correctness. The app stores nothing on `cancelled` and
+never retries. The device suite records the node-side state instead of
+asserting it.
+
+**Suggested fix:** in `stream`, call `cancel(job_id, …)`, bounded by its own
+short attempt as the loop-top path already is, before returning `Cancelled`
+from the receive and connect paths.

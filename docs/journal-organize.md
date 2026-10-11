@@ -400,3 +400,4 @@ codes, counts, and durations.
 | O-4 | Retention and deletion of derivations and tasks (Open decision 6). | Deletion features; nothing is deleted in v1. |
 | O-5 | Including derivations and task states in backups (AJB1 domain schema v2, reserved). Until then backups do not carry them, and a restore has none. | AJB1 v2. |
 | O-6 | Whether the companion also serves `document.analyze@1`, so the AJ-3 diagnostics test works against it. | Diagnostics against the companion only. |
+| O-7 | Entries longer than about 26.5 minutes of speech exceed one request (the 61,108-byte input cap; the 400-unit cap near 42 minutes) and are refused, never truncated. The options are to keep the refusal, or to select or chunk by time range with merged results. Chunking would change §2 and §7 and needs an ADR. Measured by the [organize performance suite](validation/AJ2-organize-performance.md). | Organizing long entries only. |

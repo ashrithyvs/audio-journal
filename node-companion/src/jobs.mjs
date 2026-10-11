@@ -248,6 +248,7 @@ export class JobStore {
     if (!output) {
       const stages = [];
       let counts = null;
+      const engineStart = this.monotonic();
       try {
         output = organize(input, {
           step: (stage, fraction) => stages.push([stage, fraction]),
@@ -256,6 +257,7 @@ export class JobStore {
           },
         });
         if (this.padResults) output = padToCap(output, input);
+        job.engineMs = Math.round(this.monotonic() - engineStart);
       } catch (error) {
         this.log({ event: 'engine-failed', reason: error.code ?? 'error' });
         this.end(job, 'failed', {
@@ -273,6 +275,10 @@ export class JobStore {
           this.emit(job, 'partial', { delta: { counts } });
         await pause();
       }
+      // Test-only: with padded results, the terminal event carries a
+      // two-digit sequence, so its message is exactly 61,440 bytes.
+      while (this.padResults && this.live(job) && job.sequence < 9)
+        this.emit(job, 'progress', { stage: 'checking', fraction: 1 });
       this.replays.set(replayKey, {
         inputSha256,
         output,
@@ -333,6 +339,7 @@ export class JobStore {
         sequence: job.sequence,
         inputBytes: job.input === undefined ? null : byteLength(job.input),
         lastMessageBytes: byteLength(job.events.at(-1)),
+        engineMs: job.engineMs ?? null,
         ms: Math.round(this.monotonic() - (job.createdMono ?? 0)),
       });
   }

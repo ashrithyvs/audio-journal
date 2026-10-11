@@ -36,6 +36,9 @@ type TaskRow = {
   state: DerivedTask['state'];
 };
 
+/** Thrown to roll a rehearsal back; never escapes rehearseSave. */
+const REHEARSAL = new Error('rehearsal');
+
 type ItemKind =
   | 'summary'
   | 'work'
@@ -114,7 +117,7 @@ export class SqliteDerivationRepository implements DerivationRepository {
   async saveValidated(
     result: ValidatedResult,
   ): Promise<{ derivation: StoredDerivation; duplicate: boolean }> {
-    const { input, inputSha256, output, createdAt } = result;
+    const { input } = result;
     return this.db.transaction(async tx => {
       const existing = await this.load(
         tx,
@@ -124,73 +127,7 @@ export class SqliteDerivationRepository implements DerivationRepository {
       if (existing) {
         return { derivation: existing, duplicate: true };
       }
-      const entryIds = input.entries.map(entry => entry.entryId);
-      const scopeKey = [...entryIds].sort().join(',');
-      const latest = await tx.get<{ revision: number | null }>(
-        'SELECT MAX(revision) AS revision FROM derivations WHERE scope_key = ?',
-        [scopeKey],
-      );
-      const id = this.ids.next('drv');
-      await tx.run(
-        `INSERT INTO derivations (id, request_key, contract, engine_id, engine_version,
-          input_sha256, scope_key, revision, payload, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          id,
-          input.requestKey,
-          CONTRACT,
-          output.engine.id,
-          output.engine.version,
-          inputSha256,
-          scopeKey,
-          (latest?.revision ?? 0) + 1,
-          canonicalJson(output),
-          createdAt,
-        ],
-      );
-      for (const entryId of entryIds) {
-        await tx.run(
-          'INSERT INTO derivation_entries (derivation_id, entry_id) VALUES (?, ?)',
-          [id, entryId],
-        );
-      }
-      for (const [ordinal, task] of (output.tasks ?? []).entries()) {
-        await tx.run(
-          `INSERT INTO derived_tasks (id, derivation_id, ordinal, text, area, state)
-            VALUES (?, ?, ?, ?, ?, 'open')`,
-          [this.ids.next('tsk'), id, ordinal, task.text, task.area],
-        );
-      }
-      const voice = new Set(
-        input.entries
-          .filter(entry => entry.kind === 'voice')
-          .map(entry => entry.entryId),
-      );
-      for (const item of citedItems(output)) {
-        for (const [refOrdinal, ref] of item.sources.entries()) {
-          const audio = voice.has(ref.entryId);
-          await tx.run(
-            `INSERT INTO source_references (id, derivation_id, item_kind, item_ordinal, ref_ordinal,
-              entry_id, unit_id, unit_sha256, segment_id, char_start, char_end, audio_start_ms, audio_end_ms)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-              this.ids.next('src'),
-              id,
-              item.kind,
-              item.ordinal,
-              refOrdinal,
-              ref.entryId,
-              ref.unitId,
-              ref.unitSha256,
-              audio ? ref.unitId : null,
-              ref.charStart,
-              ref.charEnd,
-              audio ? ref.audioStartMs ?? null : null,
-              audio ? ref.audioEndMs ?? null : null,
-            ],
-          );
-        }
-      }
+      const id = await this.write(tx, result);
       const stored = await this.load(
         tx,
         'SELECT * FROM derivations WHERE id = ?',
@@ -201,6 +138,103 @@ export class SqliteDerivationRepository implements DerivationRepository {
       }
       return { derivation: stored, duplicate: false };
     });
+  }
+
+  /**
+   * Benchmark only (the AJ-2 organize performance suite): the same writes
+   * and read-back as saveValidated, in a transaction that is always rolled
+   * back. Foreign keys are deferred, so synthetic fixture entries need not
+   * exist. Nothing is kept, and the commit itself is not measured.
+   */
+  async rehearseSave(result: ValidatedResult): Promise<void> {
+    try {
+      await this.db.transaction(async tx => {
+        await tx.all('PRAGMA defer_foreign_keys = ON');
+        const id = await this.write(tx, result);
+        await this.load(tx, 'SELECT * FROM derivations WHERE id = ?', [id]);
+        throw REHEARSAL;
+      });
+    } catch (error) {
+      if (error !== REHEARSAL) {
+        throw error;
+      }
+    }
+  }
+
+  /** Writes one derivation's rows; returns its ID. */
+  private async write(
+    tx: SqlExecutor,
+    result: ValidatedResult,
+  ): Promise<string> {
+    const { input, inputSha256, output, createdAt } = result;
+    const entryIds = input.entries.map(entry => entry.entryId);
+    const scopeKey = [...entryIds].sort().join(',');
+    const latest = await tx.get<{ revision: number | null }>(
+      'SELECT MAX(revision) AS revision FROM derivations WHERE scope_key = ?',
+      [scopeKey],
+    );
+    const id = this.ids.next('drv');
+    await tx.run(
+      `INSERT INTO derivations (id, request_key, contract, engine_id, engine_version,
+          input_sha256, scope_key, revision, payload, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        input.requestKey,
+        CONTRACT,
+        output.engine.id,
+        output.engine.version,
+        inputSha256,
+        scopeKey,
+        (latest?.revision ?? 0) + 1,
+        canonicalJson(output),
+        createdAt,
+      ],
+    );
+    for (const entryId of entryIds) {
+      await tx.run(
+        'INSERT INTO derivation_entries (derivation_id, entry_id) VALUES (?, ?)',
+        [id, entryId],
+      );
+    }
+    for (const [ordinal, task] of (output.tasks ?? []).entries()) {
+      await tx.run(
+        `INSERT INTO derived_tasks (id, derivation_id, ordinal, text, area, state)
+            VALUES (?, ?, ?, ?, ?, 'open')`,
+        [this.ids.next('tsk'), id, ordinal, task.text, task.area],
+      );
+    }
+    const voice = new Set(
+      input.entries
+        .filter(entry => entry.kind === 'voice')
+        .map(entry => entry.entryId),
+    );
+    for (const item of citedItems(output)) {
+      for (const [refOrdinal, ref] of item.sources.entries()) {
+        const audio = voice.has(ref.entryId);
+        await tx.run(
+          `INSERT INTO source_references (id, derivation_id, item_kind, item_ordinal, ref_ordinal,
+              entry_id, unit_id, unit_sha256, segment_id, char_start, char_end, audio_start_ms, audio_end_ms)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            this.ids.next('src'),
+            id,
+            item.kind,
+            item.ordinal,
+            refOrdinal,
+            ref.entryId,
+            ref.unitId,
+            ref.unitSha256,
+            audio ? ref.unitId : null,
+            ref.charStart,
+            ref.charEnd,
+            audio ? ref.audioStartMs ?? null : null,
+            audio ? ref.audioEndMs ?? null : null,
+          ],
+        );
+      }
+    }
+    return id;
   }
 
   private async load(

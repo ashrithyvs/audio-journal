@@ -111,6 +111,16 @@ export async function startCompanion(
   const limited = rateLimiter();
 
   const server = createHttpsServer(serverOptions(identity));
+  // Bytes on the wire (TLS records included), for performance runs.
+  const wire = { read: 0, written: 0, live: new Set() };
+  server.on('connection', raw => {
+    wire.live.add(raw);
+    raw.once('close', () => {
+      wire.live.delete(raw);
+      wire.read += raw.bytesRead;
+      wire.written += raw.bytesWritten;
+    });
+  });
   server.on('secureConnection', socket => {
     const evidence = checkHandshake(socket);
     socket.ajHandshake = evidence;
@@ -323,6 +333,24 @@ export async function startCompanion(
           idempotency: jobs.idempotency.size,
           replays: jobs.replays.size,
           pairings: pairing.pairings.length,
+          // Process and wire counters for performance runs (counts only).
+          process: (() => {
+            const cpu = process.cpuUsage();
+            return {
+              cpuUserMs: Math.round(cpu.user / 1000),
+              cpuSystemMs: Math.round(cpu.system / 1000),
+              rssBytes: process.memoryUsage().rss,
+              maxRssKb: process.resourceUsage().maxRSS,
+            };
+          })(),
+          wire: {
+            bytesRead:
+              wire.read +
+              [...wire.live].reduce((n, socket) => n + socket.bytesRead, 0),
+            bytesWritten:
+              wire.written +
+              [...wire.live].reduce((n, socket) => n + socket.bytesWritten, 0),
+          },
         });
       }
       return error(res, 404, 'NOT_FOUND');

@@ -612,9 +612,9 @@ schemas and vectors in `schemas/journal/v1/`. In summary:
 
 **Consequences:** the LLD `local | auto` wording, `AI_RESULT_INVALID`, and
 single `segmentId` references are superseded for this capability (§11 of the
-contract). Open questions O-1 to O-6 (due dates, stale-source display,
-editing, retention, AJB1 v2, and diagnostics on the companion) block only
-the work they name. F5 and request-path revocation remain SDK defects
+contract). Open questions O-1 to O-7 (due dates, stale-source display,
+editing, retention, AJB1 v2, diagnostics on the companion, and entries too
+long for one request) block only the work they name. F5 and request-path revocation remain SDK defects
 (SDK-AJ-1, SDK-AJ-2); the app keeps its compatibility workaround.
 
 ## Open decisions before implementation

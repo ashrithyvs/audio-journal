@@ -71,8 +71,10 @@ deployment never should.
   cancellation and deadline tests.
 - `--test-pad-results` adds `Padding idea …` items to each result that
   requests ideas (`src/testPad.mjs`), until the canonical output is exactly
-  61,387 bytes. The completed message is then exactly 61,440 bytes, so a
-  suite can prove that the SDK accepts a message at the contract's budget.
+  61,387 bytes. It also adds `checking` progress events until the terminal
+  event's sequence has two digits. The completed message is then exactly
+  61,440 bytes, so a suite can prove that the SDK accepts a message at the
+  contract's budget.
   The padded result still passes every contract §6 rule; when that cannot
   be achieved, the engine's own result is sent instead.
 

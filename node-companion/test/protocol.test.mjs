@@ -233,6 +233,22 @@ test('a job streams accepted, progress, one partial, and one valid completed', a
   }
 });
 
+test('test-only padding: a 61,440-byte completed message in one unfragmented frame', async t => {
+  const n = await paired({ padResults: true });
+  t.after(() => n.node.close());
+  const { stream } = await run(n.device, fixtures.mixed);
+  const completed = stream.events.at(-1);
+  assert.equal(completed.type, 'completed');
+  assert.ok(completed.sequence >= 10);
+  assert.equal(Buffer.byteLength(canonical(completed)), MESSAGE_CAP);
+  assert.equal(resultViolation(completed.data.output, fixtures.mixed), null);
+  const frame = stream.frames.filter(f => f.opcode === 1).at(-1);
+  assert.deepEqual(
+    { fin: frame.fin, masked: frame.masked, length: frame.length },
+    { fin: true, masked: false, length: MESSAGE_CAP },
+  );
+});
+
 test('idempotency: replay returns the same job, a changed body conflicts', async t => {
   const { node, device } = await paired();
   t.after(() => node.close());

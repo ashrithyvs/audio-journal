@@ -50,4 +50,10 @@ export interface DerivationRepository {
   ): Promise<{ derivation: StoredDerivation; duplicate: boolean }>;
   /** The newest derivation whose scope includes the entry. */
   latestForEntry(entryId: string): Promise<StoredDerivation | undefined>;
+  /**
+   * Benchmark only: performs saveValidated's writes in a transaction that
+   * is always rolled back, so the organize performance suite can time
+   * persistence without keeping anything.
+   */
+  rehearseSave?(result: ValidatedResult): Promise<void>;
 }

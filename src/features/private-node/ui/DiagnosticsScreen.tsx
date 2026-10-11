@@ -97,8 +97,10 @@ function Choice<T extends string | number>({
 
 export function DiagnosticsScreen({
   onOpenLoadLab,
+  onOpenOrganizeBench,
 }: {
   onOpenLoadLab?(): void;
+  onOpenOrganizeBench?(): void;
 }) {
   const node = usePrivateNode();
   const { state } = node;
@@ -168,6 +170,24 @@ export function DiagnosticsScreen({
               secondary
               onPress={onOpenLoadLab}
               testID="open-load-lab"
+            />
+          </View>
+        </Card>
+      ) : null}
+
+      {onOpenOrganizeBench ? (
+        <Card>
+          <Heading>Organize benchmark</Heading>
+          <Body>
+            journal.organize@1 performance with synthetic transcripts through
+            the public SDK. Separate from the load lab.
+          </Body>
+          <View style={shared.action}>
+            <PrimaryButton
+              label="Open organize benchmark"
+              secondary
+              onPress={onOpenOrganizeBench}
+              testID="open-organize-bench"
             />
           </View>
         </Card>

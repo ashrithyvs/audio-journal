@@ -31,6 +31,8 @@ export interface OrganizeServices {
 interface OrganizeContextValue {
   controller: OrganizeController;
   derivations: DerivationRepository;
+  /** For the developer organize benchmark. */
+  services: OrganizeServices;
 }
 
 const OrganizeContext = createContext<OrganizeContextValue | undefined>(
@@ -78,8 +80,8 @@ export function OrganizeProvider({
   );
 
   const value = useMemo(
-    () => ({ controller, derivations: services.derivations }),
-    [controller, services.derivations],
+    () => ({ controller, derivations: services.derivations, services }),
+    [controller, services],
   );
   return (
     <OrganizeContext.Provider value={value}>
