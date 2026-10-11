@@ -23,6 +23,7 @@ export async function renderUnlocked(
   privateNode?: PrivateNodeOptions,
   onJournal?: (journal: TestJournal) => void | Promise<void>,
   playback?: PlaybackService,
+  now?: () => number,
 ) {
   const view = await render(
     <AppRoot
@@ -32,6 +33,7 @@ export async function renderUnlocked(
         privateNode,
         onJournal,
         playback,
+        now,
       })}
     />,
   );

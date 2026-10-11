@@ -139,8 +139,15 @@ all failure paths leave source entries unchanged.
 - Required for completion: the
   [organize performance suite](validation/AJ2-organize-performance.md) for
   `journal.organize@1` through the public SDK.
-- Not started: the full Organized and Tasks UI (source-reference navigation,
-  task actions). It depends on O-1 to O-3 in `journal-organize.md` §12.
+- AJ-2.2 is implemented on the branch, after the owner approved O-1 to O-3
+  with amendments (2026-10-12):
+  - explicit English due dates (ADR-019 A2), with 68 literal vectors;
+  - per-selection history, computed staleness, conservative task-state
+    carry-over, and task transitions (ADR-020);
+  - the Organized, History, and Tasks views, with source navigation, stale
+    marks, partial notices, due-date groups, and Done, Dismiss, and Restore.
+  Its device and cumulative suites are recorded in
+  [AJ-2 progress](validation/AJ2-progress.md).
 
 ## 5. AJ-3 — Secure Private AI Node workflow
 

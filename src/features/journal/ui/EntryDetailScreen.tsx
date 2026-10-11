@@ -29,6 +29,7 @@ import {
 } from '../ports/JournalRepository';
 import type { PlaybackEvent } from '../ports/PlaybackService';
 import type { SourceRef } from '../../organize/domain/contract';
+import { useOrganize } from '../../organize/application/OrganizeContext';
 import { writtenUnits } from '../../organize/domain/request';
 import { OrganizePanel } from '../../organize/ui/OrganizePanel';
 import { journalStyles } from './journalStyles';
@@ -348,10 +349,17 @@ function CitedSource({
   detail: JournalEntryDetail;
   recording?: RecordingRecord;
 }) {
-  const { playback } = useJournal();
+  const { playback, transcripts } = useJournal();
+  const organize = useOrganize();
   const [state, setState] = useState<'idle' | 'playing' | 'ended' | 'failed'>(
     'idle',
   );
+  // ADR-020: a cited line that was corrected or re-transcribed since is
+  // still shown as it was cited, from its immutable row.
+  const [history, setHistory] = useState<{
+    original?: string;
+    now?: string;
+  }>();
   const [positionMs, setPositionMs] = useState<number>();
   const mounted = useRef(true);
   useEffect(
@@ -363,10 +371,49 @@ function CitedSource({
   );
 
   const line = detail.transcript.lines.find(l => l.segmentId === source.unitId);
+  const edited = detail.entry.kind === 'voice' && !line;
+  useEffect(() => {
+    if (!edited || !recording) {
+      return;
+    }
+    let active = true;
+    transcripts.records(recording.id).then(
+      records => {
+        const byId = new Map(records.map(r => [r.id, r]));
+        let origin = byId.get(source.unitId);
+        const original = origin?.text;
+        while (origin?.supersedesSegmentId) {
+          origin = byId.get(origin.supersedesSegmentId);
+        }
+        const now = detail.transcript.lines.find(
+          l => l.originSegmentId === origin?.id,
+        )?.text;
+        if (active) setHistory({ original, now });
+      },
+      () => undefined,
+    );
+    return () => {
+      active = false;
+    };
+  }, [detail, edited, recording, source.unitId, transcripts]);
+  // Written text is not editable in v1, so a written unit should always
+  // match its cited digest. If it ever does not, the original is not stored:
+  // say so rather than slice the wrong words.
+  const written =
+    detail.entry.kind === 'written'
+      ? writtenUnitText(detail.entry.sourceText, source.unitId)
+      : undefined;
+  const writtenChanged =
+    detail.entry.kind === 'written' &&
+    (written === undefined ||
+      (organize !== undefined &&
+        organize.services.crypto.sha256Hex(written) !== source.unitSha256));
   const unitText =
     detail.entry.kind === 'voice'
-      ? line?.text
-      : writtenUnitText(detail.entry.sourceText, source.unitId);
+      ? line?.text ?? history?.original
+      : writtenChanged
+      ? undefined
+      : written;
   const excerpt = unitText?.slice(source.charStart, source.charEnd);
   const audio =
     source.audioStartMs !== undefined && source.audioEndMs !== undefined
@@ -399,11 +446,28 @@ function CitedSource({
           {formatRange(audio.startMs, audio.endMs)}
         </Text>
       ) : null}
+      {edited && history ? (
+        <Text style={styles.edited} testID="cited-edited">
+          {history.now
+            ? 'Edited since organizing. As cited, then as it reads now:'
+            : 'Changed since organizing: this part was transcribed again. As cited:'}
+        </Text>
+      ) : null}
       {excerpt ? (
         <Text style={journalStyles.body} testID="cited-text">
           {excerpt}
         </Text>
-      ) : (
+      ) : null}
+      {edited && history?.now ? (
+        <Text style={journalStyles.muted} testID="cited-now">
+          {history.now}
+        </Text>
+      ) : null}
+      {writtenChanged ? (
+        <Text style={styles.edited} testID="cited-edited">
+          Changed since organizing: this paragraph no longer reads as cited.
+        </Text>
+      ) : excerpt || (edited && !history) ? null : (
         <Text style={journalStyles.muted} testID="cited-missing">
           This source is no longer in the current transcript.
         </Text>
@@ -555,6 +619,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   noticeTitle: { color: colors.ink, fontSize: 15, fontWeight: '700' },
+  edited: { color: '#7A4E12', fontSize: 13, fontWeight: '700', marginTop: 4 },
   line: { paddingVertical: 10 },
   cited: {
     backgroundColor: colors.surface,

@@ -18,6 +18,7 @@ export function makeTestServices({
   privateNode,
   onJournal,
   playback,
+  now,
 }: {
   configuredPin?: string;
   biometricResult?: FakeBiometric;
@@ -27,6 +28,8 @@ export function makeTestServices({
   /** Lets a test inspect or seed the journal before the app shows it. */
   onJournal?: (journal: TestJournal) => void | Promise<void>;
   playback?: PlaybackService;
+  /** The journal's clock (task grouping, transitions); Date.now by default. */
+  now?: () => number;
 } = {}): AppServices {
   // One in-memory journal per test app: it survives lock and unlock, as the
   // encrypted database does on a device. Closing on lock is a no-op here.
@@ -47,6 +50,7 @@ export function makeTestServices({
           recorder,
           playback,
           ids: context.ids,
+          now,
         },
         organize: {
           derivations: new SqliteDerivationRepository(context.db, context.ids),

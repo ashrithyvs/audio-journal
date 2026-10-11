@@ -144,8 +144,35 @@ Before every node-assisted organization (ADR-019; `journal-organize.md`
 - that original audio stays local by default;
 - that cancellation or failure will not change the source entry.
 
-Organized results are suggestions/views. Users can edit, dismiss, or regenerate
-them and can mark tasks done without changing the diary.
+Organized results are suggestions/views. Users can reorganize them and can
+mark tasks done or dismissed, and restore them, without changing the diary.
+Derived text is not editable in v1 (ADR-020).
+
+**Implemented (AJ-2.2, ADR-020).** Diary, Organized, Tasks, and Settings are
+peer bottom tabs; Organized and Tasks never move or change an entry.
+
+- **Organized** lists the newest result of every selection, newest first.
+  A selection is its set of entries, so reordering or repeating entries
+  reaches the same result and history. Each card shows its scope, the first
+  entry's date, the revision, and when it was organized; then a partial
+  notice when it applies, the summary, and every item with its source link.
+- **History** lists every revision of a selection, newest first, with the
+  same marks. A card offers it from revision 2.
+- **Stale marks.** When a cited line or paragraph has changed since
+  organizing, the item shows "Source changed since organized" and the card
+  shows a banner. Staleness is computed when shown, never stored, and a
+  stale item is never hidden.
+- **Reorganize** is on the stale banner only. It opens the same consent
+  sheet as Organize and never runs automatically.
+- **Edited sources.** Opening the source of a stale voice item shows the
+  line as cited, labelled "Edited since organizing" (or "transcribed
+  again"), followed by the line as it reads now.
+- **Tasks** shows the tasks of every newest result, grouped Overdue, Today,
+  Upcoming, No date, Done, and Dismissed. A due date is a calendar date
+  (`journal-organize.md` §3.3), compared with the phone's local date today.
+- **Task transitions.** An open task offers Done and Dismiss; a done or
+  dismissed task offers Restore. A task whose state was carried from the
+  previous revision says "kept from earlier".
 
 ### Task source reference
 
@@ -172,8 +199,9 @@ at that source, showing:
   plays only that range;
 - the cited transcript line, highlighted.
 
-The full source sheet with the entry date and time is part of the Organized
-view (AJ-2.2).
+In the Organized and Tasks views (AJ-2.2), the label also names the entry's
+date and time, for example "Source · Oct 8, 9:14 PM · 1:31–2:18". It opens
+the same entry screen, on its own stack, so Back returns to the list.
 
 ### Partial results (contract §3.2, amendment A1)
 
