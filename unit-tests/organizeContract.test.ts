@@ -14,6 +14,7 @@ import {
   resultViolation,
   type OrganizeInput,
 } from '../src/features/organize/domain/contract';
+import { deriveDue } from '../src/features/organize/domain/dueDates';
 import { requestKeyOf } from '../src/features/organize/domain/request';
 
 // The app's journal.organize@1 checks against every frozen vector
@@ -176,6 +177,24 @@ it('derives every published request key (§9)', () => {
     expect([c.name, requestKeyOf(c.input, keys.testKeyHex, crypto)]).toEqual([
       c.name,
       c.expect.requestKey,
+    ]);
+  }
+});
+
+it('re-derives every due-date vector independently (§3.3, amendment A2)', () => {
+  const cases = read('vectors/due-dates.json');
+  expect(cases).toHaveLength(manifest.counts.dueDates);
+  for (const c of cases) {
+    const got = deriveDue(
+      c.text,
+      c.charStart,
+      c.charEnd,
+      c.createdAt,
+      c.timeZone,
+    );
+    expect([c.name, got]).toEqual([
+      c.name,
+      c.expect.valid ? { date: c.expect.date, rule: c.expect.rule } : null,
     ]);
   }
 });

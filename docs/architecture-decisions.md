@@ -627,12 +627,89 @@ The amendment came before any release, so the capability version stays
 `1.0.0`. The schemas, vectors, validators, companion, and UI requirements
 changed together (contract §3.2, §6, §11 decision 13).
 
+**Amendment A2 (2026-10-12, owner decision on O-1):** tasks may carry a due
+date, from explicit English phrases only.
+
+- The accepted phrases are today, tomorrow, an unqualified weekday, and an
+  English named calendar date. A weekday means the first such day on or
+  after the entry's local creation date. A day and month without a year
+  means the first such date on or after it; an explicit year is used as
+  written.
+- Qualified, numeric, time, and other ambiguous phrases are rejected.
+- The date is an ISO calendar date with no time or offset, and it cites its
+  exact phrase.
+- The app validator independently parses the cited phrase and re-derives
+  the date from the entry's `createdAt` and the request's `timeZone`. A date
+  it cannot reproduce rejects the result with `RESULT_DUE` (contract §3.3).
+
 **Consequences:** the LLD `local | auto` wording, `AI_RESULT_INVALID`, and
 single `segmentId` references are superseded for this capability (§11 of the
 contract). Open questions O-1 to O-7 (due dates, stale-source display,
 editing, retention, AJB1 v2, diagnostics on the companion, and organizing
-entries above the input cap) block only the work they name. F5 and request-path revocation remain SDK defects
+entries above the input cap) block only the work they name. O-1 to O-3 are
+resolved: O-1 by amendment A2, O-2 and O-3 by ADR-020. F5 and request-path revocation remain SDK defects
 (SDK-AJ-1, SDK-AJ-2); the app keeps its compatibility workaround.
+
+## ADR-020: Organized history, computed staleness, and task carry-over
+
+**Status:** Accepted (owner decision on O-2 and O-3, 2026-10-12).
+
+**Context:** derivations are immutable revisions (ADR-019, contract §7).
+The Organized and Tasks views (AJ-2.2) need to answer three questions:
+
+- which revision to show, and how the history is grouped;
+- what happens when a cited source changes after organizing;
+- whether a task's done or dismissed state survives a reorganize.
+
+**Decision:**
+
+- **Canonical selection identity.** A derivation's scope is its set of
+  entry IDs: deduplicated, sorted by UTF-16 code units, and joined with
+  `,` (`scope_key`). A reordered or repeated selection is the same scope,
+  so history and revision numbers never split.
+- **History.** Each scope shows its newest revision. Older revisions stay
+  readable from history, and none is changed or deleted.
+- **Staleness is computed, never stored.**
+  - A voice reference is stale when its cited segment is no longer in the
+    entry's current transcript. That happens after a correction (the chain
+    has a newer head) or a re-transcription (a newer full pass).
+  - A written reference is stale when the unit at that `unitId`, re-split
+    from the entry's current text by the contract §2 rules, no longer has
+    the cited digest.
+  - A reference to an entry that is no longer ready is stale.
+  - An item is stale when any of its references, its due-date source
+    included, is stale.
+
+  A stale item shows "Source changed since organized". Its source link still
+  opens the originally cited text, labelled as edited since. Reorganize is
+  offered and always asks for consent; nothing reorganizes automatically,
+  and no item is hidden because it is stale.
+- **Derived text is not editable in v1.** This covers summary, section,
+  task, idea, person, and project text.
+- **Task states.** A task is `open`, `done`, or `dismissed`, and restore
+  returns it to `open`. Each change records `state_changed_at`.
+- **Conservative carry-over.** When a new revision of a scope is saved,
+  each of its tasks may take the state of a task in the scope's previous
+  revision, but only when all of these hold:
+  - the normalized task texts are equal (contract §6);
+  - the tasks' first sources cite the same entry;
+  - some source of each task is related, either through the same immutable
+    unit (the same `unitId` and `unitSha256`) or through an explicit
+    transcript correction lineage (the new segment descends from the old
+    one by `supersedes_segment_id`), and the two cited character ranges
+    overlap;
+  - the match is one-to-one: each task of the pair has exactly one
+    candidate in the other revision. Ambiguous duplicates do not carry.
+
+  Pairs are taken in stable rank order. The new task records its
+  `predecessor_task_id`. New, unmatched, and ambiguous tasks start `open`.
+  Nothing carries across unrelated entries, a re-transcription (a new pass
+  has no lineage), or a written-text change that cannot be proven related.
+  Historical task states are never changed.
+
+**Consequences:** migration 4 adds `due_date` and `predecessor_task_id` to
+`derived_tasks`, both immutable once written. The Organized and Tasks UI
+follow UX §7. The contract is unchanged by this ADR.
 
 ## Open decisions before implementation
 

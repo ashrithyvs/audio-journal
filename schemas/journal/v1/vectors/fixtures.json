@@ -771,5 +771,53 @@
         ]
       }
     ]
+  },
+  "dated": {
+    "contract": "journal.organize@1",
+    "requestKey": "org_gwndn1mw27xn14jds0657cv93p",
+    "locale": "en-IN",
+    "timeZone": "Asia/Kolkata",
+    "kinds": [
+      "tasks"
+    ],
+    "entries": [
+      {
+        "entryId": "ent_00000000000000000000000007",
+        "kind": "written",
+        "createdAt": "2026-10-16T19:00:00.000Z",
+        "units": [
+          {
+            "unitId": "w0",
+            "text": "I need to send the invoice by Friday.",
+            "sha256": "c2c25e81c831c15398507ca73b0f5f728614617d502929dc0231e06bac15995a",
+            "offset": 0
+          },
+          {
+            "unitId": "w1",
+            "text": "Remember to call the bank tomorrow.",
+            "sha256": "c25c11eff4534b5c995b7f87a0ccd636830505efef394547ca45d473a15ebc1f",
+            "offset": 39
+          },
+          {
+            "unitId": "w2",
+            "text": "Book the hall for 14 November.",
+            "sha256": "5de164eaf54b7c4aee30c0fb9169552b6ee774788b008f4b9948d059f9997b42",
+            "offset": 76
+          },
+          {
+            "unitId": "w3",
+            "text": "Plan the review for next Friday.",
+            "sha256": "2eb255aa80761df33b45a7abe74c49c3cfdeab28f1c7dbd0c2aadd7f42941a93",
+            "offset": 108
+          },
+          {
+            "unitId": "w4",
+            "text": "Renew the permit on 14/10.",
+            "sha256": "e8c12f5697a778575a3c1381f26c0c7ed6a93d9b2a90a97e3745c0cc7108878e",
+            "offset": 142
+          }
+        ]
+      }
+    ]
   }
 }

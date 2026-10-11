@@ -3,13 +3,14 @@
   "generator": "tools/journal-organize/generate-vectors.mjs",
   "files": {
     "organize-input.schema.json": "31bae9dc134a2b9172cc0405304727b52b5ea5fad1a3908d76ef6404f9284a6e",
-    "organize-output.schema.json": "a920e8e7cd1fc0b9e8d470d216e1245b1464b7fe35065faea920edf81347f13d",
+    "organize-output.schema.json": "e05697387be0a5b43dcb4dedfe9b9aa2c2d94a0f7d54d0d4f44858b89e3b5163",
     "organize-partial.schema.json": "f49a7fafeb0baaa8913639d2e4e1e6a4ec1c38d99100377fc223e8409e70af55",
-    "vectors/fixtures.json": "9ad7a989afd6e2c56ab91ea32f1a4a750a4608c645a7e0b0ac6497316daf8045",
-    "vectors/inputs.json": "d2d0d39debba1c2c3666734ea76316d8846a2e2c4b213179b4c2ed7962dc89ab",
-    "vectors/results.json": "924d22eaeaa58b41959bf13fa7273d6d98d9056578d809ccc4ccd687d40203f0",
+    "vectors/fixtures.json": "a4fadffaf9e0cdc5d2680c05c391d2e2f803cf25e8a363fcb144f32a0a1b39bf",
+    "vectors/inputs.json": "d780270921ec1ea4550a1afe1aa71636bc33677f87fc371920c41cd82ec810c7",
+    "vectors/results.json": "79c86ca5524eb4ec170658918a86533840a5dad65e3cdc4b219fe41fc069d040",
     "vectors/events.json": "64c90a3fe2ac199c04e289516c7b4cb9d1453d86bbcc8830b3cd15d6b4c94ec7",
     "vectors/envelopes.json": "57ec9909ff4443eb07f00727e8c94881de1a1c773bd1b336389e0b416c34af01",
+    "vectors/due-dates.json": "0bf0d5c98dd24894508630ee1f4a6b24fd441d2d521a8859eb5770ed71f7bb4b",
     "vectors/request-keys.json": "684ffbff05f32a3a96c525f794570081841940f5f5fd86c7f91382cc698c84f1"
   },
   "budget": {
@@ -20,13 +21,15 @@
     "outputCap": 61387
   },
   "counts": {
-    "fixtures": 7,
-    "inputs": 37,
-    "inputsValid": 7,
-    "results": 79,
-    "resultsValid": 10,
+    "fixtures": 8,
+    "inputs": 38,
+    "inputsValid": 8,
+    "results": 93,
+    "resultsValid": 11,
     "events": 12,
     "envelopes": 4,
-    "requestKeys": 7
+    "requestKeys": 7,
+    "dueDates": 68,
+    "dueDatesValid": 40
   }
 }

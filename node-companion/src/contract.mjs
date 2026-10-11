@@ -8,6 +8,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { deriveDue } from './dates.mjs';
+
 import {
   byteLength,
   canonical,
@@ -265,7 +267,8 @@ export function validateOutput(raw, input) {
   if (byteLength(out) > OUTPUT_CAP || depthOf(out) > MAX_DEPTH)
     reject('RESULT_SIZE');
   if (!matches(SCHEMAS.output, out)) reject('RESULT_SCHEMA');
-  let refCount = 0;
+  const dues = (out.tasks ?? []).filter(t => own(t, 'due'));
+  let refCount = dues.length;
   for (const { item } of itemsInOrder(out)) refCount += item.sources.length;
   if (refCount > 1000) reject('RESULT_SCHEMA');
   if (
@@ -303,6 +306,7 @@ export function validateOutput(raw, input) {
   const refs = [];
   for (const { item } of itemsInOrder(out))
     for (const ref of item.sources) refs.push(ref);
+  for (const task of dues) refs.push(task.due.source);
   for (const ref of refs) if (!unitOf(ref)) reject('RESULT_REFERENCE');
   for (const ref of refs)
     if (ref.unitSha256 !== unitOf(ref).unit.sha256) reject('RESULT_DIGEST');
@@ -355,6 +359,28 @@ export function validateOutput(raw, input) {
         reject('RESULT_ORDER');
       }
     }
+  }
+  // Amendment A2 (§3.3): every due date is re-derived from its phrase.
+  for (const task of dues) {
+    const src = task.due.source;
+    const inside = task.sources.some(
+      o =>
+        o.entryId === src.entryId &&
+        o.unitId === src.unitId &&
+        o.charStart <= src.charStart &&
+        src.charEnd <= o.charEnd,
+    );
+    if (!inside) reject('RESULT_DUE');
+    const { e, unit } = unitOf(src);
+    const got = deriveDue(
+      unit.text,
+      src.charStart,
+      src.charEnd,
+      e.createdAt,
+      input.timeZone,
+    );
+    if (!got || got.date !== task.due.date || got.rule !== task.due.rule)
+      reject('RESULT_DUE');
   }
   const groups = [
     ...(out.sections ?? []).map(s => s.items.map(i => i.text)),

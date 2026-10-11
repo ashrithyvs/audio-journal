@@ -5,6 +5,7 @@
 // or network: the same input always gives byte-identical output. A
 // model-backed engine may replace it behind the same contract and vectors.
 
+import { findDue } from './dates.mjs';
 import { canonical } from './json.mjs';
 import {
   OUTPUT_CAP,
@@ -203,9 +204,30 @@ export function organize(input, { step = () => {}, partial = () => {} } = {}) {
       if (!m) continue;
       const text = fit(sentenceCase(m[1]), 400);
       if (text) {
+        // Contract §3.3: a date only from one explicit, unqualified phrase.
+        const due = findDue(
+          s.unit.text,
+          s.start,
+          s.end,
+          s.entry.createdAt,
+          input.timeZone,
+        );
         add(
           'tasks',
-          { text, area: sentenceArea ?? 'unsorted', rule },
+          {
+            text,
+            area: sentenceArea ?? 'unsorted',
+            rule,
+            ...(due
+              ? {
+                  due: {
+                    date: due.date,
+                    rule: due.rule,
+                    source: ref(s, due.start, due.end),
+                  },
+                }
+              : {}),
+          },
           ref(s),
           order,
         );

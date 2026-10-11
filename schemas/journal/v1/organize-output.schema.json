@@ -281,6 +281,74 @@
                 }
               }
             }
+          },
+          "due": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "date",
+              "rule",
+              "source"
+            ],
+            "properties": {
+              "date": {
+                "type": "string",
+                "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+              },
+              "rule": {
+                "enum": [
+                  "due.today",
+                  "due.tomorrow",
+                  "due.weekday",
+                  "due.named-date"
+                ]
+              },
+              "source": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "entryId",
+                  "unitId",
+                  "unitSha256",
+                  "charStart",
+                  "charEnd"
+                ],
+                "properties": {
+                  "entryId": {
+                    "type": "string",
+                    "pattern": "^ent_[0-9a-hjkmnp-tv-z]{26}$"
+                  },
+                  "unitId": {
+                    "type": "string",
+                    "pattern": "^(seg_[0-9a-hjkmnp-tv-z]{26}|w[0-9]{1,3})$"
+                  },
+                  "unitSha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "charStart": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3999
+                  },
+                  "charEnd": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4000
+                  },
+                  "audioStartMs": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3599999
+                  },
+                  "audioEndMs": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3600000
+                  }
+                }
+              }
+            }
           }
         }
       }

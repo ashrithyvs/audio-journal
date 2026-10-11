@@ -309,6 +309,27 @@ const outputSchema = (() => {
           area: { enum: ['work', 'personal', 'unsorted'] },
           rule,
           sources,
+          // Amendment A2 (§3.3): a re-derivable calendar date and its phrase.
+          due: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['date', 'rule', 'source'],
+            properties: {
+              date: {
+                type: 'string',
+                pattern: '^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$',
+              },
+              rule: {
+                enum: [
+                  'due.today',
+                  'due.tomorrow',
+                  'due.weekday',
+                  'due.named-date',
+                ],
+              },
+              source: ref,
+            },
+          },
         },
       }),
       ideas: list(item(400)),
@@ -501,6 +522,14 @@ function maxRequest() {
   return sizeInputTo(request(entries), INPUT_CAP);
 }
 
+// Amendment A2 (§3.3): created 19:00 UTC on Friday 16 October, which is
+// 00:30 on Saturday 17 October in Asia/Kolkata, the request's time zone.
+const D1 = writtenEntry(
+  7,
+  '2026-10-16T19:00:00.000Z',
+  'I need to send the invoice by Friday.\n\nRemember to call the bank tomorrow.\n\nBook the hall for 14 November.\n\nPlan the review for next Friday.\n\nRenew the permit on 14/10.',
+);
+
 const FIXTURES = {
   written: request([W1, W2]),
   voice: request([V1]),
@@ -509,6 +538,7 @@ const FIXTURES = {
   unicode: request([U1, U2], ['summary', 'tasks', 'people']),
   summaryOnly: request([W1], ['summary']),
   max: maxRequest(),
+  dated: request([D1], ['tasks']),
 };
 
 // ---------------------------------------------------------------- results
@@ -792,6 +822,8 @@ const VALID = {
     return { ...envelope(r), tasks: [], people: [] };
   },
   maxOutput: () => sizeOutputTo(fillOutput(), OUTPUT_CAP),
+  // Amendment A2 (§3.3): due dates, each re-derivable from its phrase.
+  dated: () => validDated(),
   // Amendment A1 (§3.2): explicitly partial results, one at the output cap.
   partial: () => ({
     ...validMixed(),
@@ -804,6 +836,34 @@ const VALID = {
       OUTPUT_CAP,
     ),
 };
+
+/** Tasks of the dated fixture: three dates, two undated (qualified, numeric). */
+function validDated() {
+  const r = FIXTURES.dated;
+  const task = (unit, text, due) => ({
+    text,
+    area: 'unsorted',
+    rule: 'task.need-to',
+    sources: [ref(r, 0, unit)],
+    ...(due
+      ? { due: { date: due[0], rule: due[1], source: ref(r, 0, unit, due[2]) } }
+      : {}),
+  });
+  return {
+    ...envelope(r),
+    tasks: [
+      task(0, 'Send the invoice by Friday.', ['2026-10-23', 'due.weekday', 'Friday']),
+      task(1, 'Call the bank tomorrow.', ['2026-10-18', 'due.tomorrow', 'tomorrow']),
+      task(2, 'Book the hall for 14 November.', [
+        '2026-11-14',
+        'due.named-date',
+        '14 November',
+      ]),
+      task(3, 'Plan the review for next Friday.'),
+      task(4, 'Renew the permit on 14/10.'),
+    ],
+  };
+}
 
 /** As many distinct items as fit under the output cap. */
 function fillOutput(extra = {}) {
@@ -1152,6 +1212,66 @@ mutate('refs-overlapping', 'RESULT_ORDER', r => {
     { ...s, charStart: 10, charEnd: 30 },
   ];
 });
+// 11. Due dates (amendment A2, §3.3)
+function mutateDated(name, code, change) {
+  const result = validDated();
+  change(result, FIXTURES.dated);
+  invalid(name, 'dated', code, { result });
+}
+mutateDated('due-tz-crossing-utc-date', 'RESULT_DUE', r => {
+  // The UTC reading of the anchor (Friday 16th), not Asia/Kolkata's.
+  r.tasks[0].due.date = '2026-10-16';
+});
+mutateDated('due-rule-mismatch', 'RESULT_DUE', r => {
+  r.tasks[0].due.rule = 'due.today';
+});
+mutateDated('due-outside-task-source', 'RESULT_DUE', (r, q) => {
+  r.tasks[0].due = {
+    date: '2026-10-18',
+    rule: 'due.tomorrow',
+    source: ref(q, 0, 1, 'tomorrow'),
+  };
+});
+mutateDated('due-qualified-weekday', 'RESULT_DUE', (r, q) => {
+  r.tasks[3].due = {
+    date: '2026-10-23',
+    rule: 'due.weekday',
+    source: ref(q, 0, 3, 'Friday'),
+  };
+});
+mutateDated('due-numeric-date', 'RESULT_DUE', (r, q) => {
+  r.tasks[4].due = {
+    date: '2026-10-14',
+    rule: 'due.named-date',
+    source: ref(q, 0, 4, '14/10'),
+  };
+});
+mutateDated('due-phrase-with-preposition', 'RESULT_DUE', (r, q) => {
+  r.tasks[0].due.source = ref(q, 0, 0, 'by Friday');
+});
+mutateDated('due-bad-date-format', 'RESULT_SCHEMA', r => {
+  r.tasks[0].due.date = '23-10-2026';
+});
+mutateDated('due-unknown-rule', 'RESULT_SCHEMA', r => {
+  r.tasks[0].due.rule = 'due.next-week';
+});
+mutateDated('due-missing-source', 'RESULT_SCHEMA', r => {
+  delete r.tasks[0].due.source;
+});
+mutateDated('due-digest-mismatch', 'RESULT_DIGEST', r => {
+  r.tasks[0].due.source.unitSha256 = sha256('another text');
+});
+mutateDated('due-unknown-unit', 'RESULT_REFERENCE', r => {
+  r.tasks[0].due.source.unitId = 'w9';
+});
+mutateDated('due-range-outside-unit', 'RESULT_RANGE', r => {
+  r.tasks[0].due.source.charEnd = 4000;
+});
+mutateDated('due-before-duplicate', 'RESULT_DUE', r => {
+  r.tasks[0].due.date = '2026-10-16';
+  r.tasks[4].text = r.tasks[3].text;
+});
+
 // 11. Duplicate
 mutate('duplicate-task', 'RESULT_DUPLICATE', r => {
   r.tasks.push({
@@ -1583,6 +1703,105 @@ const eventCases = [
   },
 ];
 
+// ---------------------------------------------------------------- due dates
+
+/**
+ * Due-date derivation (§3.3), with literal expectations written by hand:
+ * nothing here is computed by the generator, so every implementation
+ * (the app, the companion, the independent verifier) must reach them.
+ */
+function dueCase(name, text, phrase, createdAt, timeZone, expected, at) {
+  const charStart = at ?? text.indexOf(phrase);
+  if (charStart < 0) throw new Error(`no phrase in ${name}`);
+  return {
+    name,
+    text,
+    charStart,
+    charEnd: charStart + phrase.length,
+    createdAt,
+    timeZone,
+    expect: expected
+      ? { valid: true, date: expected[0], rule: expected[1] }
+      : { valid: false },
+  };
+}
+const OCT1 = '2026-10-01T00:00:00.000Z';
+const dueCases = [
+  // today / tomorrow, month and year ends, leap years
+  dueCase('today-utc', 'Send it today.', 'today', '2026-10-14T10:00:00.000Z', 'UTC', ['2026-10-14', 'due.today']),
+  dueCase('today-any-case', 'Send it TODAY.', 'TODAY', '2026-10-14T10:00:00.000Z', 'UTC', ['2026-10-14', 'due.today']),
+  dueCase('tomorrow-month-end', 'Pay the rent tomorrow.', 'tomorrow', '2026-10-31T09:00:00.000Z', 'UTC', ['2026-11-01', 'due.tomorrow']),
+  dueCase('tomorrow-year-end', 'Pay the rent tomorrow.', 'tomorrow', '2026-12-31T12:00:00.000Z', 'UTC', ['2027-01-01', 'due.tomorrow']),
+  dueCase('tomorrow-leap-day', 'Pay the rent tomorrow.', 'tomorrow', '2028-02-28T08:00:00.000Z', 'UTC', ['2028-02-29', 'due.tomorrow']),
+  dueCase('tomorrow-non-leap', 'Pay the rent tomorrow.', 'tomorrow', '2027-02-28T08:00:00.000Z', 'UTC', ['2027-03-01', 'due.tomorrow']),
+  // weekdays: the first such day on or after the anchor
+  dueCase('weekday-same-day', 'Finish the slides by Friday.', 'Friday', '2026-10-16T08:00:00.000Z', 'UTC', ['2026-10-16', 'due.weekday']),
+  dueCase('weekday-next-occurrence', 'Finish the slides by Friday.', 'Friday', '2026-10-17T08:00:00.000Z', 'UTC', ['2026-10-23', 'due.weekday']),
+  dueCase('weekday-wraps-week', 'Call Priya on Monday.', 'Monday', '2026-10-16T08:00:00.000Z', 'UTC', ['2026-10-19', 'due.weekday']),
+  dueCase('weekday-sunday-same-day', 'Rest on Sunday.', 'Sunday', '2026-10-11T08:00:00.000Z', 'UTC', ['2026-10-11', 'due.weekday']),
+  dueCase('weekday-any-case', 'Submit it by FRIDAY.', 'FRIDAY', '2026-10-17T08:00:00.000Z', 'UTC', ['2026-10-23', 'due.weekday']),
+  // time-zone crossings: the same instant on different local dates
+  dueCase('tz-east-crossing', 'Finish the slides by Friday.', 'Friday', '2026-10-16T19:00:00.000Z', 'Asia/Kolkata', ['2026-10-23', 'due.weekday']),
+  dueCase('tz-east-same-instant-utc', 'Finish the slides by Friday.', 'Friday', '2026-10-16T19:00:00.000Z', 'UTC', ['2026-10-16', 'due.weekday']),
+  dueCase('tz-west-crossing', 'Finish the slides by Friday.', 'Friday', '2026-10-17T03:00:00.000Z', 'America/Los_Angeles', ['2026-10-16', 'due.weekday']),
+  dueCase('tz-west-same-instant-utc', 'Finish the slides by Friday.', 'Friday', '2026-10-17T03:00:00.000Z', 'UTC', ['2026-10-23', 'due.weekday']),
+  dueCase('tz-half-hour-offset', 'File it today.', 'today', '2026-10-15T18:45:00.000Z', 'Asia/Kolkata', ['2026-10-16', 'due.today']),
+  dueCase('tz-plus-fourteen', 'Ship it today.', 'today', '2026-10-15T11:00:00.000Z', 'Pacific/Kiritimati', ['2026-10-16', 'due.today']),
+  dueCase('tz-dst-fall-back-day', 'Vote today.', 'today', '2026-11-01T04:30:00.000Z', 'America/New_York', ['2026-11-01', 'due.today']),
+  dueCase('tz-dst-spring-forward-eve', 'Plant seeds tomorrow.', 'tomorrow', '2026-03-08T04:30:00.000Z', 'America/New_York', ['2026-03-08', 'due.tomorrow']),
+  dueCase('tz-year-crossing', 'Toast on 31 December.', '31 December', '2026-12-31T23:30:00.000Z', 'Asia/Kolkata', ['2027-12-31', 'due.named-date']),
+  dueCase('tz-year-crossing-utc', 'Toast on 31 December.', '31 December', '2026-12-31T23:30:00.000Z', 'UTC', ['2026-12-31', 'due.named-date']),
+  // named dates: forms, ordinals, years, roll-over
+  dueCase('named-day-month', 'Submit the report on 14 October.', '14 October', OCT1, 'UTC', ['2026-10-14', 'due.named-date']),
+  dueCase('named-same-day', 'Submit the report on 14 October.', '14 October', '2026-10-14T23:00:00.000Z', 'UTC', ['2026-10-14', 'due.named-date']),
+  dueCase('named-rolls-to-next-year', 'Submit the report on 14 October.', '14 October', '2026-10-15T00:00:00.000Z', 'UTC', ['2027-10-14', 'due.named-date']),
+  dueCase('named-month-day', 'Pick it up October 3.', 'October 3', OCT1, 'UTC', ['2026-10-03', 'due.named-date']),
+  dueCase('named-month-day-ordinal', 'Pick it up October 3rd.', 'October 3rd', OCT1, 'UTC', ['2026-10-03', 'due.named-date']),
+  dueCase('named-of-form', 'Meet on the 3rd of October.', '3rd of October', OCT1, 'UTC', ['2026-10-03', 'due.named-date']),
+  dueCase('named-of-form-year', 'Pay by the 21st of December 2026.', '21st of December 2026', OCT1, 'UTC', ['2026-12-21', 'due.named-date']),
+  dueCase('named-ordinal-1st', 'Start on 1st November.', '1st November', OCT1, 'UTC', ['2026-11-01', 'due.named-date']),
+  dueCase('named-ordinal-11th', 'Start on 11th October.', '11th October', OCT1, 'UTC', ['2026-10-11', 'due.named-date']),
+  dueCase('named-ordinal-22nd', 'October 22nd it is.', 'October 22nd', OCT1, 'UTC', ['2026-10-22', 'due.named-date']),
+  dueCase('named-explicit-past-year', 'It was due 5 March 2025.', '5 March 2025', OCT1, 'UTC', ['2025-03-05', 'due.named-date']),
+  dueCase('named-comma-year', 'Renew it by March 5, 2027.', 'March 5, 2027', OCT1, 'UTC', ['2027-03-05', 'due.named-date']),
+  dueCase('named-space-year', 'Renew it by March 5 2027.', 'March 5 2027', OCT1, 'UTC', ['2027-03-05', 'due.named-date']),
+  dueCase('named-month-end-30', 'Close the books on 30 November.', '30 November', '2026-12-01T00:00:00.000Z', 'UTC', ['2027-11-30', 'due.named-date']),
+  dueCase('named-year-rollover', 'Book flights for 5 January.', '5 January', '2026-12-20T00:00:00.000Z', 'UTC', ['2027-01-05', 'due.named-date']),
+  dueCase('named-feb29-next-leap-year', 'Celebrate on 29 February.', '29 February', OCT1, 'UTC', ['2028-02-29', 'due.named-date']),
+  dueCase('named-feb29-on-leap-day', 'Celebrate on 29 February.', '29 February', '2028-02-29T10:00:00.000Z', 'UTC', ['2028-02-29', 'due.named-date']),
+  dueCase('named-feb29-after-leap-day', 'Celebrate on 29 February.', '29 February', '2028-03-01T00:00:00.000Z', 'UTC', ['2032-02-29', 'due.named-date']),
+  dueCase('named-feb29-explicit-leap', 'Celebrate on 29 February 2028.', '29 February 2028', OCT1, 'UTC', ['2028-02-29', 'due.named-date']),
+  // rejected: qualified, ambiguous, numeric, times, malformed
+  dueCase('reject-next-weekday', 'Plan the review for next Friday.', 'Friday', OCT1, 'UTC', null),
+  dueCase('reject-this-weekday', 'Do it this Friday.', 'Friday', OCT1, 'UTC', null),
+  dueCase('reject-last-weekday', 'It was last Friday.', 'Friday', OCT1, 'UTC', null),
+  dueCase('reject-every-weekday', 'Run every Monday.', 'Monday', OCT1, 'UTC', null),
+  dueCase('reject-coming-weekday', 'Finish it coming Friday.', 'Friday', OCT1, 'UTC', null),
+  dueCase('reject-before-weekday', 'Finish before Friday.', 'Friday', OCT1, 'UTC', null),
+  dueCase('reject-day-after-tomorrow', 'Call the day after tomorrow.', 'tomorrow', OCT1, 'UTC', null),
+  dueCase('reject-weekday-week', 'See you Friday week.', 'Friday', OCT1, 'UTC', null),
+  dueCase('reject-weekend', 'Clean up this weekend.', 'weekend', OCT1, 'UTC', null),
+  dueCase('reject-numeric-slash', 'Renew the permit on 14/10.', '14/10', OCT1, 'UTC', null),
+  dueCase('reject-numeric-iso', 'Renew the permit on 2026-10-14.', '2026-10-14', OCT1, 'UTC', null),
+  dueCase('reject-time', 'Call at 5pm.', '5pm', OCT1, 'UTC', null),
+  dueCase('reject-tonight', 'Call tonight.', 'tonight', OCT1, 'UTC', null),
+  dueCase('reject-abbreviated-month', 'Pay on 14 Oct.', '14 Oct', OCT1, 'UTC', null),
+  dueCase('reject-plural-weekday', 'Gym on Fridays.', 'Fridays', OCT1, 'UTC', null),
+  dueCase('reject-partial-word', 'Gym on Fridays.', 'Friday', OCT1, 'UTC', null),
+  dueCase('reject-glued-prefix', 'Due x14 October.', '14 October', OCT1, 'UTC', null),
+  dueCase('reject-wrong-ordinal', 'Start on 2th October.', '2th October', OCT1, 'UTC', null),
+  dueCase('reject-leading-zero', 'Start on 01 October.', '01 October', OCT1, 'UTC', null),
+  dueCase('reject-day-32', 'Start on 32 October.', '32 October', OCT1, 'UTC', null),
+  dueCase('reject-31-april', 'Pay on 31 April.', '31 April', OCT1, 'UTC', null),
+  dueCase('reject-feb29-non-leap-year', 'Pay on 29 February 2027.', '29 February 2027', OCT1, 'UTC', null),
+  dueCase('reject-double-space', 'Pay on 14  October.', '14  October', OCT1, 'UTC', null),
+  dueCase('reject-comma-no-space', 'Pay by March 5,2027.', 'March 5,2027', OCT1, 'UTC', null),
+  dueCase('reject-comma-without-year', 'Pay by March 5, then rest.', 'March 5,', OCT1, 'UTC', null),
+  dueCase('reject-preposition-included', 'Finish by Friday.', 'by Friday', OCT1, 'UTC', null),
+  dueCase('reject-of-without-ordinal', 'Meet on 3 of October.', '3 of October', OCT1, 'UTC', null),
+  dueCase('reject-unknown-time-zone', 'Send it today.', 'today', '2026-10-14T10:00:00.000Z', 'Mars/Olympus', null),
+];
+
 // ---------------------------------------------------------------- write
 
 const files = {
@@ -1594,6 +1813,7 @@ const files = {
   'vectors/results.json': pretty(resultCases),
   'vectors/events.json': pretty(eventCases),
   'vectors/envelopes.json': pretty(envelopeCases),
+  'vectors/due-dates.json': pretty(dueCases),
   'vectors/request-keys.json': pretty({
     testKeyHex: TEST_KEY.toString('hex'),
     cases: requestKeyCases,
@@ -1621,6 +1841,8 @@ const manifest = {
     events: eventCases.length,
     envelopes: envelopeCases.length,
     requestKeys: requestKeyCases.length,
+    dueDates: dueCases.length,
+    dueDatesValid: dueCases.filter(c => c.expect.valid).length,
   },
 };
 files['vectors.json'] = pretty(manifest);
@@ -1649,7 +1871,8 @@ process.stdout.write(
   `${CHECK ? 'checked' : 'wrote'} ${Object.keys(files).length} files: ` +
     `${c.fixtures} fixtures, ${c.inputs} input cases (${c.inputsValid} valid), ` +
     `${c.results} result cases (${c.resultsValid} valid), ${c.events} event cases, ` +
-    `${c.envelopes} envelope cases, ${c.requestKeys} request-key cases` +
+    `${c.envelopes} envelope cases, ${c.requestKeys} request-key cases, ` +
+    `${c.dueDates} due-date cases (${c.dueDatesValid} valid)` +
     `${CHECK ? `, ${mismatches} mismatches` : ''}\n`,
 );
 if (CHECK && mismatches > 0) process.exitCode = 1;

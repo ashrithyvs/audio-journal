@@ -7,6 +7,7 @@
 import inputSchema from '../../../../schemas/journal/v1/organize-input.schema.json';
 import outputSchema from '../../../../schemas/journal/v1/organize-output.schema.json';
 import partialSchema from '../../../../schemas/journal/v1/organize-partial.schema.json';
+import { deriveDue, type DueRule } from './dueDates';
 
 export const CONTRACT = 'journal.organize@1';
 export const CAPABILITY = { id: 'journal.organize', version: '1.0.0' } as const;
@@ -80,8 +81,16 @@ export interface OrganizeItem {
   rule?: string;
   sources: SourceRef[];
 }
+export interface DueDate {
+  /** ISO calendar date, YYYY-MM-DD (contract §3.3). */
+  date: string;
+  rule: DueRule;
+  /** The exact phrase the date comes from. */
+  source: SourceRef;
+}
 export interface OrganizeTask extends OrganizeItem {
   area: 'work' | 'personal' | 'unsorted';
+  due?: DueDate;
 }
 export interface NamedItem {
   name: string;
@@ -116,6 +125,7 @@ export type ResultCode =
   | 'RESULT_DIGEST'
   | 'RESULT_RANGE'
   | 'RESULT_ORDER'
+  | 'RESULT_DUE'
   | 'RESULT_DUPLICATE';
 
 export const SCHEMAS = {
@@ -380,7 +390,10 @@ export function resultViolation(
   if (!matchesSchema(outputSchema as Schema, output)) return 'RESULT_SCHEMA';
   const out = output as OrganizeOutput;
   const items = itemsInOrder(out);
-  if (items.reduce((n, { item }) => n + item.sources.length, 0) > 1000)
+  const dues = (out.tasks ?? []).filter(t => own(t, 'due'));
+  if (
+    items.reduce((n, { item }) => n + item.sources.length, dues.length) > 1000
+  )
     return 'RESULT_SCHEMA';
   if (
     out.contract !== input.contract ||
@@ -424,7 +437,10 @@ export function resultViolation(
       ? null
       : { ei, ui, e, u: e.units[ui] as VoiceUnit & WrittenUnit };
   };
-  const refs = items.flatMap(({ item }) => item.sources);
+  const refs = [
+    ...items.flatMap(({ item }) => item.sources),
+    ...dues.map(t => t.due!.source),
+  ];
   if (refs.some(r => !unitOf(r))) return 'RESULT_REFERENCE';
   if (refs.some(r => unitOf(r)!.u.sha256 !== r.unitSha256))
     return 'RESULT_DIGEST';
@@ -469,6 +485,31 @@ export function resultViolation(
         item.sources[k - 1].charEnd > item.sources[k].charStart
       )
         return 'RESULT_ORDER';
+    }
+  }
+  // Amendment A2 (§3.3): never trust a node's date; re-derive each one from
+  // its cited phrase, the entry's createdAt, and the request's time zone.
+  for (const task of dues) {
+    const due = task.due!;
+    const src = due.source;
+    const inside = task.sources.some(
+      o =>
+        o.entryId === src.entryId &&
+        o.unitId === src.unitId &&
+        o.charStart <= src.charStart &&
+        src.charEnd <= o.charEnd,
+    );
+    if (!inside) return 'RESULT_DUE';
+    const { e, u } = unitOf(src)!;
+    const got = deriveDue(
+      u.text,
+      src.charStart,
+      src.charEnd,
+      e.createdAt,
+      input.timeZone,
+    );
+    if (!got || got.date !== due.date || got.rule !== due.rule) {
+      return 'RESULT_DUE';
     }
   }
   const groups: string[][] = [

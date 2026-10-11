@@ -196,8 +196,21 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
   - **Blocked:** final AJ-2 cancellation acceptance, on SDK-AJ-5 (an SDK
     fix and a re-test). The SDK repository was not changed. The handoff is
     the SDK-AJ-5 section; no peer session is identified as the SDK owner.
-  - **Next:** AJ-2.2 (the Organized and Tasks UI), after the owner decides
-    O-1 to O-3. The recommendations were sent with the amendment report.
+  - **Owner decision, 2026-10-12:** O-1, O-2, and O-3 are approved with
+    amendments. AJ-2.2 is in progress on `aj2/organize` (no merge, push,
+    release, or acceptance claim):
+    - O-1: due dates, as contract amendment A2, with an independent
+      re-derivation in the app validator;
+    - O-2: history and computed staleness;
+    - O-3: task states and conservative carry-over.
+
+    It covers the Organized and Tasks UI, then the cumulative suites.
+    **Touches:**
+    - the contract and ADR-019, `schemas/journal/v1/`,
+      `tools/journal-organize/`;
+    - `node-companion/` (engine and validator);
+    - `src/features/organize/`, storage migration 4, `src/app/navigation/`;
+    - `e2e/aj2/`, and the UX, LLD, and validation documents.
   - **Emulators:** stopped; `.aj-exclusive-run` is released.
 - **Exclusive runs.** Benchmarks, emulator suites, Gradle/CMake builds, and
   Jest baselines never overlap. Create

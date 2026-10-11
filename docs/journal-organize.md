@@ -5,8 +5,13 @@ items in §12, which stay Open and block only the work named there.
 
 **Amendment A1** (2026-10-11, owner decision on O-7) makes partial results
 explicit (§3.2). It adds the required `completeness` and conditional
-`omitted` fields, and validation rule `RESULT_COMPLETENESS`. It was made
-before any release, so the capability stays `1.0.0`.
+`omitted` fields, and validation rule `RESULT_COMPLETENESS`.
+
+**Amendment A2** (2026-10-12, owner decision on O-1) adds optional task due
+dates (§3.3). Each date must be re-derivable from the cited phrase, and
+validation rule `RESULT_DUE` checks it.
+
+Both amendments came before any release, so the capability stays `1.0.0`.
 **Owner:** Audio Journal (ADR-010, ADR-018). The Hybrid AI SDK carries this
 capability as an opaque node capability; it is not part of the SDK.
 
@@ -16,16 +21,24 @@ capability as an opaque node capability; it is not part of the SDK.
 - `organize-output.schema.json`: the result (JSON Schema, Draft 7);
 - `organize-partial.schema.json`: the streamed `partial` delta;
 - `vectors.json` (manifest: file digests, the §8.1 budget, and counts) and
-  `vectors/`: `fixtures.json` (7 requests, including one exactly at the input
-  cap), `inputs.json` (37 cases), `results.json` (79 cases), `events.json`
-  (12), `envelopes.json` (4 whole messages at and one byte over 61,440
-  bytes), and `request-keys.json` (7, under a published test key).
+  `vectors/`:
+  - `fixtures.json`: 8 requests, including one exactly at the input cap and
+    one with dated tasks;
+  - `inputs.json`: 38 cases;
+  - `results.json`: 93 cases;
+  - `events.json`: 12 cases;
+  - `envelopes.json`: 4 whole messages, at and one byte over 61,440 bytes;
+  - `request-keys.json`: 7 cases, under a published test key;
+  - `due-dates.json`: 68 derivation cases (40 dated) with literal,
+    hand-written expectations. They include month-end, year-end, leap-year,
+    DST, and time-zone-crossing cases (§3.3).
   - `node tools/journal-organize/generate-vectors.mjs --check` rebuilds every
     file byte for byte.
   - `python3 -I tools/journal-organize/verify_vectors.py schemas/journal/v1`
     is the independent verifier: written from this text, it interprets the
     schemas with its own Draft 7 subset, applies §6 and §6.1, recomputes
-    envelope sizes, request keys, and digests, and must report 0 failures.
+    envelope sizes, request keys, and digests, re-derives every due date
+    with Python's `zoneinfo`, and must report 0 failures.
   - The schema files also compile in Ajv 6 (Draft 7), which accepts every
     valid case.
 
@@ -165,7 +178,8 @@ no personal information; they are needed so results can cite their sources.
 - **Items.** `text` (summary up to 600, items up to 400, `name` up to 80
   UTF-16 code units), an optional `rule` (`^[a-z][a-z0-9.-]{0,47}$`, the
   engine rule that produced it), and `sources`, 1–8 references. Tasks also
-  carry `area`: `work`, `personal`, or `unsorted`.
+  carry `area`: `work`, `personal`, or `unsorted`, and an optional `due`
+  (§3.3).
 - **Bounds.** At most 50 items per list and per section, 1,000 references
   in total, and **61,387 bytes** in canonical form, so that the whole
   `completed` event message stays within 61,440 bytes (§8.1). Items left
@@ -235,6 +249,80 @@ A result says whether it carries everything the engine found.
   and merging the results is not part of v1 without a separate approval
   (§12, O-7).
 
+### 3.3 Due dates (amendment A2)
+
+A task may carry a due date, but only one taken from an explicit English
+phrase that anyone can re-derive. The app does not trust a node's date
+because it cites a valid range: its validator parses the cited phrase
+itself and must reach the same date (§6, `RESULT_DUE`).
+
+```json
+"due": {
+  "date": "2026-10-16",
+  "rule": "due.weekday",
+  "source": { "entryId": "ent_…", "unitId": "w1", "unitSha256": "…",
+              "charStart": 35, "charEnd": 41 }
+}
+```
+
+- **`date`** is an ISO 8601 Gregorian calendar date (`YYYY-MM-DD`), with no
+  time and no offset.
+- **`source`** is a source reference (§3.1) into the same unit as one of
+  the task's own sources, inside that source's character range. Voice
+  references carry the segment's audio range. Its range covers exactly the
+  phrase.
+- **`rule`** names the phrase's form and must agree with it: `due.today`,
+  `due.tomorrow`, `due.weekday`, or `due.named-date`.
+
+**Accepted phrases.** The cited text matches one of these in full,
+ignoring case. Nothing else gives a date: not "next Friday", "this
+weekend", numeric dates such as `14/10` or `2026-10-14`, times,
+abbreviated months, or any other phrase.
+
+| Rule | Phrase | Date |
+|---|---|---|
+| `due.today` | `today` | the anchor date |
+| `due.tomorrow` | `tomorrow` | the day after the anchor date |
+| `due.weekday` | `monday` … `sunday` | the first such weekday on or after the anchor date; the anchor's own weekday counts, so "by Friday" said on a Friday is that day |
+| `due.named-date` | `D Month`, `D Month YYYY`, `Month D`, `Month D YYYY`, `Month D, YYYY`, `Dth of Month`, `Dth of Month YYYY` | without a year, the first matching calendar date on or after the anchor date; with a year, that date as written |
+
+In a named date:
+
+- `D` is 1–31, without a leading zero. It may carry its correct English
+  ordinal suffix (`1st`, `2nd`, `3rd`, `4th` … `11th`, `12th`, `13th`,
+  `21st`, `22nd`, `23rd`, `31st`); the `of` form requires it.
+- `Month` is a full English month name.
+- `YYYY` is four digits.
+- Single spaces separate the words. The comma is allowed only right after
+  `D` in the `Month D, YYYY` form.
+- A date that does not exist (31 April, 29 February 2027) gives no date.
+- 29 February without a year is the first 29 February on or after the
+  anchor date, in a leap year.
+
+**Context.** The cited range must stand alone as words, and must not be
+qualified:
+
+- the characters just before and just after the range are not ASCII
+  letters or digits;
+- the nearest word before the range is none of `next`, `this`, `last`,
+  `coming`, `following`, `every`, `each`, `past`, `previous`, `after`, or
+  `before`, ignoring case;
+- the nearest word after the range is not `week`.
+
+"Next Friday" or "the day after tomorrow" therefore cannot be cited as
+"Friday" or "tomorrow".
+
+**Anchor.** The anchor date is the cited entry's `createdAt`, converted to
+the request's `timeZone` (IANA; `UTC` allowed) as a local Gregorian
+calendar date. An entry created at 2026-10-16T19:00:00.000Z is on
+17 October in `Asia/Kolkata`, so "Friday" is 23 October there; it is on
+16 October in `UTC`, so the same word gives 16 October.
+
+**Engine choice.** `aj.rules` gives a task a date only when its sentence
+holds exactly one accepted, unqualified phrase and no other date-like word.
+Another engine may decline to give dates. A date that is given must follow
+this section.
+
 ## 4. Events
 
 Through the SDK, a run delivers `accepted`, then any `progress` and `partial`
@@ -281,7 +369,8 @@ verifier reports the same sub-code for every vector.
 | 8 | `RESULT_DIGEST` | Every `unitSha256` equals the cited unit's `sha256`. |
 | 9 | `RESULT_RANGE` | Character ranges are inside the unit and do not split a surrogate pair; voice references carry an audio range inside the unit; written references carry none. |
 | 10 | `RESULT_ORDER` | Within an item, references are ordered, unique, and non-overlapping per unit. |
-| 11 | `RESULT_DUPLICATE` | Within a list or section, no two items have the same normalized text (NFC, lower-case, whitespace collapsed). |
+| 11 | `RESULT_DUE` | Every task `due` (§3.3): its source lies inside one of the task's source ranges in the same unit, the cited text and its context form an accepted phrase, the rule matches the phrase, and the date re-derived from the cited entry's `createdAt` and the request's `timeZone` equals `date`. |
+| 12 | `RESULT_DUPLICATE` | Within a list or section, no two items have the same normalized text (NFC, lower-case, whitespace collapsed). |
 
 Checks run over the output in document order: `summary`, `sections`,
 `tasks`, `ideas`, `people`, `projects`.
@@ -435,14 +524,19 @@ codes, counts, and durations.
     per-kind `omitted` counts of the lowest-ranked items, and the app
     discloses it. Nothing is dropped silently, and there is no
     chunk-and-merge in v1.
+14. **Due dates are re-derivable** (amendment A2, owner decision on O-1,
+    2026-10-12). Only explicit English phrases give a date (§3.3). The date
+    is a calendar date anchored to the entry's local creation date in the
+    request's time zone, it cites its exact phrase, and the app re-derives
+    it independently.
 
 ## 12. Open questions (not frozen)
 
 | ID | Question | Blocks |
 |---|---|---|
-| O-1 | Due dates: whether and how tasks carry dates (deterministic phrase rules vs none), and time-zone semantics. | Tasks grouping by date in the next UI stage; v1 tasks carry no date. |
-| O-2 | How an older derivation is shown after its source transcript is corrected or re-transcribed (badge, hide, or offer reorganize), and which revision the Organized view shows. | The Organized view (next stage). |
-| O-3 | Editing derived items, and carrying task done/dismissed state across a reorganize. | The Tasks UI (next stage). |
+| O-1 | Due dates. **Resolved by amendment A2** (owner, 2026-10-12): explicit English phrases only, re-derived by the app (§3.3). | — |
+| O-2 | Stale sources and history. **Resolved by ADR-020** (owner, 2026-10-12): the newest revision per canonical scope, with history; staleness computed and marked; explicit Reorganize; nothing hidden. | — |
+| O-3 | Editing and carry-over. **Resolved by ADR-020** (owner, 2026-10-12): no editing of derived text in v1; open, done, and dismissed task states; conservative one-to-one carry-over with a recorded predecessor. | — |
 | O-4 | Retention and deletion of derivations and tasks (Open decision 6). | Deletion features; nothing is deleted in v1. |
 | O-5 | Including derivations and task states in backups (AJB1 domain schema v2, reserved). Until then backups do not carry them, and a restore has none. | AJB1 v2. |
 | O-6 | Whether the companion also serves `document.analyze@1`, so the AJ-3 diagnostics test works against it. | Diagnostics against the companion only. |

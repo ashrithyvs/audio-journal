@@ -19,7 +19,9 @@ import json
 import re
 import sys
 import unicodedata
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 KINDS = ["summary", "sections", "tasks", "ideas", "people", "projects"]
 LISTS = ["tasks", "ideas", "people", "projects"]
@@ -304,6 +306,124 @@ def items_in_order(out):
             yield kind, item, item.get("text", item.get("name"))
 
 
+# ------------------------------------------------------------- due dates
+# Contract section 3.3 (amendment A2), written from the text: the accepted
+# phrases, their context, and the anchor date in the request's time zone.
+
+WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+MONTHS = ["january", "february", "march", "april", "may", "june", "july",
+          "august", "september", "october", "november", "december"]
+QUALIFIERS = {"next", "this", "last", "coming", "following", "every", "each",
+              "past", "previous", "after", "before"}
+_DAY = r"([1-9]|[12][0-9]|3[01])"
+_MONTH = "(" + "|".join(MONTHS) + ")"
+_YEAR = r"([1-9][0-9]{3})"
+NAMED_FORMS = [
+    # (pattern, group index of day, ordinal, month, year)
+    (re.compile(_DAY + r"(st|nd|rd|th)? " + _MONTH + r"(?: " + _YEAR + r")?"), (1, 2, 3, 4)),
+    (re.compile(_MONTH + " " + _DAY + r"(st|nd|rd|th)?(?:,? " + _YEAR + r")?"), (2, 3, 1, 4)),
+    (re.compile(_DAY + r"(st|nd|rd|th) of " + _MONTH + r"(?: " + _YEAR + r")?"), (1, 2, 3, 4)),
+]
+
+
+def ordinal_suffix(d: int) -> str:
+    if 11 <= d % 100 <= 13:
+        return "th"
+    return {1: "st", 2: "nd", 3: "rd"}.get(d % 10, "th")
+
+
+def parse_due_phrase(phrase: str):
+    if any(ord(c) > 0x7F for c in phrase):
+        return None
+    t = phrase.lower()
+    if t == "today":
+        return ("due.today", None)
+    if t == "tomorrow":
+        return ("due.tomorrow", None)
+    if t in WEEKDAYS:
+        return ("due.weekday", WEEKDAYS.index(t))
+    for pattern, (gd, go, gm, gy) in NAMED_FORMS:
+        m = pattern.fullmatch(t)
+        if not m:
+            continue
+        day = int(m.group(gd))
+        if m.group(go) is not None and m.group(go) != ordinal_suffix(day):
+            return None
+        year = int(m.group(gy)) if m.group(gy) else None
+        return ("due.named-date", (day, MONTHS.index(m.group(gm)) + 1, year))
+    return None
+
+
+def _ascii_alnum(code: int) -> bool:
+    return (48 <= code <= 57) or (65 <= code <= 90) or (97 <= code <= 122)
+
+
+def due_context_ok(units, start: int, end: int) -> bool:
+    if start > 0 and _ascii_alnum(units[start - 1]):
+        return False
+    if end < len(units) and _ascii_alnum(units[end]):
+        return False
+    before = from_utf16(units[:start])
+    after = from_utf16(units[end:])
+    m = re.search(r"([A-Za-z]+)[^A-Za-z]*$", before)
+    if m and m.group(1).lower() in QUALIFIERS:
+        return False
+    m = re.match(r"[^A-Za-z]*([A-Za-z]+)", after)
+    if m and m.group(1).lower() == "week":
+        return False
+    return True
+
+
+def from_utf16(units) -> str:
+    return b"".join(u.to_bytes(2, "little") for u in units).decode("utf-16-le", "surrogatepass")
+
+
+def anchor_date(created_at: str, tz: str):
+    instant = datetime.strptime(created_at, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+    return instant.astimezone(ZoneInfo(tz)).date()
+
+
+def derive_due(text: str, start: int, end: int, created_at: str, tz: str):
+    """(ISO date, rule) for a cited phrase, or None when no date follows."""
+    units = utf16_units(text)
+    if not (0 <= start < end <= len(units)) or not due_context_ok(units, start, end):
+        return None
+    parsed = parse_due_phrase(from_utf16(units[start:end]))
+    if parsed is None:
+        return None
+    try:
+        anchor = anchor_date(created_at, tz)
+    except Exception:
+        return None
+    rule, value = parsed
+    if rule == "due.today":
+        due = anchor
+    elif rule == "due.tomorrow":
+        due = anchor + timedelta(days=1)
+    elif rule == "due.weekday":
+        due = anchor + timedelta(days=(value - anchor.weekday()) % 7)
+    else:
+        day, month, year = value
+        due = None
+        if year is not None:
+            try:
+                due = date(year, month, day)
+            except ValueError:
+                return None
+        else:
+            for y in range(anchor.year, anchor.year + 9):
+                try:
+                    candidate = date(y, month, day)
+                except ValueError:
+                    continue
+                if candidate >= anchor:
+                    due = candidate
+                    break
+        if due is None:
+            return None
+    return (due.isoformat(), rule)
+
+
 def validate_result(raw: bytes, req, schema, cap):
     try:
         out = parse_strict(raw)
@@ -313,7 +433,8 @@ def validate_result(raw: bytes, req, schema, cap):
         raise Reject("RESULT_SIZE")
     if not check_schema(schema, out):
         raise Reject("RESULT_SCHEMA")
-    if sum(len(item["sources"]) for _, item, _ in items_in_order(out)) > 1000:
+    dues = [t for t in out.get("tasks", []) if "due" in t]
+    if sum(len(item["sources"]) for _, item, _ in items_in_order(out)) + len(dues) > 1000:
         raise Reject("RESULT_SCHEMA")
     if (
         out["contract"] != req["contract"]
@@ -338,6 +459,7 @@ def validate_result(raw: bytes, req, schema, cap):
             raise Reject("RESULT_TEXT")
     entries = {e["entryId"]: (i, e) for i, e in enumerate(req["entries"])}
     refs = [(item, s) for _, item, _ in items_in_order(out) for s in item["sources"]]
+    refs += [(t, t["due"]["source"]) for t in dues]
 
     def unit_of(s):
         ei, e = entries[s["entryId"]]
@@ -377,6 +499,21 @@ def validate_result(raw: bytes, req, schema, cap):
                 raise Reject("RESULT_ORDER")
             if ka[:2] == kb[:2] and a["charEnd"] > b["charStart"]:
                 raise Reject("RESULT_ORDER")
+    # Amendment A2 (contract section 3.3): re-derive every due date.
+    for t in dues:
+        d = t["due"]
+        src = d["source"]
+        inside = any(
+            o["entryId"] == src["entryId"] and o["unitId"] == src["unitId"]
+            and o["charStart"] <= src["charStart"] and src["charEnd"] <= o["charEnd"]
+            for o in t["sources"]
+        )
+        if not inside:
+            raise Reject("RESULT_DUE")
+        _, e, _, u = unit_of(src)
+        got = derive_due(u["text"], src["charStart"], src["charEnd"], e["createdAt"], req["timeZone"])
+        if got != (d["date"], d["rule"]):
+            raise Reject("RESULT_DUE")
     groups = []
     for section in out.get("sections", []):
         groups.append([i["text"] for i in section["items"]])
@@ -471,7 +608,7 @@ def main(root: Path) -> int:
     envelopes = json.loads((vec / "envelopes.json").read_text("utf-8"))
     keys = json.loads((vec / "request-keys.json").read_text("utf-8"))
 
-    counts = {"inputs": 0, "results": 0, "events": 0, "envelopes": 0, "requestKeys": 0, "fixtures": 0}
+    counts = {"inputs": 0, "results": 0, "events": 0, "envelopes": 0, "requestKeys": 0, "fixtures": 0, "dueDates": 0}
 
     for name, req in fixtures.items():
         try:
@@ -545,6 +682,15 @@ def main(root: Path) -> int:
         else:
             counts["envelopes"] += 1
 
+    for case in json.loads((vec / "due-dates.json").read_text("utf-8")):
+        got = derive_due(case["text"], case["charStart"], case["charEnd"], case["createdAt"], case["timeZone"])
+        want = case["expect"]
+        expected = (want["date"], want["rule"]) if want["valid"] else None
+        if got != expected:
+            failures.append(f"due date {case['name']}: {got}, expected {expected}")
+        else:
+            counts["dueDates"] += 1
+
     key = bytes.fromhex(keys["testKeyHex"])
     for case in keys["cases"]:
         got = request_key(key, case["input"])
@@ -561,7 +707,8 @@ def main(root: Path) -> int:
         print("FAIL", f)
     print(
         "verified: {fixtures} fixtures, {inputs} input cases, {results} result cases, "
-        "{events} event cases, {envelopes} envelope cases, {requestKeys} request-key cases; "
+        "{events} event cases, {envelopes} envelope cases, {requestKeys} request-key cases, "
+        "{dueDates} due-date cases; "
         "{fail} failures".format(fail=len(failures), **counts)
     )
     return 1 if failures else 0
