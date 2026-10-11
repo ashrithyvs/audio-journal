@@ -29,6 +29,7 @@ class AudioJournalRecordingsModule(private val context: ReactApplicationContext)
 
   init {
     context.addLifecycleEventListener(this)
+    TestAudioInput.prepare(context)
   }
 
   override fun getName() = NAME

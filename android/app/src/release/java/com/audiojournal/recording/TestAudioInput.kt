@@ -7,6 +7,8 @@ import android.content.Context
  * Only the `e2e` build type (device suites) has a file-backed source.
  */
 object TestAudioInput {
+  @Suppress("UNUSED_PARAMETER") fun prepare(context: Context) {}
+
   @Suppress("UNUSED_PARAMETER")
   fun sourceOrNull(context: Context): PcmSource? = null
 }

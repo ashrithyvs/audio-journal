@@ -18,9 +18,18 @@ import java.nio.ByteOrder
  * AJR1 sealing, the on-device final pass, and organization.
  */
 object TestAudioInput {
+  /**
+   * Creates the input directory as the app, so files the suite pushes into
+   * it are readable to the app (a directory made by `adb shell` is not).
+   */
+  fun prepare(context: Context) {
+    inputDir(context).mkdirs()
+  }
+
+  private fun inputDir(context: Context) = File(context.getExternalFilesDir(null), "test-audio")
+
   fun sourceOrNull(context: Context): PcmSource? {
-    val dir = File(context.getExternalFilesDir(null), "test-audio").apply { mkdirs() }
-    val file = File(dir, "input.wav")
+    val file = File(inputDir(context), "input.wav")
     if (!file.isFile) return null
     val pcm = pcm16Mono16k(file.readBytes()) ?: return null
     file.delete()

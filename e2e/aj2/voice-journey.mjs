@@ -172,7 +172,12 @@ try {
     'V01',
     'record the sample through the app capture path',
     async () => {
-      d.shell('mkdir', '-p', INPUT);
+      // The e2e build creates INPUT as the app when the journal opens; a
+      // directory made by `adb shell` would not be readable to the app.
+      expect(
+        d.shell('ls', '-d', INPUT).trim() === INPUT,
+        'the e2e build did not create its test input directory',
+      );
       d.adb('push', sample(), `${INPUT}/input.wav`);
       await d.tap({ text: 'Diary' });
       await d.tap({ id: 'diary-record' });
