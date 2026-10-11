@@ -86,6 +86,12 @@ interface PrivateNodeContextValue {
   runRequest(input: RunRequestInput): Promise<void>;
   cancelRequest(): void;
   resetRequest(): void;
+  /**
+   * How another feature's node request ended (journal.organize@1), so the
+   * same status hooks apply: a node completion is contact; a link failure
+   * reconciles once. The request itself is never retried.
+   */
+  reportNodeRun(report: { nodeResult: boolean; failureCode?: string }): void;
 }
 
 const PrivateNodeContext = createContext<PrivateNodeContextValue | undefined>(
@@ -531,6 +537,28 @@ export function PrivateNodeProvider({
     [cancelCatchUp, gateway, now, reconcileLink, scheduleCatchUp],
   );
 
+  const reportNodeRun = useCallback(
+    ({
+      nodeResult,
+      failureCode,
+    }: {
+      nodeResult: boolean;
+      failureCode?: string;
+    }) => {
+      if (!live.current) {
+        return;
+      }
+      if (failureCode !== undefined && NODE_LINK_CODES.has(failureCode)) {
+        cancelCatchUp();
+        reconcileLink();
+      } else if (nodeResult) {
+        dispatch({ type: 'NODE_RESULT' });
+        scheduleCatchUp();
+      }
+    },
+    [cancelCatchUp, reconcileLink, scheduleCatchUp],
+  );
+
   const cancelRequest = useCallback(() => {
     if (requestId.current) {
       gateway.cancel(requestId.current);
@@ -576,6 +604,7 @@ export function PrivateNodeProvider({
       runRequest,
       cancelRequest,
       resetRequest,
+      reportNodeRun,
     }),
     [
       activeNode,
@@ -591,6 +620,7 @@ export function PrivateNodeProvider({
       inspectCode,
       makeActive,
       refresh,
+      reportNodeRun,
       resetPairing,
       resetRequest,
       retryInitialization,

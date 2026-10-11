@@ -27,6 +27,7 @@ import {
   type JournalEntryDetail,
 } from '../ports/JournalRepository';
 import type { PlaybackEvent } from '../ports/PlaybackService';
+import { OrganizePanel } from '../../organize/ui/OrganizePanel';
 import { journalStyles } from './journalStyles';
 
 // Entry detail (UX §6): the original audio or written text is primary; the
@@ -156,6 +157,7 @@ export function EntryDetailScreen({ entryId }: { entryId: string }) {
           )}
         </View>
       ) : null}
+      {entry.status === 'ready' ? <OrganizePanel entryId={entry.id} /> : null}
     </ScrollView>
   );
 }

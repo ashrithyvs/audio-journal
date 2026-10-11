@@ -334,6 +334,14 @@ export class PackagedHybridAiGateway implements HybridAiGateway {
         } else if (event.type === 'cancelled') {
           audit.terminalEvents += 1;
           deliver({ type: 'cancelled' });
+        } else if (event.type === 'progress') {
+          deliver({
+            type: 'progress',
+            stage: event.data.stage,
+            fraction: event.data.fraction,
+          });
+        } else if (event.type === 'partial') {
+          deliver({ type: 'partial', delta: event.data.delta });
         } else {
           deliver({ type: event.type });
         }

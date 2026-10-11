@@ -19,6 +19,17 @@ export interface Spec extends TurboModule {
   readonly rollback: () => Promise<void>;
   /** CSPRNG bytes as lower-case hex, for local IDs (not key material). */
   readonly randomBytesHex: (count: number) => string;
+  /** SHA-256 of the text's UTF-8 bytes, lower-case hex (platform digest). */
+  readonly sha256Hex: (text: string) => string;
+  /**
+   * HMAC-SHA256 under a hex key, over a label, one zero byte, and the text's
+   * UTF-8 bytes (journal.organize@1 request keys), lower-case hex.
+   */
+  readonly hmacSha256Hex: (
+    keyHex: string,
+    label: string,
+    text: string,
+  ) => string;
 }
 
 export default TurboModuleRegistry.get<Spec>('AudioJournalStore');

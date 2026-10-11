@@ -4,7 +4,7 @@ import { act, fireEvent, render } from '@testing-library/react-native';
 import { AppRoot } from '../src/app/AppRoot';
 import type { PrivateNodeOptions } from '../src/features/private-node/application/PrivateNodeContext';
 import { FakeHybridAiGateway } from './FakeHybridAiGateway';
-import { makeTestServices } from './makeTestServices';
+import { makeTestServices, type TestJournal } from './makeTestServices';
 
 export const PIN = '482915';
 export const DIARY_COPY = 'What do you want to remember?';
@@ -20,6 +20,7 @@ export function tab(view: View, name: string) {
 export async function renderUnlocked(
   gateway = new FakeHybridAiGateway(),
   privateNode?: PrivateNodeOptions,
+  onJournal?: (journal: TestJournal) => void,
 ) {
   const view = await render(
     <AppRoot
@@ -27,6 +28,7 @@ export async function renderUnlocked(
         configuredPin: PIN,
         hybridAI: gateway,
         privateNode,
+        onJournal,
       })}
     />,
   );

@@ -115,7 +115,10 @@ interface DerivationRepository {
 }
 ```
 
-Repository calls accept domain data, not UI or SDK event objects.
+Repository calls accept domain data, not UI or SDK event objects. The
+implemented derivation tables and `DerivationRepository` for
+`journal.organize@1` are in §7.2; they supersede the sketch above where they
+differ.
 
 ## 5. Recording service
 
@@ -425,6 +428,85 @@ The result validator enforces:
 - every voice-derived task has at least one exact, playable audio range;
 - no invented local IDs or mutation instructions;
 - one atomic persisted derivation revision only after terminal validation.
+
+### 7.2 Implemented `journal.organize@1` integration (AJ-2.1, ADR-019)
+
+The app calls the capability only through `HybridAiGateway.run` with
+`execution: 'node'`, `timeoutMs: 60000`, and `capability`
+`journal.organize` `1.0.0`. The gateway now passes the public SDK event data
+through: `progress` carries `stage` and `fraction`, `partial` carries
+`delta`. Both are untrusted, and consumers validate them before use.
+
+**Modules** (`src/features/organize/`):
+
+| Module | Role |
+|---|---|
+| `domain/contract.ts` | Pinned schemas, the §8.1 budget, canonical JSON, `inputViolation` (§6.1) and `resultViolation` (§6), `partialOk`. Hermes-safe: no `isWellFormed`, a guarded `normalize`. |
+| `domain/request.ts` | `buildOrganizeRequest`: whole entries in contract order; voice units from the current transcript (newest full pass, correction heads, `ready` recordings only); written units from `writtenUnits` (§2 paragraph and long-paragraph rules, exact offsets); `deviceContext` (locale and time zone reduced to the contract patterns, else `und` and `UTC`); `requestKeyOf` (§9). |
+| `application/OrganizeController.ts` | `prepare` (build, then `existing` when the key is already stored, else `consent`), `confirm` (one SDK run), `cancel`, `reset`, `dispose`. |
+| `application/OrganizeContext.tsx` | Mounted inside the open journal, so a lock unmounts it and cancels a run. |
+| `ports/DerivationRepository.ts`, `platform/storage/SqliteDerivationRepository.ts` | One transaction per result; `findByRequestKey`, `latestForEntry`, `requestKeySecret`. |
+| `ui/OrganizePanel.tsx` | The minimum surface on entry detail: consent, progress with counts, cancel, outcome, and the latest result's summary and tasks as plain text. |
+
+**Request refusals.** The app never truncates or rewrites content. It
+refuses the whole request, sends nothing, and says why, for these reasons:
+
+- `NOTHING_TO_ORGANIZE`;
+- `TOO_MANY_ENTRIES` (over 20);
+- `TOO_MANY_UNITS` (over 400);
+- `TOO_LARGE` (over 61,108 bytes);
+- `UNSENDABLE_TEXT`: written text with a character §6 forbids, such as CR,
+  other controls, or bidi overrides;
+- any §6.1 sub-code (a defect).
+
+Selected entries with no finalized text are left out and listed as
+`not_ready`, `no_transcript`, `empty_transcript`, or `no_text`.
+
+**Run outcomes.** Each run ends in exactly one outcome:
+
+- `stored` or `duplicate`, with the derivation;
+- `invalid`: `INVALID_RESULT` with its §6 sub-code;
+- `failed`: an SDK code, `EXECUTION_FAILED` when the stream ends without a
+  terminal or completes on a target other than the node, or
+  `STORAGE_FAILED`;
+- `cancelled`.
+
+Events after the terminal are ignored. Nothing is stored unless the result
+passes §6.
+
+**Status hooks.** The controller reports each finished run to
+`PrivateNodeContext.reportNodeRun`. A link-code failure triggers one
+reconciling connect. A node completion, including an invalid one, is
+contact: it dispatches `NODE_RESULT`, which applies `afterNodeResult`, and
+schedules the catch-up connect (§7.1). The request is never retried.
+
+**Storage (migration 3, `aj2_derivations`).** All tables are `STRICT`, and
+CHECKs mirror the contract bounds.
+
+- `derivations`:
+  - `request_key` is unique;
+  - `scope_key` holds the sorted entry IDs;
+  - `revision` is unique per scope;
+  - `payload` holds the canonical result, at most 61,387 bytes;
+  - the row also keeps the engine ID and version and `input_sha256`.
+- `derivation_entries`: the scope.
+- `derived_tasks`: ordinal, text, area, and `state`, which is
+  open, done, or dismissed.
+- `source_references`:
+  - `item_kind`, `item_ordinal` and `ref_ordinal` identify the citation;
+  - it names the entry and unit, with the unit's digest;
+  - character offsets are always present;
+  - for voice references only, `segment_id` (the cited correction head) and
+    the audio range are present.
+- `organize_secret`: one 32-byte request-key secret per journal, kept out of
+  `app_settings` and never carried by AJB1 backups. A restore starts with
+  empty derivation tables (`journal-organize.md` §12, O-5).
+
+Triggers make derivations, scopes, and references immutable and undeletable.
+Only a task's `state` and `state_changed_at` may change. The IDs use the
+prefixes `drv_`, `tsk_`, and `src_`. Platform digests (`sha256Hex`,
+`hmacSha256Hex`) and the secret's randomness come from the native store
+module.
 
 ## 8. App lock and key lifecycle
 

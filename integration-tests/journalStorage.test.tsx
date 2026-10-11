@@ -63,7 +63,11 @@ describe('migrations', () => {
         FROM recordings WHERE id = ?`,
       [v1.ids.next('seg'), recordingId],
     );
-    expect(await migrate(db, 2)).toEqual({ from: 1, to: latest, applied: [2] });
+    expect(await migrate(db, 2)).toEqual({
+      from: 1,
+      to: latest,
+      applied: [2, 3],
+    });
     expect(
       await db.get(
         'SELECT engine_revision, segment_count FROM transcript_passes',

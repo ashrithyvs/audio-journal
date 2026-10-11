@@ -280,6 +280,8 @@ export type PrivateNodeAction =
       check?: AnalysisCheck;
     }
   | { type: 'REQUEST_RESET' }
+  /** A node completion from another feature's request (journal.organize@1). */
+  | { type: 'NODE_RESULT' }
   | { type: 'LOCKED' };
 
 export const defaultRoutingPolicy: AppRoutingPolicy = {
@@ -713,6 +715,8 @@ export function privateNodeReducer(
       return state.request.phase === 'running'
         ? state
         : { ...state, request: { phase: 'idle' } };
+    case 'NODE_RESULT':
+      return { ...state, link: afterNodeResult(state) };
     case 'LOCKED':
       // Locking ends every user-attended flow; trust and connection state stay.
       return {

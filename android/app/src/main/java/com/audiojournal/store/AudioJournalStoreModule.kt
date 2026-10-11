@@ -70,6 +70,11 @@ class AudioJournalStoreModule(private val context: ReactApplicationContext) :
     return VaultCrypto.randomBytes(count.toInt()).joinToString("") { "%02x".format(it) }
   }
 
+  override fun sha256Hex(text: String): String = OrganizeDigests.sha256Hex(text)
+
+  override fun hmacSha256Hex(keyHex: String, label: String, text: String): String =
+      OrganizeDigests.hmacSha256Hex(keyHex, label, text)
+
   companion object {
     const val NAME = "AudioJournalStore"
 

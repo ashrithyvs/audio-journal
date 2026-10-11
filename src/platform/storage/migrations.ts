@@ -141,6 +141,96 @@ export const MIGRATIONS: readonly Migration[] = [
         BEGIN SELECT RAISE(ABORT, 'transcript passes are append-only'); END`,
     ],
   },
+  {
+    // journal.organize@1 (ADR-019, contract §7): immutable derivation
+    // revisions, their scope, tasks, and source references. Only a task's
+    // state is application data that may change.
+    version: 3,
+    name: 'aj2_derivations',
+    statements: [
+      `CREATE TABLE derivations (
+        id ${ID} PRIMARY KEY CHECK (substr(id, 1, 4) = 'drv_'),
+        request_key TEXT NOT NULL UNIQUE
+          CHECK (length(request_key) = 30 AND substr(request_key, 1, 4) = 'org_'),
+        contract TEXT NOT NULL CHECK (contract = 'journal.organize@1'),
+        engine_id TEXT NOT NULL CHECK (length(engine_id) BETWEEN 1 AND 32),
+        engine_version TEXT NOT NULL CHECK (length(engine_version) BETWEEN 5 AND 11),
+        input_sha256 TEXT NOT NULL CHECK (length(input_sha256) = 64),
+        scope_key TEXT NOT NULL CHECK (length(scope_key) BETWEEN 30 AND 619),
+        revision INTEGER NOT NULL CHECK (revision >= 1),
+        payload TEXT NOT NULL CHECK (length(CAST(payload AS BLOB)) <= 61387),
+        created_at INTEGER NOT NULL,
+        UNIQUE (scope_key, revision)
+      ) STRICT`,
+      `CREATE TABLE derivation_entries (
+        derivation_id TEXT NOT NULL REFERENCES derivations(id),
+        entry_id TEXT NOT NULL REFERENCES journal_entries(id),
+        PRIMARY KEY (derivation_id, entry_id)
+      ) STRICT`,
+      `CREATE INDEX derivation_entries_entry ON derivation_entries(entry_id)`,
+      `CREATE TABLE derived_tasks (
+        id ${ID} PRIMARY KEY CHECK (substr(id, 1, 4) = 'tsk_'),
+        derivation_id TEXT NOT NULL REFERENCES derivations(id),
+        ordinal INTEGER NOT NULL CHECK (ordinal BETWEEN 0 AND 49),
+        text TEXT NOT NULL CHECK (length(text) BETWEEN 1 AND 400),
+        area TEXT NOT NULL CHECK (area IN ('work', 'personal', 'unsorted')),
+        state TEXT NOT NULL DEFAULT 'open' CHECK (state IN ('open', 'done', 'dismissed')),
+        state_changed_at INTEGER,
+        UNIQUE (derivation_id, ordinal)
+      ) STRICT`,
+      `CREATE TABLE source_references (
+        id ${ID} PRIMARY KEY CHECK (substr(id, 1, 4) = 'src_'),
+        derivation_id TEXT NOT NULL REFERENCES derivations(id),
+        item_kind TEXT NOT NULL
+          CHECK (item_kind IN ('summary', 'work', 'personal', 'task', 'idea', 'person', 'project')),
+        item_ordinal INTEGER NOT NULL CHECK (item_ordinal BETWEEN 0 AND 49),
+        ref_ordinal INTEGER NOT NULL CHECK (ref_ordinal BETWEEN 0 AND 7),
+        entry_id TEXT NOT NULL REFERENCES journal_entries(id),
+        unit_id TEXT NOT NULL CHECK (length(unit_id) BETWEEN 2 AND 30),
+        unit_sha256 TEXT NOT NULL CHECK (length(unit_sha256) = 64),
+        segment_id TEXT REFERENCES transcript_segments(id),
+        char_start INTEGER NOT NULL CHECK (char_start >= 0),
+        char_end INTEGER NOT NULL CHECK (char_end > char_start AND char_end <= 4000),
+        audio_start_ms INTEGER,
+        audio_end_ms INTEGER,
+        CHECK ((audio_start_ms IS NULL) = (audio_end_ms IS NULL)),
+        CHECK (audio_start_ms IS NULL OR (audio_start_ms >= 0 AND audio_start_ms < audio_end_ms)),
+        CHECK ((segment_id IS NULL) = (audio_start_ms IS NULL)),
+        UNIQUE (derivation_id, item_kind, item_ordinal, ref_ordinal)
+      ) STRICT`,
+      `CREATE INDEX source_references_entry ON source_references(entry_id)`,
+      `CREATE TRIGGER derivations_immutable
+        BEFORE UPDATE ON derivations
+        BEGIN SELECT RAISE(ABORT, 'derivations are immutable'); END`,
+      `CREATE TRIGGER derivations_kept
+        BEFORE DELETE ON derivations
+        BEGIN SELECT RAISE(ABORT, 'derivations are kept'); END`,
+      `CREATE TRIGGER derivation_entries_immutable
+        BEFORE UPDATE ON derivation_entries
+        BEGIN SELECT RAISE(ABORT, 'derivation scope is immutable'); END`,
+      `CREATE TRIGGER derivation_entries_kept
+        BEFORE DELETE ON derivation_entries
+        BEGIN SELECT RAISE(ABORT, 'derivation scope is kept'); END`,
+      `CREATE TRIGGER source_references_immutable
+        BEFORE UPDATE ON source_references
+        BEGIN SELECT RAISE(ABORT, 'source references are immutable'); END`,
+      `CREATE TRIGGER source_references_kept
+        BEFORE DELETE ON source_references
+        BEGIN SELECT RAISE(ABORT, 'source references are kept'); END`,
+      `CREATE TRIGGER derived_tasks_content_immutable
+        BEFORE UPDATE OF id, derivation_id, ordinal, text, area ON derived_tasks
+        BEGIN SELECT RAISE(ABORT, 'derived task content is immutable'); END`,
+      `CREATE TRIGGER derived_tasks_kept
+        BEFORE DELETE ON derived_tasks
+        BEGIN SELECT RAISE(ABORT, 'derived tasks are kept'); END`,
+      // The request-key secret (contract §9): one random key per journal,
+      // kept out of app_settings and never carried by backups.
+      `CREATE TABLE organize_secret (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        key_hex TEXT NOT NULL CHECK (length(key_hex) = 64 AND key_hex NOT GLOB '*[^0-9a-f]*')
+      ) STRICT`,
+    ],
+  },
 ];
 
 /** Deterministic, dependency-free fingerprint; detects edits, not attacks. */

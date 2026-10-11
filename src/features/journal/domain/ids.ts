@@ -2,7 +2,14 @@
 // path-safe, so a recording ID can name its file and a restored archive can be
 // validated without escaping. They carry no time or device information.
 
-export type IdPrefix = 'ent' | 'rec' | 'seg';
+export type IdPrefix =
+  | 'ent'
+  | 'rec'
+  | 'seg'
+  /** journal.organize@1 derivations, their tasks, and source references (AJ-2). */
+  | 'drv'
+  | 'tsk'
+  | 'src';
 
 export type RandomBytes = (length: number) => Uint8Array;
 
@@ -12,7 +19,7 @@ export interface IdSource {
 
 // Crockford base32, lower-case: no i, l, o, or u.
 const ALPHABET = '0123456789abcdefghjkmnpqrstvwxyz';
-const ID_PATTERN = /^(ent|rec|seg)_[0-9a-hjkmnp-tv-z]{26}$/;
+const ID_PATTERN = /^(ent|rec|seg|drv|tsk|src)_[0-9a-hjkmnp-tv-z]{26}$/;
 
 /** 128 random bits as 26 base32 characters, behind a typed prefix. */
 /* eslint-disable no-bitwise -- base32 encoding is bit packing. */
