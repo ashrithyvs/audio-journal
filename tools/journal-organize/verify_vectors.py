@@ -9,6 +9,7 @@ recorded verdict and sub-code; envelope sizes, request keys, and file digests
 are recomputed.
 
 Usage: python3 -I verify_vectors.py <schemas/journal/v1 directory>
+       python3 -I verify_vectors.py <dir> --results <file with {cases: [{fixture, result}]}>
 """
 
 import base64
@@ -560,5 +561,28 @@ def main(root: Path) -> int:
     return 1 if failures else 0
 
 
+def check_results(root: Path, results_file: Path) -> int:
+    """Validates engine outputs ({cases: [{fixture, result}]}) for their fixtures."""
+    manifest = json.loads((root / "vectors.json").read_text("utf-8"))
+    schema = json.loads((root / "organize-output.schema.json").read_text("utf-8"))
+    fixtures = json.loads((root / "vectors" / "fixtures.json").read_text("utf-8"))
+    cases = json.loads(results_file.read_text("utf-8"))["cases"]
+    failures = 0
+    for case in cases:
+        try:
+            validate_result(canonical(case["result"]).encode("utf-8"), fixtures[case["fixture"]], schema, manifest["budget"]["outputCap"])
+        except Reject as r:
+            failures += 1
+            print("FAIL", case["fixture"], r.code)
+    print(f"verified {len(cases) - failures} of {len(cases)} results; {failures} failures")
+    return 1 if failures else 0
+
+
 if __name__ == "__main__":
-    sys.exit(main(Path(sys.argv[1] if len(sys.argv) > 1 else "schemas/journal/v1")))
+    args = sys.argv[1:]
+    if "--results" in args:
+        i = args.index("--results")
+        results = Path(args.pop(i + 1))
+        args.pop(i)
+        sys.exit(check_results(Path(args[0] if args else "schemas/journal/v1"), results))
+    sys.exit(main(Path(args[0] if args else "schemas/journal/v1")))

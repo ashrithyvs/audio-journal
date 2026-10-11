@@ -1,0 +1,25 @@
+{
+  "name": "audio-journal-node-companion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Audio Journal Private Node companion: serves journal.organize@1 over the Hybrid AI node protocol (ADR-018, ADR-019). Separately deployed; never bundled into the app.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">= 22.11.0"
+  },
+  "bin": {
+    "aj-companion": "bin/aj-companion.mjs"
+  },
+  "scripts": {
+    "start": "node bin/aj-companion.mjs serve",
+    "test": "node --test test/*.test.mjs",
+    "sync-contract": "node scripts/sync-contract.mjs",
+    "check-contract": "node scripts/sync-contract.mjs --check"
+  },
+  "dependencies": {
+    "@peculiar/x509": "2.1.0",
+    "asn1js": "3.0.10",
+    "reflect-metadata": "0.2.2"
+  }
+}

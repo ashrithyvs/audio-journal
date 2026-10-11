@@ -1,0 +1,1076 @@
+{
+  "engine": {
+    "id": "aj.rules",
+    "version": "1.0.0"
+  },
+  "cases": [
+    {
+      "fixture": "written",
+      "result": {
+        "contract": "journal.organize@1",
+        "requestKey": "org_kh1adsd63kp2yf5bywmra99qzh",
+        "inputSha256": "03042dcd6601309b61d740bb624de437431a7f12956290883cc9191de7324100",
+        "engine": {
+          "id": "aj.rules",
+          "version": "1.0.0"
+        },
+        "summary": {
+          "text": "Quarterly report review with the client went well. Idea: a weekend reading club for the neighbourhood.",
+          "rule": "summary.lead",
+          "sources": [
+            {
+              "entryId": "ent_00000000000000000000000001",
+              "unitId": "w0",
+              "unitSha256": "5b9754c87dd1bf3613505625b025c98838c6ec21381ebce3e1bbc193f839d2e8",
+              "charStart": 0,
+              "charEnd": 50
+            },
+            {
+              "entryId": "ent_00000000000000000000000002",
+              "unitId": "w0",
+              "unitSha256": "4d74c5112e125dd131673a53d88c7354b385fd1bc50a96692d1c98853171e94f",
+              "charStart": 0,
+              "charEnd": 51
+            }
+          ]
+        },
+        "sections": [
+          {
+            "area": "work",
+            "items": [
+              {
+                "text": "Quarterly report review with the client went well.",
+                "rule": "area.work",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000001",
+                    "unitId": "w0",
+                    "unitSha256": "5b9754c87dd1bf3613505625b025c98838c6ec21381ebce3e1bbc193f839d2e8",
+                    "charStart": 0,
+                    "charEnd": 50
+                  }
+                ]
+              },
+              {
+                "text": "I need to send the revised budget to Priya by Friday.",
+                "rule": "area.work",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000001",
+                    "unitId": "w1",
+                    "unitSha256": "3459c34194c2fcf4bbff707784f08b10d1a40c5b50a2028ed5fdb1b2a5ec03ef",
+                    "charStart": 0,
+                    "charEnd": 53
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "area": "personal",
+            "items": [
+              {
+                "text": "After work I want to call Mom about the birthday dinner.",
+                "rule": "area.personal",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000001",
+                    "unitId": "w2",
+                    "unitSha256": "c8280e94a2c120578976c2e2387006aece89ae85ee7734ee01c92828e7284e3d",
+                    "charStart": 0,
+                    "charEnd": 56
+                  }
+                ]
+              },
+              {
+                "text": "Idea: a weekend reading club for the neighbourhood.",
+                "rule": "area.personal",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000002",
+                    "unitId": "w0",
+                    "unitSha256": "4d74c5112e125dd131673a53d88c7354b385fd1bc50a96692d1c98853171e94f",
+                    "charStart": 0,
+                    "charEnd": 51
+                  }
+                ]
+              },
+              {
+                "text": "Remember to book the dentist appointment.",
+                "rule": "area.personal",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000002",
+                    "unitId": "w1",
+                    "unitSha256": "6c2735cb5f59ad8eef4f70c0977c5ced08ee964d6d2503295179e1c5a76ba779",
+                    "charStart": 0,
+                    "charEnd": 41
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          {
+            "text": "Send the revised budget to Priya by Friday.",
+            "area": "work",
+            "rule": "task.need-to",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000001",
+                "unitId": "w1",
+                "unitSha256": "3459c34194c2fcf4bbff707784f08b10d1a40c5b50a2028ed5fdb1b2a5ec03ef",
+                "charStart": 0,
+                "charEnd": 53
+              }
+            ]
+          },
+          {
+            "text": "Book the dentist appointment.",
+            "area": "personal",
+            "rule": "task.remember",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000002",
+                "unitId": "w1",
+                "unitSha256": "6c2735cb5f59ad8eef4f70c0977c5ced08ee964d6d2503295179e1c5a76ba779",
+                "charStart": 0,
+                "charEnd": 41
+              }
+            ]
+          }
+        ],
+        "ideas": [
+          {
+            "text": "A weekend reading club for the neighbourhood.",
+            "rule": "idea.prefix",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000002",
+                "unitId": "w0",
+                "unitSha256": "4d74c5112e125dd131673a53d88c7354b385fd1bc50a96692d1c98853171e94f",
+                "charStart": 0,
+                "charEnd": 51
+              }
+            ]
+          }
+        ],
+        "people": [
+          {
+            "name": "Priya",
+            "rule": "person.after-verb",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000001",
+                "unitId": "w1",
+                "unitSha256": "3459c34194c2fcf4bbff707784f08b10d1a40c5b50a2028ed5fdb1b2a5ec03ef",
+                "charStart": 37,
+                "charEnd": 42
+              }
+            ]
+          },
+          {
+            "name": "Mom",
+            "rule": "person.after-verb",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000001",
+                "unitId": "w2",
+                "unitSha256": "c8280e94a2c120578976c2e2387006aece89ae85ee7734ee01c92828e7284e3d",
+                "charStart": 26,
+                "charEnd": 29
+              }
+            ]
+          }
+        ],
+        "projects": []
+      }
+    },
+    {
+      "fixture": "voice",
+      "result": {
+        "contract": "journal.organize@1",
+        "requestKey": "org_cj45c6xrd9fn2ewfenscd1pxk7",
+        "inputSha256": "b0fe32e2dba62546e711eceb70d5ff040cd7daf4a43c2c14e8ae292e6ab3fae7",
+        "engine": {
+          "id": "aj.rules",
+          "version": "1.0.0"
+        },
+        "summary": {
+          "text": "Morning stand-up with the design team about Project Atlas.",
+          "rule": "summary.lead",
+          "sources": [
+            {
+              "entryId": "ent_00000000000000000000000003",
+              "unitId": "seg_0000000000000000000000009c",
+              "unitSha256": "bc94d8f65a65b80ce6fe52428b999ab1a65cce6313f64fe5c4321dfe6773f0df",
+              "charStart": 0,
+              "charEnd": 58,
+              "audioStartMs": 0,
+              "audioEndMs": 4000
+            }
+          ]
+        },
+        "sections": [
+          {
+            "area": "work",
+            "items": [
+              {
+                "text": "Morning stand-up with the design team about Project Atlas.",
+                "rule": "area.work",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000003",
+                    "unitId": "seg_0000000000000000000000009c",
+                    "unitSha256": "bc94d8f65a65b80ce6fe52428b999ab1a65cce6313f64fe5c4321dfe6773f0df",
+                    "charStart": 0,
+                    "charEnd": 58,
+                    "audioStartMs": 0,
+                    "audioEndMs": 4000
+                  }
+                ]
+              },
+              {
+                "text": "I have to finish the onboarding slides before the sprint demo.",
+                "rule": "area.work",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000003",
+                    "unitId": "seg_0000000000000000000000009d",
+                    "unitSha256": "c47d595e362f5f324e555a56ab7b0303d49da330e9049e278b36f0ae7cdf6183",
+                    "charStart": 0,
+                    "charEnd": 62,
+                    "audioStartMs": 4000,
+                    "audioEndMs": 8000
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "area": "personal",
+            "items": [
+              {
+                "text": "Pick up groceries and the dry cleaning on the way home.",
+                "rule": "area.personal",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000003",
+                    "unitId": "seg_0000000000000000000000009f",
+                    "unitSha256": "f3cf6065e010ca5813ff7324087d3cbab0f981e4e6c38af11632dd7d8c595073",
+                    "charStart": 0,
+                    "charEnd": 55,
+                    "audioStartMs": 12000,
+                    "audioEndMs": 16000
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          {
+            "text": "Finish the onboarding slides before the sprint demo.",
+            "area": "work",
+            "rule": "task.have-to",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000003",
+                "unitId": "seg_0000000000000000000000009d",
+                "unitSha256": "c47d595e362f5f324e555a56ab7b0303d49da330e9049e278b36f0ae7cdf6183",
+                "charStart": 0,
+                "charEnd": 62,
+                "audioStartMs": 4000,
+                "audioEndMs": 8000
+              }
+            ]
+          },
+          {
+            "text": "Pick up groceries and the dry cleaning on the way home.",
+            "area": "personal",
+            "rule": "task.imperative",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000003",
+                "unitId": "seg_0000000000000000000000009f",
+                "unitSha256": "f3cf6065e010ca5813ff7324087d3cbab0f981e4e6c38af11632dd7d8c595073",
+                "charStart": 0,
+                "charEnd": 55,
+                "audioStartMs": 12000,
+                "audioEndMs": 16000
+              }
+            ]
+          }
+        ],
+        "ideas": [
+          {
+            "text": "What if we tried pairing on the hard bugs every Thursday.",
+            "rule": "idea.what-if",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000003",
+                "unitId": "seg_0000000000000000000000009e",
+                "unitSha256": "a84a23ccdf61e8390959443237cf7f5cd640c98684254d9789674b26f394110b",
+                "charStart": 0,
+                "charEnd": 57,
+                "audioStartMs": 8000,
+                "audioEndMs": 12000
+              }
+            ]
+          }
+        ],
+        "people": [],
+        "projects": [
+          {
+            "name": "Atlas",
+            "rule": "project.named",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000003",
+                "unitId": "seg_0000000000000000000000009c",
+                "unitSha256": "bc94d8f65a65b80ce6fe52428b999ab1a65cce6313f64fe5c4321dfe6773f0df",
+                "charStart": 44,
+                "charEnd": 57,
+                "audioStartMs": 0,
+                "audioEndMs": 4000
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "fixture": "mixed",
+      "result": {
+        "contract": "journal.organize@1",
+        "requestKey": "org_8p5jpt41awce1ygzs1qy99ffr4",
+        "inputSha256": "dddc3c5e5cfca5291b49bbfdba81e29e5ef1ce41eb5f1fa4d5a15cdb6b56f435",
+        "engine": {
+          "id": "aj.rules",
+          "version": "1.0.0"
+        },
+        "summary": {
+          "text": "Quarterly report review with the client went well. Idea: a weekend reading club for the neighbourhood. Morning stand-up with the design team about Project Atlas.",
+          "rule": "summary.lead",
+          "sources": [
+            {
+              "entryId": "ent_00000000000000000000000001",
+              "unitId": "w0",
+              "unitSha256": "5b9754c87dd1bf3613505625b025c98838c6ec21381ebce3e1bbc193f839d2e8",
+              "charStart": 0,
+              "charEnd": 50
+            },
+            {
+              "entryId": "ent_00000000000000000000000002",
+              "unitId": "w0",
+              "unitSha256": "4d74c5112e125dd131673a53d88c7354b385fd1bc50a96692d1c98853171e94f",
+              "charStart": 0,
+              "charEnd": 51
+            },
+            {
+              "entryId": "ent_00000000000000000000000003",
+              "unitId": "seg_0000000000000000000000009c",
+              "unitSha256": "bc94d8f65a65b80ce6fe52428b999ab1a65cce6313f64fe5c4321dfe6773f0df",
+              "charStart": 0,
+              "charEnd": 58,
+              "audioStartMs": 0,
+              "audioEndMs": 4000
+            }
+          ]
+        },
+        "sections": [
+          {
+            "area": "work",
+            "items": [
+              {
+                "text": "Quarterly report review with the client went well.",
+                "rule": "area.work",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000001",
+                    "unitId": "w0",
+                    "unitSha256": "5b9754c87dd1bf3613505625b025c98838c6ec21381ebce3e1bbc193f839d2e8",
+                    "charStart": 0,
+                    "charEnd": 50
+                  }
+                ]
+              },
+              {
+                "text": "I need to send the revised budget to Priya by Friday.",
+                "rule": "area.work",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000001",
+                    "unitId": "w1",
+                    "unitSha256": "3459c34194c2fcf4bbff707784f08b10d1a40c5b50a2028ed5fdb1b2a5ec03ef",
+                    "charStart": 0,
+                    "charEnd": 53
+                  }
+                ]
+              },
+              {
+                "text": "Morning stand-up with the design team about Project Atlas.",
+                "rule": "area.work",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000003",
+                    "unitId": "seg_0000000000000000000000009c",
+                    "unitSha256": "bc94d8f65a65b80ce6fe52428b999ab1a65cce6313f64fe5c4321dfe6773f0df",
+                    "charStart": 0,
+                    "charEnd": 58,
+                    "audioStartMs": 0,
+                    "audioEndMs": 4000
+                  }
+                ]
+              },
+              {
+                "text": "I have to finish the onboarding slides before the sprint demo.",
+                "rule": "area.work",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000003",
+                    "unitId": "seg_0000000000000000000000009d",
+                    "unitSha256": "c47d595e362f5f324e555a56ab7b0303d49da330e9049e278b36f0ae7cdf6183",
+                    "charStart": 0,
+                    "charEnd": 62,
+                    "audioStartMs": 4000,
+                    "audioEndMs": 8000
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "area": "personal",
+            "items": [
+              {
+                "text": "After work I want to call Mom about the birthday dinner.",
+                "rule": "area.personal",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000001",
+                    "unitId": "w2",
+                    "unitSha256": "c8280e94a2c120578976c2e2387006aece89ae85ee7734ee01c92828e7284e3d",
+                    "charStart": 0,
+                    "charEnd": 56
+                  }
+                ]
+              },
+              {
+                "text": "Idea: a weekend reading club for the neighbourhood.",
+                "rule": "area.personal",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000002",
+                    "unitId": "w0",
+                    "unitSha256": "4d74c5112e125dd131673a53d88c7354b385fd1bc50a96692d1c98853171e94f",
+                    "charStart": 0,
+                    "charEnd": 51
+                  }
+                ]
+              },
+              {
+                "text": "Remember to book the dentist appointment.",
+                "rule": "area.personal",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000002",
+                    "unitId": "w1",
+                    "unitSha256": "6c2735cb5f59ad8eef4f70c0977c5ced08ee964d6d2503295179e1c5a76ba779",
+                    "charStart": 0,
+                    "charEnd": 41
+                  }
+                ]
+              },
+              {
+                "text": "Pick up groceries and the dry cleaning on the way home.",
+                "rule": "area.personal",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000003",
+                    "unitId": "seg_0000000000000000000000009f",
+                    "unitSha256": "f3cf6065e010ca5813ff7324087d3cbab0f981e4e6c38af11632dd7d8c595073",
+                    "charStart": 0,
+                    "charEnd": 55,
+                    "audioStartMs": 12000,
+                    "audioEndMs": 16000
+                  }
+                ]
+              },
+              {
+                "text": "Long walk with Arjun in the park this evening.",
+                "rule": "area.personal",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000004",
+                    "unitId": "seg_000000000000000000000000cg",
+                    "unitSha256": "73224c97618f19b0fd9a2e5687263a3656d77087d8001be46ef090c5e4cb75a4",
+                    "charStart": 0,
+                    "charEnd": 46,
+                    "audioStartMs": 0,
+                    "audioEndMs": 4000
+                  }
+                ]
+              },
+              {
+                "text": "We should plan the Goa trip for December.",
+                "rule": "area.personal",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000004",
+                    "unitId": "seg_000000000000000000000008s9",
+                    "unitSha256": "25de6e3b151bdf0f797f8686c42f5055f59ad32cf63e75be85835cc3d188aa6c",
+                    "charStart": 0,
+                    "charEnd": 41,
+                    "audioStartMs": 4000,
+                    "audioEndMs": 7500
+                  }
+                ]
+              },
+              {
+                "text": "Need to renew the car insurance this week.",
+                "rule": "area.personal",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000004",
+                    "unitId": "seg_000000000000000000000000cj",
+                    "unitSha256": "7cce164a9ef424ca9e19e9066a897d1251007e628b72bd6cb8648ea43bbfed25",
+                    "charStart": 0,
+                    "charEnd": 42,
+                    "audioStartMs": 7500,
+                    "audioEndMs": 11500
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "tasks": [
+          {
+            "text": "Send the revised budget to Priya by Friday.",
+            "area": "work",
+            "rule": "task.need-to",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000001",
+                "unitId": "w1",
+                "unitSha256": "3459c34194c2fcf4bbff707784f08b10d1a40c5b50a2028ed5fdb1b2a5ec03ef",
+                "charStart": 0,
+                "charEnd": 53
+              }
+            ]
+          },
+          {
+            "text": "Book the dentist appointment.",
+            "area": "personal",
+            "rule": "task.remember",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000002",
+                "unitId": "w1",
+                "unitSha256": "6c2735cb5f59ad8eef4f70c0977c5ced08ee964d6d2503295179e1c5a76ba779",
+                "charStart": 0,
+                "charEnd": 41
+              }
+            ]
+          },
+          {
+            "text": "Finish the onboarding slides before the sprint demo.",
+            "area": "work",
+            "rule": "task.have-to",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000003",
+                "unitId": "seg_0000000000000000000000009d",
+                "unitSha256": "c47d595e362f5f324e555a56ab7b0303d49da330e9049e278b36f0ae7cdf6183",
+                "charStart": 0,
+                "charEnd": 62,
+                "audioStartMs": 4000,
+                "audioEndMs": 8000
+              }
+            ]
+          },
+          {
+            "text": "Pick up groceries and the dry cleaning on the way home.",
+            "area": "personal",
+            "rule": "task.imperative",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000003",
+                "unitId": "seg_0000000000000000000000009f",
+                "unitSha256": "f3cf6065e010ca5813ff7324087d3cbab0f981e4e6c38af11632dd7d8c595073",
+                "charStart": 0,
+                "charEnd": 55,
+                "audioStartMs": 12000,
+                "audioEndMs": 16000
+              }
+            ]
+          },
+          {
+            "text": "Plan the Goa trip for December.",
+            "area": "personal",
+            "rule": "task.should",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000004",
+                "unitId": "seg_000000000000000000000008s9",
+                "unitSha256": "25de6e3b151bdf0f797f8686c42f5055f59ad32cf63e75be85835cc3d188aa6c",
+                "charStart": 0,
+                "charEnd": 41,
+                "audioStartMs": 4000,
+                "audioEndMs": 7500
+              }
+            ]
+          },
+          {
+            "text": "Renew the car insurance this week.",
+            "area": "personal",
+            "rule": "task.need-to",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000004",
+                "unitId": "seg_000000000000000000000000cj",
+                "unitSha256": "7cce164a9ef424ca9e19e9066a897d1251007e628b72bd6cb8648ea43bbfed25",
+                "charStart": 0,
+                "charEnd": 42,
+                "audioStartMs": 7500,
+                "audioEndMs": 11500
+              }
+            ]
+          }
+        ],
+        "ideas": [
+          {
+            "text": "A weekend reading club for the neighbourhood.",
+            "rule": "idea.prefix",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000002",
+                "unitId": "w0",
+                "unitSha256": "4d74c5112e125dd131673a53d88c7354b385fd1bc50a96692d1c98853171e94f",
+                "charStart": 0,
+                "charEnd": 51
+              }
+            ]
+          },
+          {
+            "text": "What if we tried pairing on the hard bugs every Thursday.",
+            "rule": "idea.what-if",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000003",
+                "unitId": "seg_0000000000000000000000009e",
+                "unitSha256": "a84a23ccdf61e8390959443237cf7f5cd640c98684254d9789674b26f394110b",
+                "charStart": 0,
+                "charEnd": 57,
+                "audioStartMs": 8000,
+                "audioEndMs": 12000
+              }
+            ]
+          }
+        ],
+        "people": [
+          {
+            "name": "Priya",
+            "rule": "person.after-verb",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000001",
+                "unitId": "w1",
+                "unitSha256": "3459c34194c2fcf4bbff707784f08b10d1a40c5b50a2028ed5fdb1b2a5ec03ef",
+                "charStart": 37,
+                "charEnd": 42
+              }
+            ]
+          },
+          {
+            "name": "Mom",
+            "rule": "person.after-verb",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000001",
+                "unitId": "w2",
+                "unitSha256": "c8280e94a2c120578976c2e2387006aece89ae85ee7734ee01c92828e7284e3d",
+                "charStart": 26,
+                "charEnd": 29
+              }
+            ]
+          },
+          {
+            "name": "Arjun",
+            "rule": "person.after-verb",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000004",
+                "unitId": "seg_000000000000000000000000cg",
+                "unitSha256": "73224c97618f19b0fd9a2e5687263a3656d77087d8001be46ef090c5e4cb75a4",
+                "charStart": 15,
+                "charEnd": 20,
+                "audioStartMs": 0,
+                "audioEndMs": 4000
+              }
+            ]
+          }
+        ],
+        "projects": [
+          {
+            "name": "Atlas",
+            "rule": "project.named",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000003",
+                "unitId": "seg_0000000000000000000000009c",
+                "unitSha256": "bc94d8f65a65b80ce6fe52428b999ab1a65cce6313f64fe5c4321dfe6773f0df",
+                "charStart": 44,
+                "charEnd": 57,
+                "audioStartMs": 0,
+                "audioEndMs": 4000
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "fixture": "corrected",
+      "result": {
+        "contract": "journal.organize@1",
+        "requestKey": "org_8633dd8jyqg3d74m87jft1f71p",
+        "inputSha256": "69b359cbe746d2505df5d6a011bb3bb4d6b4ba72da86421b2c4100f56cd4fdd3",
+        "engine": {
+          "id": "aj.rules",
+          "version": "1.0.0"
+        },
+        "tasks": [
+          {
+            "text": "Plan the Goa trip for December.",
+            "area": "personal",
+            "rule": "task.should",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000004",
+                "unitId": "seg_000000000000000000000008s9",
+                "unitSha256": "25de6e3b151bdf0f797f8686c42f5055f59ad32cf63e75be85835cc3d188aa6c",
+                "charStart": 0,
+                "charEnd": 41,
+                "audioStartMs": 4000,
+                "audioEndMs": 7500
+              }
+            ]
+          },
+          {
+            "text": "Renew the car insurance this week.",
+            "area": "personal",
+            "rule": "task.need-to",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000004",
+                "unitId": "seg_000000000000000000000000cj",
+                "unitSha256": "7cce164a9ef424ca9e19e9066a897d1251007e628b72bd6cb8648ea43bbfed25",
+                "charStart": 0,
+                "charEnd": 42,
+                "audioStartMs": 7500,
+                "audioEndMs": 11500
+              }
+            ]
+          }
+        ],
+        "people": [
+          {
+            "name": "Arjun",
+            "rule": "person.after-verb",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000004",
+                "unitId": "seg_000000000000000000000000cg",
+                "unitSha256": "73224c97618f19b0fd9a2e5687263a3656d77087d8001be46ef090c5e4cb75a4",
+                "charStart": 15,
+                "charEnd": 20,
+                "audioStartMs": 0,
+                "audioEndMs": 4000
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "fixture": "unicode",
+      "result": {
+        "contract": "journal.organize@1",
+        "requestKey": "org_tqcm6pk9f9mjt5ybdtw6km157g",
+        "inputSha256": "59245469ca3421e751834816bd95d81f8b724aaa8ea9582b274ab1e279d00753",
+        "engine": {
+          "id": "aj.rules",
+          "version": "1.0.0"
+        },
+        "summary": {
+          "text": "Café meeting 😀 with Zoë about the naïve plan. Celebrated the 🎉 launch with the whole team.",
+          "rule": "summary.lead",
+          "sources": [
+            {
+              "entryId": "ent_00000000000000000000000005",
+              "unitId": "w0",
+              "unitSha256": "d0362d1181249387d4c28af1958d5b9ec21736a731aa227f161c6a541cdd43df",
+              "charStart": 0,
+              "charEnd": 46
+            },
+            {
+              "entryId": "ent_00000000000000000000000006",
+              "unitId": "seg_000000000000000000000000jr",
+              "unitSha256": "3115f6801066a6d23a28614dbb759e9b10abcbc365d277d3045ece6cd90e3223",
+              "charStart": 0,
+              "charEnd": 45,
+              "audioStartMs": 0,
+              "audioEndMs": 4000
+            }
+          ]
+        },
+        "tasks": [
+          {
+            "text": "Email Hiroshi.",
+            "area": "personal",
+            "rule": "task.remember",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000005",
+                "unitId": "w1",
+                "unitSha256": "f58053e8b6f356d045aa049ac999eadca475069859ec6e6733336b9426a6e40e",
+                "charStart": 0,
+                "charEnd": 42
+              }
+            ]
+          }
+        ],
+        "people": [
+          {
+            "name": "Zoë",
+            "rule": "person.after-verb",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000005",
+                "unitId": "w0",
+                "unitSha256": "d0362d1181249387d4c28af1958d5b9ec21736a731aa227f161c6a541cdd43df",
+                "charStart": 21,
+                "charEnd": 24
+              }
+            ]
+          },
+          {
+            "name": "Hiroshi",
+            "rule": "person.after-verb",
+            "sources": [
+              {
+                "entryId": "ent_00000000000000000000000005",
+                "unitId": "w1",
+                "unitSha256": "f58053e8b6f356d045aa049ac999eadca475069859ec6e6733336b9426a6e40e",
+                "charStart": 34,
+                "charEnd": 41
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "fixture": "summaryOnly",
+      "result": {
+        "contract": "journal.organize@1",
+        "requestKey": "org_sacr6ejdrp4h2pet21q521msm4",
+        "inputSha256": "f8ffc98c8c8c8af61cf50237af4b7b2d4feb4e5522ad5093368adbad3c9437e6",
+        "engine": {
+          "id": "aj.rules",
+          "version": "1.0.0"
+        },
+        "summary": {
+          "text": "Quarterly report review with the client went well.",
+          "rule": "summary.lead",
+          "sources": [
+            {
+              "entryId": "ent_00000000000000000000000001",
+              "unitId": "w0",
+              "unitSha256": "5b9754c87dd1bf3613505625b025c98838c6ec21381ebce3e1bbc193f839d2e8",
+              "charStart": 0,
+              "charEnd": 50
+            }
+          ]
+        }
+      }
+    },
+    {
+      "fixture": "max",
+      "result": {
+        "contract": "journal.organize@1",
+        "requestKey": "org_pzfxgc3ba30rqhybssg9x2gtt5",
+        "inputSha256": "1b45bce7f4c8ed9c22c93efeed1fd554e9ffbecfa6a45adccf8d5f5aaf39a07a",
+        "engine": {
+          "id": "aj.rules",
+          "version": "1.0.0"
+        },
+        "summary": {
+          "text": "Planning notes for the quarterly review with the team. Planning notes for the quarterly review with the team. Planning notes for the quarterly review with the team.",
+          "rule": "summary.lead",
+          "sources": [
+            {
+              "entryId": "ent_00000000000000000000000034",
+              "unitId": "w0",
+              "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+              "charStart": 0,
+              "charEnd": 54
+            },
+            {
+              "entryId": "ent_00000000000000000000000035",
+              "unitId": "w0",
+              "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+              "charStart": 0,
+              "charEnd": 54
+            },
+            {
+              "entryId": "ent_00000000000000000000000036",
+              "unitId": "w0",
+              "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+              "charStart": 0,
+              "charEnd": 54
+            }
+          ]
+        },
+        "sections": [
+          {
+            "area": "work",
+            "items": [
+              {
+                "text": "Planning notes for the quarterly review with the team.",
+                "rule": "area.work",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000034",
+                    "unitId": "w0",
+                    "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+                    "charStart": 0,
+                    "charEnd": 54
+                  },
+                  {
+                    "entryId": "ent_00000000000000000000000034",
+                    "unitId": "w0",
+                    "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+                    "charStart": 55,
+                    "charEnd": 109
+                  },
+                  {
+                    "entryId": "ent_00000000000000000000000034",
+                    "unitId": "w0",
+                    "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+                    "charStart": 110,
+                    "charEnd": 164
+                  },
+                  {
+                    "entryId": "ent_00000000000000000000000034",
+                    "unitId": "w0",
+                    "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+                    "charStart": 165,
+                    "charEnd": 219
+                  },
+                  {
+                    "entryId": "ent_00000000000000000000000034",
+                    "unitId": "w0",
+                    "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+                    "charStart": 220,
+                    "charEnd": 274
+                  },
+                  {
+                    "entryId": "ent_00000000000000000000000034",
+                    "unitId": "w0",
+                    "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+                    "charStart": 275,
+                    "charEnd": 329
+                  },
+                  {
+                    "entryId": "ent_00000000000000000000000034",
+                    "unitId": "w0",
+                    "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+                    "charStart": 330,
+                    "charEnd": 384
+                  },
+                  {
+                    "entryId": "ent_00000000000000000000000034",
+                    "unitId": "w0",
+                    "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+                    "charStart": 385,
+                    "charEnd": 439
+                  }
+                ]
+              },
+              {
+                "text": "Planning notes for the quarterly re.",
+                "rule": "area.work",
+                "sources": [
+                  {
+                    "entryId": "ent_00000000000000000000000034",
+                    "unitId": "w0",
+                    "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+                    "charStart": 1265,
+                    "charEnd": 1301
+                  },
+                  {
+                    "entryId": "ent_00000000000000000000000034",
+                    "unitId": "w1",
+                    "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+                    "charStart": 1265,
+                    "charEnd": 1301
+                  },
+                  {
+                    "entryId": "ent_00000000000000000000000035",
+                    "unitId": "w0",
+                    "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+                    "charStart": 1265,
+                    "charEnd": 1301
+                  },
+                  {
+                    "entryId": "ent_00000000000000000000000035",
+                    "unitId": "w1",
+                    "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+                    "charStart": 1265,
+                    "charEnd": 1301
+                  },
+                  {
+                    "entryId": "ent_00000000000000000000000036",
+                    "unitId": "w0",
+                    "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+                    "charStart": 1265,
+                    "charEnd": 1301
+                  },
+                  {
+                    "entryId": "ent_00000000000000000000000036",
+                    "unitId": "w1",
+                    "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+                    "charStart": 1265,
+                    "charEnd": 1301
+                  },
+                  {
+                    "entryId": "ent_00000000000000000000000037",
+                    "unitId": "w0",
+                    "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+                    "charStart": 1265,
+                    "charEnd": 1301
+                  },
+                  {
+                    "entryId": "ent_00000000000000000000000037",
+                    "unitId": "w1",
+                    "unitSha256": "db1bd56b45c61fc60c8045d2e7b32f1354ebe26a000cdefaa3eccb7cfac5eded",
+                    "charStart": 1265,
+                    "charEnd": 1301
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "tasks": [],
+        "ideas": [],
+        "people": [],
+        "projects": []
+      }
+    }
+  ]
+}
