@@ -26,6 +26,13 @@ const { values: args } = parseArgs({
       type: 'string',
       default: fs.mkdtempSync(path.join(os.tmpdir(), 'aj2-tls-')),
     },
+    fixture: {
+      type: 'string',
+      default: path.resolve(
+        import.meta.dirname,
+        '../../../audio-journal/e2e/android/nsd-fixture/build/outputs/apk/debug/aj-nsd-fixture-debug.apk',
+      ),
+    },
   },
 });
 if (!process.env.ANDROID_SERIAL) {
@@ -33,16 +40,23 @@ if (!process.env.ANDROID_SERIAL) {
 }
 fs.mkdirSync(args.out, { recursive: true });
 
+// The profile's suites, by their OpenSSL and IANA names (the companion
+// reports the IANA standard name).
 const TLS12_SUITES = new Set([
   'ECDHE-ECDSA-AES128-GCM-SHA256',
   'ECDHE-ECDSA-AES256-GCM-SHA384',
   'ECDHE-ECDSA-CHACHA20-POLY1305',
+  'TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256',
+  'TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384',
+  'TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256',
 ]);
 const api = d.apiLevel();
 const report = { api, serial: process.env.ANDROID_SERIAL, apk: args.apk };
 let node;
 
 try {
+  // The clipboard helper pastes the pairing code and the entry text.
+  if (fs.existsSync(args.fixture)) d.adb('install', '-r', args.fixture);
   d.adb('install', '-r', args.apk);
   d.shell('pm', 'clear', d.PACKAGE);
   d.launch();

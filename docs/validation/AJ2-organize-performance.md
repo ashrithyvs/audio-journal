@@ -120,9 +120,110 @@ statistics), and each companion instance's log (counts only).
 
 ## 5. Results
 
-DEVICE-TBD
+**Run:** `perf-api35-run1`, 2026-10-11. APK `491dfd9`, release build
+(`app-release-aj2-491dfd9.apk`, SHA-256 `8a22bb05…6258`). Emulator
+`aj-api35-4g`: Android SDK built for x86_64, API 35, 4 GB. Host: Intel Core
+Ultra 7 155U, 14 CPUs. Companion `491dfd9` on the same host over
+`adb reverse`. 20 warm runs per fixture.
+
+Evidence is in `aj1-artifacts/evidence/aj2-device/perf-api35-run1/`
+(`blocks.json`, `report.json`, `companion-*.log`), outside the repository.
+
+**These are development baselines, not product numbers.** The emulator,
+the loopback link, and a shared host make them optimistic for a phone and
+LAN. AJ-4 repeats the matrix on physical hardware.
+
+### 5.1 Organized fixtures
+
+All runs succeeded: 126 of 126 were stored, and none failed. Times are in
+milliseconds: p50 / p95 for 20 warm runs, a single value for the cold run.
+"Completion" is SDK invocation to the terminal event; "On screen" is
+invocation to the first frame showing the result.
+
+| Fixture | Words | Request bytes | Result bytes | Accepted | 1st progress | 1st partial | Completion | Validate | Persist (rehearsed) | On screen | Node job | Node engine | Completion CV |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 30 s cold | 70 | 1,413 | 3,233 | 20 | 50 | 50 | 51 | 1.0 | 6.0 | 73 | 17 | 12 | – |
+| 30 s warm | 70 | 1,413 | 3,233 | 23 / 31 | 40 / 51 | 40 / 51 | 41 / 49 | 1.0 / 2.0 | 5.7 / 9.4 | 64 / 66 | 2 / 3 | 1 / 2 | 0.22 |
+| 1 min cold | 139 | 2,588 | 5,487 | 26 | 48 | 48 | 49 | 1.6 | 5.7 | 72 | 16 | 11 | – |
+| 1 min warm | 139 | 2,588 | 5,487 | 20 / 31 | 38 / 55 | 38 / 55 | 38 / 48 | 1.7 / 2.6 | 8.9 / 14.4 | 64 / 80 | 3 / 5 | 2 / 2 | 0.17 |
+| 3 min cold | 422 | 7,199 | 18,668 | 25 | 51 | 52 | 56 | 3.0 | 19.9 | 92 | 20 | 14 | – |
+| 3 min warm | 422 | 7,199 | 18,668 | 23 / 35 | 38 / 55 | 38 / 55 | 41 / 52 | 3.6 / 8.2 | 18.1 / 31.4 | 76 / 94 | 6 / 8 | 3 / 5 | 0.17 |
+| 5 min cold | 696 | 12,000 | 31,801 | 26 | 65 | 65 | 72 | 6.2 | 32.1 | 127 | 32 | 22 | – |
+| 5 min warm | 696 | 12,000 | 31,801 | 18 / 30 | 39 / 50 | 39 / 50 | 43 / 55 | 6.7 / 10.5 | 26.5 / 33.6 | 88 / 106 | 8 / 10 | 5 / 7 | 0.15 |
+| 10 min cold | 1,401 | 22,970 | 61,121 | 23 | 61 | 61 | 69 | 11.7 | 61.4 | 164 | 28 | 21 | – |
+| 10 min warm | 1,401 | 22,970 | 61,121 | 20 / 27 | 43 / 81 | 43 / 81 | 52 / 61 | 12.3 / 14.6 | 49.2 / 67.0 | 128 / 154 | 15 / 20 | 11 / 14 | 0.18 |
+| Cap cold | 3,888 | **61,108** | 61,154 | 35 | 160 | 160 | 166 | 18.5 | 59.5 | 266 | 118 | 103 | – |
+| Cap warm | 3,888 | **61,108** | 61,154 | 27 / 40 | 134 / 160 | 134 / 160 | 143 / 154 | 14.7 / 17.9 | 54.4 / 63.3 | 230 / 240 | 101 / 106 | 94 / 105 | 0.14 |
+
+**What the figures show:**
+
+- Total time grows with the request's size, not the speech duration as
+  such. From 30 s to 10 min (1.4 KB to 23 KB of request), warm completion
+  stays at 38–52 ms p50. The time on screen grows from 64 to 128 ms,
+  mostly through persistence and rendering.
+- At the exact 61,108-byte cap (about 26.5 minutes of speech), completion
+  is 143 ms p50. The companion's engine is 94 ms of it.
+- From about 10 minutes of speech, results reach the 61,387-byte output
+  budget. The `aj.rules` engine then drops items from its longest list
+  until the result fits; lists also hold at most 50 items (§3). That is why
+  the result bytes stop growing (61,121 and 61,154). Long entries therefore
+  get a bounded result, with some lower-ranked items omitted. This is
+  recorded as a finding (§6).
+- Cold runs, after an app and companion restart, add 10–25 ms to completion
+  and 9–36 ms on screen.
+- Run-to-run variance is low: the completion coefficient of variation is
+  0.14–0.22.
+
+### 5.2 Resources and network
+
+The app columns are the whole app process during the block. The companion
+columns are the companion process. Wire bytes are TLS records on the
+companion's sockets per run, in each direction, handshakes included.
+
+| Block | App CPU (block) | App peak RSS | Companion CPU (block) | Companion RSS | Wire bytes in / run | Wire bytes out / run |
+|---|---|---|---|---|---|---|
+| 30 s warm (20 runs) | 1,080 ms | 210 MB | 264 ms | 89 MB | 3,368 | 6,299 |
+| 1 min warm | 1,240 ms | 215 MB | 306 ms | 90 MB | 4,543 | 8,553 |
+| 3 min warm | 1,800 ms | 211 MB | 354 ms | 96 MB | 9,154 | 21,758 |
+| 5 min warm | 2,320 ms | 213 MB | 433 ms | 99 MB | 13,956 | 34,891 |
+| 10 min warm | 3,380 ms | 214 MB | 689 ms | 105 MB | 24,948 | 64,255 |
+| Cap warm | 5,940 ms | 233 MB | 2,595 ms | 136 MB | 63,130 | 64,290 |
+| Cap cold (1 run) | 1,770 ms | 216 MB | 191 ms | 96 MB | 63,129 | 64,314 |
+
+The app's RSS includes its on-device speech runtime (ADR-016), so the
+organize path adds at most about 20 MB at the cap. Per warm run, app CPU
+is about 54 ms at 30 s and 297 ms at the cap.
+
+### 5.3 Boundaries, refusals, cancellation, and deadline
+
+| Block | Runs | Outcome | Time | Request bytes | Sent to the node |
+|---|---|---|---|---|---|
+| Cap + 1 (app builder) | 5 | `TOO_LARGE` ×5 | build 13.7 ms p50 | 61,109 | nothing (0 bytes, 0 jobs) |
+| 30 min (app builder) | 5 | `TOO_LARGE` ×5 | build 15.3 ms | 69,686 | nothing |
+| 60 min (app builder) | 5 | `TOO_MANY_UNITS` ×5 | build 17.8 ms | 138,212 (558 units) | nothing |
+| Cap + 1 sent straight to the SDK | 5 | `SCHEMA_VALIDATION_FAILED` ×5 (the SDK's "Input exceeds capability byte limit") | 3 / 4 ms to the terminal | 61,109 | nothing |
+| Cancel 300 ms after the first progress (node slowed to 2 s stages) | 5 | `cancelled` ×5 | cancel → terminal 96 / 101 ms | 12,000 | the job; it was **not** cancelled at the node (SDK-AJ-5) |
+| Deadline (node slowed to 25 s stages) | 3 | `DEADLINE_EXCEEDED` ×3 | the terminal 2.8 / 3.3 ms after the 60 s deadline | 2,588 | the job; the node ended it at 60,000–60,003 ms |
+
+**Success and failure rates:**
+
+- Measured fixtures: 126/126 stored.
+- Refusals and rejections: 20/20 typed as expected.
+- Cancels: 5/5 cancelled.
+- Deadlines: 3/3 `DEADLINE_EXCEEDED`.
+- There were no unexpected outcomes.
+
+**Cancellation at the node.** The 5 cancelled jobs logged no `cancelled`
+end at the companion. A DELETE is acted on immediately, so none reached it:
+SDK-AJ-5, reproduced. The app-side latency is unaffected.
 
 ## 6. Findings and open questions
+
+- **The result budget binds before the request budget.** From about 10
+  minutes of speech, the engine's full result for these fixtures exceeds
+  61,387 bytes, so items are dropped to fit. No source is changed, and the
+  dropped items are not shown. Whether to show that a result is partial,
+  or to organize long entries in parts, is part of O-7.
 
 - **O-7 (proposed, not frozen):** entries longer than about 26.5 minutes of
   speech cannot be organized in one request. The options are to refuse (the

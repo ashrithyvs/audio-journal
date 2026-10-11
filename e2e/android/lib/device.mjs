@@ -264,7 +264,10 @@ export function back() {
 }
 
 export async function hideKeyboard() {
-  // ESCAPE closes the IME without navigating back; wait for relayout.
+  // ESCAPE closes the IME without navigating back; wait for relayout. With no
+  // IME shown, older Android (API 26) treats ESCAPE as Back and leaves the
+  // app, so it is sent only while an IME is shown.
+  if (!/mInputShown=true/.test(shell('dumpsys', 'input_method'))) return;
   shell('input', 'keyevent', 'KEYCODE_ESCAPE');
   await sleep(800);
 }

@@ -6,9 +6,10 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 ## Current snapshot
 
 - **Phase:** AJ-1 (Android, emulator evidence) and the AJ-3 node workflow are on
-  `main`; neither milestone is accepted. AJ-2 has not started.
+  `main`; neither milestone is accepted. AJ-2.0 and AJ-2.1 are implemented on
+  branch `aj2/organize` (not merged); AJ-2 is not accepted.
 - **Branch:** `main`.
-- **Last agent:** Claude Code `hybridai-81` (AJ-1 merge into `main`).
+- **Last agent:** Claude Code `hybridai-81` (AJ-2.0/2.1 on `aj2/organize`).
 - **Last updated:** 2026-10-11.
 - **AJ-3 (updated 2026-10-10 19:40 by `hybridai-7b`).** The Android node
   workflow passes 20 of 20 device steps on the AJ-1 fix build `72ee323`, in
@@ -29,7 +30,11 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
     evidence and is **merged into `main`** (`a759db8`, 2026-10-11), with the
     F3 and status-recovery fixes after it (`57f316c`, `f294c87`); not
     accepted (physical-device, live-timing, and iOS gates deferred).
-  - AJ-2 has not started.
+  - AJ-2.0 and AJ-2.1 are implemented on `aj2/organize`
+    ([AJ-2 progress](validation/AJ2-progress.md)): the frozen
+    `journal.organize@1` contract, `node-companion/`, and the app
+    integration through the public SDK. The Organized/Tasks UI has not
+    started.
 
 ## Parallel-work claims (updated 2026-10-10 00:25 IST)
 
@@ -128,18 +133,45 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
   - **Emulator:** `emulator-5554` is shut down after the run;
     `.aj-exclusive-run` is released.
   - **Next:** AJ-2 has not started; it waits for the owner.
-- **AJ-2 track: Claude Code session `hybridai-81`.** Started 2026-10-11.
+- **AJ-2 track: Claude Code session `hybridai-81`.** Started 2026-10-11;
+  last updated 2026-10-11.
   - **Where:** worktree `../audio-journal-aj2`, branch `aj2/organize`, from
-    `main` `c5fb510`. Not merged, not pushed.
-  - **Scope now:** AJ-2.0 (the `journal.organize@1` contract, schemas,
-    vectors, independent verifier) and AJ-2.1 (`node-companion/`, the
-    deterministic engine, and the minimum app integration through the
-    public SDK). The full Organized/Tasks UI is the next stage.
-  - **Touches:** `docs/` (contract, ADR-019, synced design docs),
-    `schemas/journal/v1/`, `tools/journal-organize/`, `node-companion/`,
-    `src/features/organize/`, `src/platform/hybrid-ai/`, storage migration 3,
-    and their tests. The Hybrid AI SDK repository is read only.
-  - **Open questions:** `docs/journal-organize.md` §12 (O-1 to O-6).
+    `main` `c5fb510`. Not merged, not pushed, not released.
+  - **Commits:** `58d1587`, `9c6d3d4` (contract), `8e3695a` (schemas,
+    vectors, verifier), `d0e5fe2` (companion), `0b064f8` (app through the
+    public SDK), `c33a2f1` (companion pairing fix), `491dfd9` (organize
+    performance suite, device harnesses), then the evidence and docs
+    commit.
+  - **Done:**
+    - AJ-2.0: the contract (ADR-019, `docs/journal-organize.md`).
+    - AJ-2.1:
+      - `node-companion/` with the TLS 1.3 and TLS 1.2 + EMS profile;
+      - the minimum app integration (consent, streaming, cancel,
+        validation, atomic storage, migration 3);
+      - the minimal UI.
+    - The organize performance suite.
+    - Evidence: [AJ-2 progress](validation/AJ2-progress.md) and the
+      [organize performance suite](validation/AJ2-organize-performance.md).
+  - **Validation:**
+    - JS baseline: unit 287, smoke 3, integration 142, performance 6.
+    - Companion 36/36; JVM 61/61; release build.
+    - Device (API 35 emulator): functional suite 9/9; performance suite
+      complete (development baseline).
+    - API 26 and 28 TLS proof with the real app: TLS 1.2 ECDHE-ECDSA
+      AES-GCM with EMS, 7/7 handshakes each, organized and stored.
+  - **Remaining (not started):**
+    - the Organized and Tasks UI (O-1 to O-3);
+    - O-7 (entries too long for one request);
+    - physical-device performance matrix and iOS (AJ-4).
+  - **SDK findings for the owner:** SDK-AJ-4 (undocumented framing and
+    status) and SDK-AJ-5 (a cancel during a pending event read never
+    reaches the node), in `docs/validation/hybrid-ai-sdk-issues.md`.
+    SDK-AJ-1 and SDK-AJ-2 stand, with the app-side compatibility
+    workaround.
+  - **Emulators:** `aj-api35-4g` (5554) was used and stopped. The new AVDs
+    `aj-api26` and `aj-api28` (5560, 5562) are stopped after their runs.
+    The SDK session's `hybrid-ai-api26`/`hybrid-ai-api28` were not touched.
+  - **Open questions:** `docs/journal-organize.md` §12 (O-1 to O-7).
 - **Exclusive runs.** Benchmarks, emulator suites, Gradle/CMake builds, and
   Jest baselines never overlap. Create
   `/home/igdclt0603/Desktop/Ash/.aj-exclusive-run` (owner, purpose, start)
