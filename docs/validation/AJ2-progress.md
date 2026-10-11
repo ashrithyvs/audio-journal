@@ -38,7 +38,11 @@ performance suite has a development baseline. AJ-2 is **not accepted**:
   `maximumInputBytes` is 61,108 and the output cap is 61,387;
 - the opaque request key (§9);
 - the TLS profile (§10);
-- persistence (§7).
+- persistence (§7);
+- amendment A1 (owner decision on O-7, 2026-10-11): a result that leaves out
+  lower-ranked items is explicitly `partial`, with per-kind `omitted`
+  counts. It is validated by `RESULT_COMPLETENESS` and disclosed in the UI;
+  nothing is dropped silently, and there is no chunk-and-merge in v1.
 
 **Proposed, not frozen:** the open questions O-1 to O-7 in §12 (due dates,
 stale-source display, editing and task carry-over, retention, backups,
@@ -59,7 +63,7 @@ changes:**
 |---|---|
 | Fixtures | 7, one exactly at the 61,108-byte input cap |
 | Input cases | 37 (7 valid) |
-| Result cases | 68 (8 valid), one exactly at the 61,387-byte output cap and one a byte over |
+| Result cases | 79 (10 valid): exactly at the 61,387-byte output cap, one byte over, and (amendment A1) partial results, including one at the cap, plus 9 completeness cases |
 | Event sequences | 12 |
 | Whole-message envelopes | 4: request and completed event, each at 61,440 bytes and one byte over |
 | Request keys | 7, under a published test key |
@@ -148,10 +152,15 @@ They led to SDK-AJ-5 (§6). Their app-side steps passed.
 
 ### 5.2 Organize performance suite (API 35)
 
+These figures are the deterministic `aj.rules` baseline: protocol and SDK
+overhead, not model-backed inference or organization quality.
+
 See the [organize performance suite](AJ2-organize-performance.md#5-results).
 In summary:
 
-- all 126 organize runs were stored;
+- all 126 organize runs completed and were validated, with persistence
+  rehearsed in rolled-back transactions; none was committed (the stored
+  derivations are the functional cases in §5.1);
 - warm completion is 38–52 ms p50 from 30 s to 10 min of speech, and
   143 ms p50 at the exact 61,108-byte cap;
 - the result is on screen at 64–230 ms p50;

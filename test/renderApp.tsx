@@ -3,6 +3,7 @@ import { act, fireEvent, render } from '@testing-library/react-native';
 
 import { AppRoot } from '../src/app/AppRoot';
 import type { PrivateNodeOptions } from '../src/features/private-node/application/PrivateNodeContext';
+import type { PlaybackService } from '../src/features/journal/ports/PlaybackService';
 import { FakeHybridAiGateway } from './FakeHybridAiGateway';
 import { makeTestServices, type TestJournal } from './makeTestServices';
 
@@ -20,7 +21,8 @@ export function tab(view: View, name: string) {
 export async function renderUnlocked(
   gateway = new FakeHybridAiGateway(),
   privateNode?: PrivateNodeOptions,
-  onJournal?: (journal: TestJournal) => void,
+  onJournal?: (journal: TestJournal) => void | Promise<void>,
+  playback?: PlaybackService,
 ) {
   const view = await render(
     <AppRoot
@@ -29,6 +31,7 @@ export async function renderUnlocked(
         hybridAI: gateway,
         privateNode,
         onJournal,
+        playback,
       })}
     />,
   );

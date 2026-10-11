@@ -172,6 +172,25 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
     `aj-api26` and `aj-api28` (5560, 5562) are stopped after their runs.
     The SDK session's `hybrid-ai-api26`/`hybrid-ai-api28` were not touched.
   - **Open questions:** `docs/journal-organize.md` §12 (O-1 to O-7).
+  - **Owner decision, 2026-10-11:** AJ-2.0 and AJ-2.1 are accepted as
+    completed development checkpoints. This is not AJ-2 acceptance, and
+    there is no merge.
+  - **In progress (amendments before AJ-2.2):**
+    1. label the performance results as the deterministic `aj.rules`
+       baseline;
+    2. resolve O-7's lossy output with an explicit partial result,
+       disclosed in the UI (ADR-019, schemas, vectors, validators,
+       companion, UI, performance evidence);
+    3. record SDK-AJ-5 as a blocker for cancellation acceptance and hand it
+       to the SDK owner;
+    4. a real voice-entry device journey through to the cited audio range;
+    5. correct the wording on rehearsed (rolled-back) persistence.
+
+    The AJ-2.2 UI waits for decisions on O-1 to O-3.
+  - **Touches now:** `docs/journal-organize.md`, ADR-019,
+    `schemas/journal/v1/`, `tools/journal-organize/`, `node-companion/`,
+    `src/features/organize/`, `e2e/aj2/`, and the UX and validation
+    documents.
 - **Exclusive runs.** Benchmarks, emulator suites, Gradle/CMake builds, and
   Jest baselines never overlap. Create
   `/home/igdclt0603/Desktop/Ash/.aj-exclusive-run` (owner, purpose, start)

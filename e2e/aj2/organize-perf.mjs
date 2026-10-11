@@ -295,6 +295,9 @@ function summarize(b) {
     segments: b.fixture?.segments,
     inputBytes: b.fixture?.inputBytes,
     outputBytes: stats(b.samples.map(s => s.outputBytes))?.p50,
+    // Contract §3.2: how many results were explicitly partial.
+    partialResults: b.samples.filter(s => s.completeness === 'partial').length,
+    omittedItems: stats(b.samples.map(s => s.omittedItems))?.p50,
     metrics,
     app: b.app,
     companion: {
@@ -355,7 +358,8 @@ try {
   if (node) await stopNode();
   const summary = blocks.map(summarize);
   const report = {
-    suite: 'AJ-2 organize performance (development baseline)',
+    suite:
+      'AJ-2 organize performance: deterministic aj.rules baseline (development; protocol and SDK overhead, not model inference)',
     apk: args.apk,
     serial: process.env.ANDROID_SERIAL,
     api: d.apiLevel(),

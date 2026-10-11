@@ -9,8 +9,24 @@ SDK capability load benchmark:
   ([speech and load baseline](speech-and-load-baseline.md));
 - SDK capability load is measured by the load lab (`e2e/android/aj-load.mjs`).
 
-**Labels:** emulator and host figures are **development baselines**. The
-accepted matrix is repeated on physical Android hardware later (AJ-4).
+**Labels:**
+
+- **Deterministic `aj.rules` organization baseline.** Every figure here was
+  measured with the companion's deterministic, rule-based engine. The
+  figures measure the complete SDK integration path:
+  - the app's build and validation;
+  - the SDK's routing, TLS, HTTP, and WebSocket protocol;
+  - the companion's job handling;
+  - rehearsed persistence;
+  - rendering.
+
+  They are kept as the **protocol and SDK overhead baseline**. They are
+  **not** representative of model-backed AI inference or of organization
+  quality. A model-backed engine needs a separate baseline of its own,
+  measured with this same suite.
+- **Development baselines.** Emulator and host figures are not product
+  numbers. The accepted matrix is repeated on physical Android hardware
+  later (AJ-4).
 
 ## 1. Path under test
 
@@ -135,7 +151,11 @@ LAN. AJ-4 repeats the matrix on physical hardware.
 
 ### 5.1 Organized fixtures
 
-All runs succeeded: 126 of 126 were stored, and none failed. Times are in
+All 126 runs completed. Each result passed the app's §6 validation, and
+its persistence was rehearsed in a transaction that was rolled back. None
+was committed: these are not 126 stored derivations. The committed storage
+evidence is the functional suite (O01, O04, O07, and the voice journey).
+Times are in
 milliseconds: p50 / p95 for 20 warm runs, a single value for the cold run.
 "Completion" is SDK invocation to the terminal event; "On screen" is
 invocation to the first frame showing the result.
@@ -207,7 +227,8 @@ is about 54 ms at 30 s and 297 ms at the cap.
 
 **Success and failure rates:**
 
-- Measured fixtures: 126/126 stored.
+- Measured fixtures: 126/126 completed, validated, and rehearsed (rolled
+  back, not committed).
 - Refusals and rejections: 20/20 typed as expected.
 - Cancels: 5/5 cancelled.
 - Deadlines: 3/3 `DEADLINE_EXCEEDED`.

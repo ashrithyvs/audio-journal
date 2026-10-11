@@ -18,6 +18,7 @@ import type { RecordingRecord } from '../domain/entry';
 import {
   formatDayHeading,
   formatDuration,
+  formatRange,
   formatTimeOfDay,
 } from '../domain/format';
 import { localDayKey } from '../domain/timeline';
@@ -27,6 +28,8 @@ import {
   type JournalEntryDetail,
 } from '../ports/JournalRepository';
 import type { PlaybackEvent } from '../ports/PlaybackService';
+import type { SourceRef } from '../../organize/domain/contract';
+import { writtenUnits } from '../../organize/domain/request';
 import { OrganizePanel } from '../../organize/ui/OrganizePanel';
 import { journalStyles } from './journalStyles';
 
@@ -40,7 +43,16 @@ type Load =
   | { phase: 'failed' }
   | { phase: 'ready'; detail: JournalEntryDetail };
 
-export function EntryDetailScreen({ entryId }: { entryId: string }) {
+export function EntryDetailScreen({
+  entryId,
+  source,
+  onOpenSource,
+}: {
+  entryId: string;
+  /** A cited source to show, from an organized item (UX §7, AJ-FR-025). */
+  source?: SourceRef;
+  onOpenSource?(source: SourceRef): void;
+}) {
   const { journal, revision } = useJournal();
   const [load, setLoad] = useState<Load>({ phase: 'loading' });
 
@@ -102,6 +114,14 @@ export function EntryDetailScreen({ entryId }: { entryId: string }) {
         </View>
       ) : null}
 
+      {source && source.entryId === entry.id ? (
+        <CitedSource
+          source={source}
+          detail={load.detail}
+          recording={recording}
+        />
+      ) : null}
+
       {entry.kind === 'written' ? (
         <Text
           selectable
@@ -144,6 +164,10 @@ export function EntryDetailScreen({ entryId }: { entryId: string }) {
               ) : null}
               {transcript.lines.map((line, position) => (
                 <TranscriptRow
+                  cited={
+                    source?.entryId === entry.id &&
+                    source.unitId === line.segmentId
+                  }
                   key={line.originSegmentId}
                   editable={transcript.kind === 'final'}
                   line={line}
@@ -157,7 +181,9 @@ export function EntryDetailScreen({ entryId }: { entryId: string }) {
           )}
         </View>
       ) : null}
-      {entry.status === 'ready' ? <OrganizePanel entryId={entry.id} /> : null}
+      {entry.status === 'ready' ? (
+        <OrganizePanel entryId={entry.id} onOpenSource={onOpenSource} />
+      ) : null}
     </ScrollView>
   );
 }
@@ -309,13 +335,128 @@ function RecordingSource({ recording }: { recording?: RecordingRecord }) {
   );
 }
 
+/**
+ * The source an organized item cites (contract §3.1): its excerpt, and for a
+ * voice entry the exact audio range, played on its own (UX §7).
+ */
+function CitedSource({
+  source,
+  detail,
+  recording,
+}: {
+  source: SourceRef;
+  detail: JournalEntryDetail;
+  recording?: RecordingRecord;
+}) {
+  const { playback } = useJournal();
+  const [state, setState] = useState<'idle' | 'playing' | 'ended' | 'failed'>(
+    'idle',
+  );
+  const [positionMs, setPositionMs] = useState<number>();
+  const mounted = useRef(true);
+  useEffect(
+    () => () => {
+      mounted.current = false;
+      playback?.stop().catch(() => undefined);
+    },
+    [playback],
+  );
+
+  const line = detail.transcript.lines.find(l => l.segmentId === source.unitId);
+  const unitText =
+    detail.entry.kind === 'voice'
+      ? line?.text
+      : writtenUnitText(detail.entry.sourceText, source.unitId);
+  const excerpt = unitText?.slice(source.charStart, source.charEnd);
+  const audio =
+    source.audioStartMs !== undefined && source.audioEndMs !== undefined
+      ? { startMs: source.audioStartMs, endMs: source.audioEndMs }
+      : undefined;
+
+  const play = async () => {
+    if (!playback || !recording || !audio) {
+      return;
+    }
+    setState('playing');
+    await playback.play(recording.id, audio, event => {
+      if (!mounted.current) {
+        return;
+      }
+      if (event.type === 'position' || event.type === 'paused') {
+        setPositionMs(event.positionMs);
+      }
+      if (event.type === 'paused') setState('idle');
+      if (event.type === 'ended') setState('ended');
+      if (event.type === 'failed') setState('failed');
+    });
+  };
+
+  return (
+    <View style={journalStyles.notice} testID="cited-source">
+      <Text style={styles.noticeTitle}>Cited source</Text>
+      {audio ? (
+        <Text style={journalStyles.meta} testID="cited-range">
+          {formatRange(audio.startMs, audio.endMs)}
+        </Text>
+      ) : null}
+      {excerpt ? (
+        <Text style={journalStyles.body} testID="cited-text">
+          {excerpt}
+        </Text>
+      ) : (
+        <Text style={journalStyles.muted} testID="cited-missing">
+          This source is no longer in the current transcript.
+        </Text>
+      )}
+      {audio && playback && recording?.state === 'ready' ? (
+        <View style={journalStyles.row}>
+          <PrimaryButton
+            label={state === 'playing' ? 'Playing…' : 'Play this part'}
+            disabled={state === 'playing'}
+            onPress={() => {
+              play();
+            }}
+            testID="cited-play"
+          />
+          <Text
+            style={[journalStyles.meta, styles.position]}
+            testID="cited-state"
+          >
+            {state === 'ended'
+              ? 'Played'
+              : state === 'failed'
+              ? 'Could not play'
+              : positionMs !== undefined
+              ? formatDuration(positionMs)
+              : ''}
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/** A written unit's text: the paragraph `w<n>` as the request split it. */
+function writtenUnitText(
+  sourceText: string | undefined,
+  unitId: string,
+): string | undefined {
+  const match = /^w(\d+)$/.exec(unitId);
+  return match
+    ? writtenUnits(sourceText ?? '')[Number(match[1])]?.text
+    : undefined;
+}
+
 function TranscriptRow({
   line,
   editable,
   position,
+  cited = false,
 }: {
   line: TranscriptLine;
   editable: boolean;
+  /** The line an organized item cites: highlighted. */
+  cited?: boolean;
   /** Display order; provisional rows repeat engine ordinals per window. */
   position: number;
 }) {
@@ -347,7 +488,11 @@ function TranscriptRow({
   };
 
   return (
-    <View style={styles.line} testID={`transcript-line-${position}`}>
+    <View
+      accessibilityState={{ selected: cited }}
+      style={[styles.line, cited && styles.cited]}
+      testID={cited ? 'transcript-cited' : `transcript-line-${position}`}
+    >
       <Text style={journalStyles.meta}>{formatDuration(line.startMs)}</Text>
       {draft === undefined ? (
         <Pressable
@@ -411,6 +556,12 @@ const styles = StyleSheet.create({
   },
   noticeTitle: { color: colors.ink, fontSize: 15, fontWeight: '700' },
   line: { paddingVertical: 10 },
+  cited: {
+    backgroundColor: colors.surface,
+    borderLeftColor: colors.moss,
+    borderLeftWidth: 3,
+    paddingLeft: 10,
+  },
   position: { alignSelf: 'center' },
   grow: { alignSelf: 'center', flex: 1 },
 });

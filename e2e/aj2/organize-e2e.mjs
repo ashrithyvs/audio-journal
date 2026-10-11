@@ -47,6 +47,9 @@ const { values: args } = parseArgs({
     },
     only: { type: 'string', default: '' },
     'load-runs': { type: 'string', default: '5' },
+    // After a fixed packaged SDK (SDK-AJ-5): require the node-side cancel
+    // and a clean retry instead of recording the known defect.
+    'expect-node-cancel': { type: 'boolean', default: false },
   },
 });
 if (!process.env.ANDROID_SERIAL) {
@@ -252,20 +255,38 @@ try {
     );
     note('O03', 'cancelled');
     await done();
-    // The node-side outcome is recorded, not asserted: with SDK 0.1.0-m5 a
-    // cancel that arrives during a pending event read never sends
-    // DELETE /v1/jobs/{id}, so the node runs the job to completion
-    // (SDK-AJ-5). App-side, nothing is stored either way.
+    // With SDK 0.1.0-m5 a cancel that arrives during a pending event read
+    // never sends DELETE /v1/jobs/{id}, so the node runs the job to
+    // completion (SDK-AJ-5). By default the node-side outcome is recorded;
+    // --expect-node-cancel (a fixed SDK) asserts it. App-side, nothing is
+    // stored either way.
     let ended;
     while (!ended && Date.now() - cancelledAt < 60_000) {
       ended = jobLog().find(j => j.state !== 'accepted');
       if (!ended) await d.sleep(500);
     }
-    return {
+    const detail = {
       nodeJobState: ended?.state ?? 'running',
       nodeJobEndedAfterCancelMs: Date.now() - cancelledAt,
       knownSdkDefect: ended?.state === 'cancelled' ? undefined : 'SDK-AJ-5',
     };
+    if (!args['expect-node-cancel']) return detail;
+    expect(
+      ended?.state === 'cancelled' && detail.nodeJobEndedAfterCancelMs < 15_000,
+      `the node job ended ${detail.nodeJobState}, not cancelled promptly`,
+    );
+    // The identical request again: the node must compute it afresh, with no
+    // completed result surfacing from the cancelled job.
+    const before = jobLog().length;
+    const retry = await organize();
+    expect(retry.result === 'stored', `retry outcome ${retry.result}`);
+    const retried = jobLog().slice(before).at(-1);
+    expect(
+      retried?.state === 'completed' && typeof retried.engineMs === 'number',
+      'the retry was not computed afresh',
+    );
+    await done();
+    return { ...detail, retry: retried };
   });
 
   await step(

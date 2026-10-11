@@ -409,6 +409,40 @@ test('cancellation and deadline end a running job once', async t => {
   assert.equal(ds.events.at(-1).data.code, 'DEADLINE_EXCEEDED');
 });
 
+test('a cancelled job keeps no result: no output, no replay, and a retry recomputes', async t => {
+  // The node side of AJ-2 cancellation acceptance (SDK-AJ-5): once a cancel
+  // reaches the companion, nothing completed can surface on a retry.
+  const logs = [];
+  const { node, device } = await paired({
+    stageDelayMs: 150,
+    log: entry => logs.push(entry),
+  });
+  t.after(() => node.close());
+  const first = await device.request('POST', '/v1/jobs', job(fixtures.mixed));
+  await new Promise(res => setTimeout(res, 100));
+  await device.request('DELETE', `/v1/jobs/${first.body.jobId}`);
+  // Longer than the four 150 ms stages: the job must not complete later.
+  await new Promise(res => setTimeout(res, 900));
+  const status = await device.request('GET', `/v1/jobs/${first.body.jobId}`);
+  assert.equal(status.body.state, 'cancelled');
+  assert.equal('output' in status.body, false);
+  assert.equal(node.jobs.replays.size, 0);
+  assert.deepEqual(
+    logs.filter(e => e.event === 'job-ended').map(e => e.state),
+    ['cancelled'],
+  );
+
+  // The identical request again (same requestKey, new idempotency key).
+  const retry = await device.request('POST', '/v1/jobs', job(fixtures.mixed));
+  const stream = await device.events(retry.body.jobId);
+  const done = stream.events.at(-1);
+  assert.equal(done.type, 'completed');
+  assert.equal(resultViolation(done.data.output, fixtures.mixed), null);
+  const ended = logs.filter(e => e.event === 'job-ended').at(-1);
+  assert.equal(ended.state, 'completed');
+  assert.equal(typeof ended.engineMs, 'number'); // computed, not replayed
+});
+
 test('a lost stream resumes after a sequence', async t => {
   const { node, device } = await paired();
   t.after(() => node.close());

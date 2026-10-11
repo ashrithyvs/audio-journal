@@ -162,6 +162,32 @@ sheet with:
 The task cannot be persisted or displayed as AI-derived when this reference is
 missing or invalid.
 
+**Implemented minimum (AJ-2.1).** On entry detail, each organized summary
+and task carries a source link: "Source · 0:04–0:08" for a voice citation,
+and "Source · paragraph 2" for a written one. Selecting it opens the entry
+at that source, showing:
+
+- the cited excerpt;
+- for voice, the exact audio range and a "Play this part" control that
+  plays only that range;
+- the cited transcript line, highlighted.
+
+The full source sheet with the entry date and time is part of the Organized
+view (AJ-2.2).
+
+### Partial results (contract §3.2, amendment A1)
+
+A result that left out lower-ranked items, because of the 50-item bound or
+the output budget, is never shown as complete. Wherever it appears:
+
+- the result names the omission and its counts: "This result is partial.
+  Some lower-ranked items were omitted to fit: 3 tasks, 1 idea.";
+- the completion notice says that the result is partial.
+
+Nothing is dropped silently. Organizing an entry in several requests is not
+offered in v1; an entry above the input cap is refused with the reason
+shown, and never truncated.
+
 ## 7.1 Private AI Node settings (implemented in AJ-3)
 
 **Settings → Manage Private AI Node** shows:

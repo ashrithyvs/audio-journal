@@ -502,6 +502,27 @@ CHECKs mirror the contract bounds.
   `app_settings` and never carried by AJB1 backups. A restore starts with
   empty derivation tables (`journal-organize.md` §12, O-5).
 
+**Completeness (amendment A1).** `resultViolation` checks
+`RESULT_COMPLETENESS` after `RESULT_KINDS`. A partial result is stored like
+any other; its `completeness` and `omitted` counts live in the canonical
+payload. `omissionNotice` (`domain/presentation.ts`) gives the disclosure
+that the panel and the completion notice show.
+
+**Sources.** `OrganizePanel` links the summary and each task to their first
+source. The journal stack pushes `Entry` with `{entryId, source}`. In
+response, `EntryDetailScreen` shows:
+
+- the cited excerpt;
+- for voice, the cited range, played through `PlaybackService.play` with
+  `{startMs, endMs}`;
+- the cited transcript line, highlighted.
+
+**Device-suite build.** The `e2e` build type (release-like, JS bundled,
+debug-signed) compiles `src/e2e/.../TestAudioInput.kt`. It feeds the next
+capture from a WAV pushed to `<external files>/test-audio/input.wav`, at
+real-time pace and then silence. Release and debug compile a stub that
+returns null, so production captures always use the microphone.
+
 Triggers make derivations, scopes, and references immutable and undeletable.
 Only a task's `state` and `state_changed_at` may change. The IDs use the
 prefixes `drv_`, `tsk_`, and `src_`. Platform digests (`sha256Hex`,

@@ -96,14 +96,16 @@ class AudioJournalRecordingsModule(private val context: ReactApplicationContext)
     val file = files.fileFor(recordingId)
     // Never overwrite: an existing file is someone's audio.
     if (file.exists()) return@settle refusal("RECORDER_UNAVAILABLE")
+    // TestAudioInput is null outside the e2e build type (device suites).
     val source =
-        try {
-          AudioRecordSource(ContextCompat.getMainExecutor(context)) {
-            ActiveAudio.execute { ActiveAudio.capture?.pause("audio_focus_lost") }
-          }
-        } catch (_: Exception) {
-          return@settle refusal("RECORDER_UNAVAILABLE")
-        }
+        TestAudioInput.sourceOrNull(context)
+            ?: try {
+              AudioRecordSource(ContextCompat.getMainExecutor(context)) {
+                ActiveAudio.execute { ActiveAudio.capture?.pause("audio_focus_lost") }
+              }
+            } catch (_: Exception) {
+              return@settle refusal("RECORDER_UNAVAILABLE")
+            }
     val key =
         try {
           rootKey()

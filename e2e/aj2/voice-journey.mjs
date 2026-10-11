@@ -1,0 +1,328 @@
+#!/usr/bin/env node
+// AJ-2 real voice-entry organization journey (owner requirement,
+// 2026-10-11), through the real app UI and production paths:
+// - capture: the app's own capture path. The `e2e` build feeds the AJ-1
+//   speech sample (whisper.cpp's public-domain `jfk.wav`, the pinned SHA-256
+//   of `e2e/aj1/speech.mjs`) as microphone input; it is sealed into AJR1;
+// - the on-device final pass (whisper.cpp) makes the finalized transcript;
+// - journal.organize@1 runs only through the public Hybrid AI SDK, against
+//   the node companion;
+// - the app validates the result's transcript and audio-range provenance
+//   and persists the derivation;
+// - an organized item opens the cited transcript line, and exactly the
+//   cited audio range plays.
+//
+//   ANDROID_SERIAL=emulator-5554 node e2e/aj2/voice-journey.mjs \
+//     --apk android/app/build/outputs/apk/e2e/app-e2e.apk [--out <dir>]
+//
+// No audio is committed: the sample comes from the speech engine's pinned
+// whisper.cpp source tree. The synthetic duration ladder for repeatable
+// performance stays in organize-perf.mjs.
+import { createHash } from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { parseArgs } from 'node:util';
+
+import { pairWithNode, setupPin } from '../android/lib/app.mjs';
+import * as d from '../android/lib/device.mjs';
+import {
+  liveDump,
+  liveTap,
+  liveTextOf,
+  liveWaitFor,
+  waitForFinalPass,
+} from '../aj1/lib/liveScreen.mjs';
+import { startCompanion } from './lib/companion.mjs';
+import { done, organize, reachPanel } from './lib/flows.mjs';
+
+const { values: args } = parseArgs({
+  options: {
+    apk: { type: 'string' },
+    out: {
+      type: 'string',
+      default: fs.mkdtempSync(path.join(os.tmpdir(), 'aj2-voice-')),
+    },
+    fixture: {
+      type: 'string',
+      default: path.resolve(
+        import.meta.dirname,
+        '../../../audio-journal/e2e/android/nsd-fixture/build/outputs/apk/debug/aj-nsd-fixture-debug.apk',
+      ),
+    },
+  },
+});
+if (!process.env.ANDROID_SERIAL) {
+  throw new Error('ANDROID_SERIAL must name the device under test');
+}
+if (!args.apk) throw new Error('--apk is required (an e2e build)');
+fs.mkdirSync(args.out, { recursive: true });
+
+const ROOT = path.resolve(import.meta.dirname, '..', '..');
+const SAMPLE_SHA256 =
+  '59dfb9a4acb36fe2a2affc14bacbee2920ff435cb13cc314a08c13f66ba7860e';
+// Words of the sample that must reach the transcript, and never a log.
+const SPOKEN = ['fellow americans', 'your country'];
+const INPUT = `/sdcard/Android/data/${d.PACKAGE}/files/test-audio`;
+
+/** The pinned sample from the speech engine's whisper.cpp source tree. */
+function sample() {
+  const cxx = path.join(ROOT, 'android', 'speech-engine', '.cxx');
+  const found = [];
+  const walk = dir => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (full.endsWith(path.join('whisper-src', 'samples', 'jfk.wav')))
+        found.push(full);
+    }
+  };
+  if (fs.existsSync(cxx)) walk(cxx);
+  const file = found.find(
+    f =>
+      createHash('sha256').update(fs.readFileSync(f)).digest('hex') ===
+      SAMPLE_SHA256,
+  );
+  if (!file) throw new Error('jfk.wav with the pinned SHA-256 not found');
+  return file;
+}
+
+const results = [];
+const evidence = [];
+let node;
+
+function expect(condition, message) {
+  if (!condition) throw new Error(message);
+}
+
+async function step(id, title, work) {
+  const started = Date.now();
+  process.stdout.write(`${id} ${title} ... `);
+  try {
+    const detail = (await work()) ?? {};
+    results.push({
+      id,
+      title,
+      result: 'pass',
+      ms: Date.now() - started,
+      ...detail,
+    });
+    process.stdout.write('pass\n');
+  } catch (error) {
+    results.push({
+      id,
+      title,
+      result: 'fail',
+      error: String(error.message).split('\n').slice(0, 3).join(' / '),
+    });
+    process.stdout.write(`FAIL ${error.message.split('\n')[0]}\n`);
+    throw error;
+  }
+}
+
+const seconds = text => {
+  const match = /(\d+):(\d\d)/.exec(text ?? '');
+  return match ? Number(match[1]) * 60 + Number(match[2]) : NaN;
+};
+
+/** The texts drawn inside a node (uiautomator lists children separately). */
+function textsWithin(id) {
+  const nodes = liveDump();
+  const box = nodes.find(n => n.id === id)?.bounds;
+  if (!box) return [];
+  return nodes
+    .filter(
+      n =>
+        n.text &&
+        n.bounds &&
+        n.bounds[0] >= box[0] &&
+        n.bounds[1] >= box[1] &&
+        n.bounds[2] <= box[2] &&
+        n.bounds[3] <= box[3],
+    )
+    .map(n => n.text);
+}
+
+let transcript = '';
+let cited;
+
+try {
+  await step(
+    'V00',
+    'install the e2e build, PIN, companion, pairing',
+    async () => {
+      if (fs.existsSync(args.fixture)) d.adb('install', '-r', args.fixture);
+      d.adb('install', '-r', args.apk);
+      d.shell('pm', 'clear', d.PACKAGE);
+      d.shell('pm', 'grant', d.PACKAGE, 'android.permission.RECORD_AUDIO');
+      d.prepareDeviceLog();
+      d.launch();
+      await d.waitFor(
+        { text: 'Create your private space' },
+        { timeoutMs: 90_000 },
+      );
+      await setupPin();
+      node = await startCompanion({ name: 'AJ Companion' });
+      await pairWithNode(node);
+      return { sample: path.relative(ROOT, sample()) };
+    },
+  );
+
+  await step(
+    'V01',
+    'record the sample through the app capture path',
+    async () => {
+      d.shell('mkdir', '-p', INPUT);
+      d.adb('push', sample(), `${INPUT}/input.wav`);
+      await d.tap({ text: 'Diary' });
+      await d.tap({ id: 'diary-record' });
+      await liveWaitFor({ id: 'recording-pause' }, { timeoutMs: 30_000 });
+      await d.sleep(13_000); // the 11 s sample, then silence
+      await liveTap({ id: 'recording-finish' });
+      await liveWaitFor({ id: 'recording-open-entry' }, { timeoutMs: 30_000 });
+      const captured = seconds(liveTextOf({ id: 'recording-timer' }));
+      expect(captured >= 12, `captured only ${captured} s`);
+      const consumed = !d.shell('ls', INPUT).includes('input.wav');
+      expect(consumed, 'the capture did not read the test input');
+      await liveTap({ id: 'recording-open-entry' });
+      await liveWaitFor({ id: 'entry-recording' }, { timeoutMs: 30_000 });
+      return { capturedSeconds: captured };
+    },
+  );
+
+  await step(
+    'V02',
+    'the on-device final pass makes the finalized transcript',
+    async () => {
+      const outcome = await waitForFinalPass();
+      expect(outcome !== 'failed', `final pass ${outcome}`);
+      await liveWaitFor({ id: 'transcript-kind-final' }, { timeoutMs: 60_000 });
+      transcript = liveDump()
+        .map(n => n.text)
+        .join(' ')
+        .toLowerCase();
+      for (const words of SPOKEN) {
+        expect(transcript.includes(words), `transcript lacks "${words}"`);
+      }
+      evidence.push({ step: 'V02', ui: d.snapshot() });
+    },
+  );
+
+  await step(
+    'V03',
+    'organize through the public SDK; validate and persist',
+    async () => {
+      const run = await organize();
+      expect(run.result === 'stored', `outcome ${run.result}`);
+      expect(
+        /Audio never leaves this phone/.test(run.consentText),
+        'consent does not say text only',
+      );
+      evidence.push({ step: 'V03', ui: run.ui });
+      await done();
+      await reachPanel();
+      await d.findScrolling({ id: 'organize-summary-source' });
+      const label = d.textOf({ id: 'organize-summary-source' });
+      const range = /Source · (\d+:\d\d)–(\d+:\d\d)/.exec(label ?? '');
+      expect(range, `the summary cites no audio range: ${label}`);
+      cited = { start: seconds(range[1]), end: seconds(range[2]), label };
+      expect(
+        cited.start < cited.end && cited.end <= 13,
+        `cited range ${label} is outside the recording`,
+      );
+      return { citedLabel: label };
+    },
+  );
+
+  await step(
+    'V04',
+    'open the cited source from the organized item',
+    async () => {
+      await d.tap({ id: 'organize-summary-source' });
+      await liveWaitFor({ id: 'cited-source' }, { timeoutMs: 20_000 });
+      const range = liveTextOf({ id: 'cited-range' });
+      expect(
+        range && cited.label.endsWith(range),
+        `cited range ${range} differs from ${cited.label}`,
+      );
+      const excerpt = (liveTextOf({ id: 'cited-text' }) ?? '').toLowerCase();
+      expect(excerpt.length > 0, 'no cited excerpt');
+      await d.findScrolling({ id: 'transcript-cited' });
+      const line = textsWithin('transcript-cited');
+      // The line's own timestamp is its segment start: the cited range begins there.
+      expect(
+        seconds(line[0]) === cited.start,
+        `cited line starts at ${line[0]}, the range at ${cited.start} s`,
+      );
+      expect(
+        line.slice(1).join(' ').toLowerCase().includes(excerpt),
+        'the excerpt is not in the cited transcript line',
+      );
+      return { citedLine: line };
+    },
+  );
+
+  await step('V05', 'play exactly the cited audio range', async () => {
+    await d.scrollToTop();
+    await liveTap({ id: 'cited-play' });
+    const positions = [];
+    const deadline = Date.now() + (cited.end - cited.start + 20) * 1000;
+    let state = '';
+    while (Date.now() < deadline) {
+      state = liveTextOf({ id: 'cited-state' }) ?? '';
+      if (state === 'Played') break;
+      if (/\d+:\d\d/.test(state)) positions.push(seconds(state));
+      await d.sleep(400);
+    }
+    expect(state === 'Played', `playback ended as "${state}"`);
+    expect(
+      positions.every(p => p >= cited.start && p <= cited.end),
+      `positions ${positions} outside ${cited.start}–${cited.end} s`,
+    );
+    return { positions };
+  });
+
+  await step('V06', 'privacy: no transcript words in either log', async () => {
+    const logFile = path.join(args.out, 'device.log');
+    d.saveDeviceLog(logFile);
+    const deviceLog = fs.readFileSync(logFile, 'utf8').toLowerCase();
+    const companionLog = node.log.join('').toLowerCase();
+    fs.writeFileSync(path.join(args.out, 'companion.log'), node.log.join(''));
+    for (const words of SPOKEN) {
+      expect(!deviceLog.includes(words), `device log contains "${words}"`);
+      expect(
+        !companionLog.includes(words),
+        `companion log contains "${words}"`,
+      );
+    }
+  });
+} catch {
+  // Reported by the failing step.
+} finally {
+  await node?.stop?.();
+  fs.writeFileSync(
+    path.join(args.out, 'report.json'),
+    `${JSON.stringify(
+      {
+        apk: args.apk,
+        api: d.apiLevel(),
+        serial: process.env.ANDROID_SERIAL,
+        finishedAt: new Date().toISOString(),
+        results,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  fs.writeFileSync(
+    path.join(args.out, 'evidence.json'),
+    `${JSON.stringify(evidence, null, 2)}\n`,
+  );
+  const failed = results.filter(r => r.result === 'fail').length;
+  process.stdout.write(
+    `\n${results.length - failed}/${results.length} passed; report in ${
+      args.out
+    }\n`,
+  );
+  process.exitCode = failed || results.length < 7 ? 1 : 0;
+}

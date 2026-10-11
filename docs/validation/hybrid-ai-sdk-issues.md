@@ -207,10 +207,16 @@ ADR-021 or the node schemas.
 
 ## SDK-AJ-5: a cancel during a pending event read is not sent to the node
 
+**Status:** open. **It blocks final AJ-2 cancellation acceptance** (owner
+decision, 2026-10-11). AJ-2 UI work continues meanwhile. This section is
+the handoff to the SDK owner: root cause, reproduction, and the re-test
+that closes it. The SDK repository was not changed.
+
 **Affected:** the same SDK version and artifacts as SDK-AJ-1, with any node.
 
-**Severity:** medium. No data is affected; node work and retention are
-wasted. Found by the AJ-2 device suite on 2026-10-11.
+**Severity:** medium. No app data is affected. Node work and retention are
+wasted, and a completed result can then surface on an identical retry.
+Found by the AJ-2 device suite on 2026-10-11.
 
 **Observed:** the app cancels a `journal.organize@1` run after the node
 accepted the job. This is suite step O03, with the companion slowed to four
@@ -258,3 +264,21 @@ asserting it.
 **Suggested fix:** in `stream`, call `cancel(job_id, …)`, bounded by its own
 short attempt as the loop-top path already is, before returning `Cancelled`
 from the receive and connect paths.
+
+**Re-test to close it.** Run this once a fixed packaged SDK is pinned in
+Audio Journal:
+
+1. Run the device suite strictly:
+   `ANDROID_SERIAL=… node e2e/aj2/organize-e2e.mjs --apk <app.apk> --only O00,O03 --expect-node-cancel`.
+   It requires:
+   - the app shows Cancelled and stores nothing;
+   - the companion's job ends `cancelled` within 15 s of the cancel, which
+     proves the node received the cancellation and stopped processing;
+   - an identical retry is computed afresh (`engineMs` present) and stored,
+     so no completed result from the cancelled job surfaces.
+2. Rerun the organize performance suite's cancel block. Its five node jobs
+   must log `job-ended` with `state: "cancelled"`.
+3. Node-side readiness is already proven on the host. The companion test
+   "a cancelled job keeps no result" (`node-companion/test/protocol.test.mjs`)
+   shows that after a DELETE the job is `cancelled`, has no `output`, keeps
+   no replay record, and an identical retry is recomputed.
