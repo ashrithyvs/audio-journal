@@ -48,7 +48,7 @@ sequenceDiagram
     participant UI
     participant Repo as JournalRepository
     participant Rec as RecordingService
-    participant STT as TranscriptionService (on-device, ADR-016)
+    participant SDK as Hybrid AI SDK audio.transcribe@1 (local, ADR-021)
 
     User->>UI: Start recording
     UI->>Repo: createVoiceDraft()
@@ -56,15 +56,15 @@ sequenceDiagram
     Rec-->>UI: recording started
     loop while recording
         Rec-->>UI: level + timestamped audio frame
-        UI->>STT: offer bounded frame
-        STT-->>UI: provisional/final segment
+        UI->>SDK: offer bounded local audio source
+        SDK-->>UI: provisional/final timestamped segment
         UI->>Repo: batch segment update
     end
     User->>UI: Finish
     UI->>Rec: finish()
     Rec-->>UI: finalized recording
     UI->>Repo: finalizeVoice()
-    Note over UI,STT: STT failure never cancels or deletes recording. Only transcript text ever reaches Hybrid AI.
+    Note over UI,SDK: SDK STT failure never cancels or deletes recording. Raw audio never goes to the node.
 ```
 
 ## 4. Organization sequence
@@ -76,17 +76,25 @@ sequenceDiagram
     participant Repo as Repositories
     participant AI as HybridAIAdapter
     participant SDK as Hybrid AI SDK
-    participant Node as Private AI Node
+    participant Local as SDK local model
+    participant Tailnet as Tailscale (direct or relay)
+    participant Node as Generic Private AI Node model
 
     User->>UI: Organize selected entry/range
     UI->>Repo: load finalized transcript + source refs
     UI->>AI: organize(validated selection)
-    AI->>SDK: journal.organize@1 via public API
-    SDK->>Node: paired private capability request
-    Node-->>SDK: progress/partial events
+    AI->>SDK: journal.organize@1 via public API, explicit local or node
+    alt local
+        SDK->>Local: validated capability package + text/provenance
+        Local-->>SDK: real structured model events/result
+    else node
+        SDK->>Tailnet: paired mTLS request to configured endpoint
+        Tailnet->>Node: text/provenance only
+        Node-->>Tailnet: real structured model events/result
+        Tailnet-->>SDK: unchanged encrypted stream
+    end
     SDK-->>AI: events
     AI-->>UI: safe progress only
-    Node-->>SDK: terminal structured result
     SDK-->>AI: terminal result
     AI->>AI: schema + bounds + provenance validation
     alt valid

@@ -5,8 +5,29 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 
 ## Current snapshot
 
-- **Phase:** AJ-4-P, the Product Reality Check, is complete on
-  `aj4/hardening` and awaiting the owner's review (the AJ-4-E plan is deferred)
+- **AJ-RI documentation handoff (2026-10-12, Codex):** ADR-021 and the
+  resumable [real-inference migration](real-inference-migration.md) are written
+  and reconciled through scope, use cases, HLD, LLD, UML, organization
+  contract, technology stack, roadmap, and index. Documentation only: no app,
+  native, companion, package, model, test, commit, merge, push, or release
+  changes. Historical AJ-1–AJ-4-P results remain intact; direct Whisper and
+  `aj.rules` are explicitly pre-RI evidence, not the target architecture.
+- **Tailscale prototype profile (2026-10-12, owner/Codex):** frozen as an
+  external Android-to-Ubuntu deployment profile. AJ embeds no Tailscale code;
+  it supplies the SDK a MagicDNS/IP endpoint and retains SDK pairing/mTLS.
+  `GRI-6-A` includes direct and relayed real-model journeys.
+- **AJ-RI status:** implementation has not started. `GRI-0` awaits independent
+  documentation review and an accepted baseline commit in the SDK/AJ repos.
+  Next AJ feature work is AJ-RI-2/3/4 only after the corresponding SDK package
+  gate. No active Codex file claim remains.
+- **Validation:** `git diff --check` passes in both repositories; a read-only
+  checker validated balanced Markdown fences and relative link targets across
+  62 Markdown files; new-file trailing-whitespace scan passes. No build/test
+  suite was run because only documentation changed.
+
+- **Phase:** AJ-4-P is historical prototype evidence; AJ-RI is the mandatory
+  next program and awaits RI-0 independent documentation review. AJ-4-E remains
+  deferred. AJ-4-P is complete on merged `main`
   ([AJ-4 progress](validation/AJ4-progress.md)). The owner's records of
   2026-10-12:
   - AJ-1 and AJ-3 are accepted for the Android-emulator development profile;
@@ -14,11 +35,17 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 
   None of these is canonical, production, or cross-platform acceptance.
   Physical Android and iOS stay deferred.
-- **Branch:** `aj4/hardening` (worktree `../audio-journal-aj4`) from `main`
-  `59339e9`. AJ-2 was merged as `692ac0b`.
-- **Last agent:** Claude Code `hybridai-81` (AJ-4-E on `aj4/hardening`).
-- **AJ-4-P handoff (2026-10-12, Claude Code; `aj4/hardening`; not merged,
-  pushed, or released; stopped for owner review).** The report is
+- **Branch:** `main` at `ff669a7` before the uncommitted RI documentation
+  changes. AJ-4-P was merged as `ff669a7`; AJ-2 was merged as `692ac0b`.
+- **Last agent:** Codex (RI documentation reset; no implementation).
+## Historical coordination record
+
+Items below retain earlier agent handoffs and may describe branch state at that
+time. They are not the current milestone/status; use the snapshot above and the
+canonical RI documents.
+
+- **AJ-4-P handoff (2026-10-12, Claude Code; originally on
+  `aj4/hardening`, later merged as `ff669a7`; not pushed or released).** The report is
   [AJ-4-P product reality](validation/AJ4P-product-reality.md).
   - **Prototype:** release APK `7df7e740…` (`arm64-v8a` and `x86_64`;
     `c4b302e` SDK core verified; debug-signed) and `e2e` APK `81f7b358…`,

@@ -62,9 +62,11 @@
 ### UC-06: Work without a Private AI Node
 
 1. User unlocks, records, writes, browses, searches, and plays entries offline.
-2. Local transcription runs when available.
-3. A node-only organization request reports that private compute is unavailable.
-4. The app retains the source and allows a later retry.
+2. SDK-owned local transcription runs when available.
+3. The user may organize locally through the SDK's approved local model.
+4. If the user explicitly chooses Private Node while it is unavailable, the
+   request fails without switching targets; the source remains unchanged and
+   can be retried later.
 
 **Value:** the journal is dependable rather than a thin client.
 

@@ -1,7 +1,8 @@
 # High-Level Design
 
-**Status:** Target v0.1 design; AJ-0 application/privacy shell implemented with
-the limitations recorded in `validation/AJ0-progress.md`.
+**Status:** Target v0.1 design amended by ADR-021. Historical AJ-1–AJ-4-P
+implementation is recorded in validation reports; SDK-owned real inference is
+the mandatory target in `real-inference-migration.md`.
 
 ## 1. Architecture principles
 
@@ -9,7 +10,8 @@ the limitations recorded in `validation/AJ0-progress.md`.
 2. Source data is immutable with traceable derivations.
 3. Local capture must survive AI, network, and process failures.
 4. Security and unlock are local and independent from Hybrid AI.
-5. Journal-specific logic stays above the product-neutral SDK.
+5. Journal-specific contracts/data stay above the product-neutral SDK; every
+   model runtime and AI execution path stays inside the SDK/node platform.
 
 ## 2. System context
 
@@ -27,7 +29,7 @@ flowchart LR
     SDK -->|paired encrypted private connection| Node
 ```
 
-There is no account service, public cloud AI endpoint, relay, or hosted journal
+There is no account service, public cloud AI endpoint, application relay, or hosted journal
 database in v0.1. The node is optional; core journal behavior remains local.
 
 ## 3. Mobile application containers
@@ -103,7 +105,12 @@ plus the Private AI Node feature: discovery, pairing, status, reconnect,
 forget, policy, and diagnostics. See ADR-015 and LLD §7.1.
 
 - Converts app domain requests into public SDK capability calls.
-- Receives transcript text only; transcription is app-owned (ADR-016).
+- Sends bounded encrypted-source audio to SDK `audio.transcribe@1` locally and
+  receives timestamped events; it never integrates the speech model/runtime.
+- Sends finalized transcript/written text plus provenance to
+  `journal.organize@1` using explicit local or node.
+- Treats a Tailscale MagicDNS name or IP as an ordinary configured node
+  endpoint. Tailscale is installed separately and is not an AJ dependency.
 - Validates application-owned organization results before domain persistence.
 - Maps SDK target/status/error events into user-appropriate app states.
 
@@ -122,8 +129,8 @@ forget, policy, and diagnostics. See ADR-015 and LLD §7.1.
 1. Create draft entry/recording IDs and target file.
 2. Start durable audio writer.
 3. Mark recording state active transactionally.
-4. Offer copied/bounded audio frames to the app's `TranscriptionService`
-   (on-device engine, ADR-016). No audio goes to Hybrid AI.
+4. Offer a bounded decrypted audio stream to SDK `audio.transcribe@1` with
+   explicit `local` (ADR-021). No audio goes to the node.
 5. Render provisional segments; persist only normalized segment updates.
 6. On finish, finalize audio first, then finalize transcript state.
 7. If STT fails, record the failure state and keep the playable entry.
@@ -133,7 +140,8 @@ forget, policy, and diagnostics. See ADR-015 and LLD §7.1.
 1. User selects content and invokes Organize.
 2. App resolves finalized transcript text and provenance references.
 3. App calls the application-owned `journal.organize@1` contract through SDK.
-4. SDK routes according to `local | node | auto` and app policy.
+4. SDK executes the user's explicit `local` or `node` choice. There is no
+   fallback or `auto` in the RI prototype.
 5. App validates the terminal result and writes a derivation revision plus
    provenance links in one transaction.
 6. Failure/cancellation writes no partial derived artifact and changes no source.

@@ -49,7 +49,7 @@ sign-in, public backend, or public cloud AI service is required. The app remains
 usable offline. A paired user-controlled Private AI Node may receive the minimum
 content needed for an explicit capability request.
 
-Synchronization, hosted backup, public relay, and multi-user collaboration are
+Synchronization, hosted backup, application-level public relay, and multi-user collaboration are
 outside v0.1.
 
 ## ADR-005: Local app lock
@@ -277,7 +277,9 @@ to the packages built from SDK commit `c4b302e`, in
 
 ## ADR-016: Application-owned transcription; SDK receives text
 
-**Status:** Frozen (owner decision, 2026-10-09). Supersedes the earlier
+**Status:** Superseded for target design by ADR-021 (owner decision,
+2026-10-12). The text below records the implemented pre-RI architecture and its
+historical evidence; it is not the architecture to extend. It previously superseded the earlier
 assumption (ADR-009, AJ-1, HLD flow 4) that Audio Journal transcribes through
 a Hybrid AI SDK capability.
 
@@ -553,7 +555,10 @@ These amend the sections above. Each is reflected in `backup-and-restore.md`,
 
 ## ADR-018: `journal.organize@1` served by an Audio Journal node companion
 
-**Status:** Frozen (owner decision, 2026-10-09). It resolves Open decision 4
+**Status:** Contract ownership remains frozen; engine/deployment ownership is
+superseded by ADR-021 (owner decision, 2026-10-12). The standalone companion
+and deterministic engine below describe the implemented pre-RI baseline, not
+the target to extend. It previously resolved Open decision 4
 for v0.1 and keeps ADR-010/011 intact.
 
 **Decision:**
@@ -760,3 +765,56 @@ follow UX §7. The contract is unchanged by this ADR.
 7. ~~AJR1 nonce uniqueness across files~~. **Decided** 2026-10-10 by the
    owner: per-recording HKDF keys, chunk-index frames, and torn-tail index
    skipping. See ADR-017's **Recordings** bullet.
+
+## ADR-021: SDK-owned AI execution and real local/node prototype
+
+**Status:** Accepted by the owner on 2026-10-12. This decision supersedes
+ADR-016 and the engine/deployment portions of ADR-018. ADR-019/020 remain
+authoritative for the journal business contract, provenance, history, due-date,
+and task semantics. The resumable AJ handoff is
+[`real-inference-migration.md`](real-inference-migration.md), controlled by SDK
+ADR-024 and its RI-0–RI-6 roadmap.
+
+**Decision:**
+
+1. Audio Journal owns recording, encrypted source storage, transcript and
+   derivation persistence, consent, UI, `journal.organize@1` schemas/prompts,
+   provenance rules, and labelled evaluation data. It owns no AI runtime.
+2. All transcription and organization computation runs through packaged public
+   Hybrid AI SDK capabilities. Direct whisper.cpp, llama.cpp, ONNX, Ollama, or
+   model-server integration in the app is forbidden.
+3. `audio.transcribe@1` is SDK-owned and explicit `local` only. Raw audio,
+   recording paths, recording keys, vault material, and unrelated entries are
+   never sent to a node.
+4. `journal.organize@1` is application-owned as a declarative contract and may
+   execute through explicit `local` or explicit `node`. The app presents that
+   choice and never silently falls back or changes models.
+5. The SDK repository supplies the generic Private AI Node transport, security,
+   queue, and model host. `node-companion` is retired as an independent host;
+   AJ schemas, prompts, vectors, and evaluation data remain here and are
+   deployed as capability data/configuration.
+6. `aj.rules` remains a deterministic contract oracle for isolated tests only.
+   It is removed from production execution and cannot satisfy AI functional,
+   accuracy, load, or performance acceptance.
+7. Functional and performance evidence uses real 30-, 60-, and 180-second
+   voice recordings. Longer journal recordings and extended soaks are future
+   work. Evidence records exact SDK/model/provider hashes and separate local
+   versus node results.
+8. Existing AJ-1–AJ-4-P reports remain valid for what they measured. They are
+   not real-model organization acceptance and do not close the RI gates.
+9. `auto`, iOS, physical-device production budgets, arbitrary model choice,
+   raw-audio node processing, and knowledge graphs are deferred.
+10. Before the prototype gate closes, Android-to-Ubuntu Private AI Node use is
+    validated through independently installed Tailscale clients. Audio Journal
+    supplies the SDK a configured MagicDNS name or Tailscale IP plus port; it
+    does not embed a Tailscale SDK or call its control plane. Both an observed
+    direct path and an observed relayed path are exercised. Tailnet membership
+    does not replace Hybrid AI pairing, mTLS, node-key pins, consent, or result
+    validation, and mDNS is not required across the tailnet.
+
+**Consequences:** the direct app speech engine and its native build integration
+must migrate behind SDK `audio.transcribe@1`. The current organization UI,
+schemas, provenance validation, storage, history, tasks, pairing UX, and source
+navigation are retained and exercised against real SDK results. Passing
+`GRI-6-A` authorizes an exploratory Android phone trial; it does not imply
+canonical AJ-4 or release acceptance.

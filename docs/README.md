@@ -29,6 +29,11 @@ targets rather than implemented behavior.
 - [Backup and restore](backup-and-restore.md) — portable encrypted archive, recovery flow, and exclusions.
 - [UML and behavioral diagrams](uml-diagrams.md) — visual trace of the architecture and lifecycle.
 - [Implementation roadmap](implementation-roadmap.md) — milestone order and acceptance gates.
+- [Real-inference migration](real-inference-migration.md) — mandatory AJ handoff for SDK-owned transcription and real local/node organization before release work.
+- The migration's prototype gate includes separately installed Tailscale
+  clients for Android-to-Ubuntu node access over direct and relayed paths;
+  Tailscale is not an application or SDK dependency.
+- [Cross-agent decision bridge](../../hybridAi/docs/agent-decision-bridge.md) — shared non-interactive decision protocol for Codex/Claude implementation sessions.
 - [Agent coordination](AGENT_COORDINATION.md) — temporary shared operational memory.
 - [AJ-0 validation](validation/AJ0-progress.md) — current build/test evidence and blockers.
 - [`journal.organize@1` contract](journal-organize.md) — the frozen AJ-2 organization contract (ADR-019): input, result, provenance, validation order, events, persistence, and open questions.
@@ -36,7 +41,7 @@ targets rather than implemented behavior.
 - [AJ-2 progress](validation/AJ2-progress.md) — AJ-2.0 to AJ-2.2 evidence: the `journal.organize@1` contract, the node companion, the public-SDK integration, and the Organized and Tasks UI; accepted for the Android-first profile (2026-10-12) on the deterministic `aj.rules` baseline; physical-device, iOS, O-4 to O-6, and O-7 chunking deferred.
 - [AJ-3 Android](validation/AJ3-android.md) — the secure Private AI Node workflow (S00–S19): accepted for the Android-emulator development profile (2026-10-12); physical-network, physical-device, and iOS gates open.
 - [AJ-4 progress](validation/AJ4-progress.md) — AJ-4-E, the Android emulator-validated development profile: scope, journeys, validation matrix, gap freeze, and results. Not canonical AJ-4.
-- [AJ-2 organize performance suite](validation/AJ2-organize-performance.md) — `journal.organize@1` performance through the public SDK: fixtures from 30 s to 60 min, cold and warm, boundaries, cancellation, and deadline; development baselines, rerun cumulatively in AJ-4.
+- [AJ-2 organize performance suite](validation/AJ2-organize-performance.md) — historical deterministic-engine performance evidence. It is not real-model performance; RI uses real 30/60/180-second inputs under the new bounded profile.
 
 ## Change rule
 

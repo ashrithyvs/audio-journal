@@ -288,7 +288,8 @@ JavaScript reaches it through `NativeRecordingService` and
 - Post-recording reconciliation may create a new transcript revision; it does
   not rewrite the first-pass engine history silently.
 
-**AJ-1 implementation (ADR-016, ADR-017):**
+**Historical AJ-1 implementation (ADR-016, ADR-017; migration required by
+ADR-021):**
 
 - **Final pass.** `TranscriptionController` runs one pass at a time.
   - It starts after a capture is saved and after each unlock (§9 step 5);
@@ -324,10 +325,10 @@ JavaScript reaches it through `NativeRecordingService` and
 
 ## 7. Hybrid AI adapter
 
-Transcription is not part of this adapter (ADR-016). It lives behind the
-app-owned port below. Its first implementation transcribes 16 kHz mono PCM
-files with on-device whisper.cpp, emits each segment as it is decoded, and
-supports cancellation:
+The interface below records the implemented pre-RI app-owned transcription
+port. ADR-021 forbids extending it: AJ-RI-2 replaces its implementation with a
+public SDK `audio.transcribe@1` adapter and removes whisper.cpp/model ownership
+from the app build. Recording/decryption and transcript validation remain here.
 
 ```ts
 interface TranscriptionService {
@@ -345,7 +346,7 @@ interface TranscriptionService {
 
 ```ts
 interface JournalAI {
-  organize(input: OrganizeInput, execution: "local" | "node" | "auto"):
+  organize(input: OrganizeInput, execution: "local" | "node"):
     AsyncIterable<OrganizationEvent>;
   cancel(operationId: string): Promise<void>;
 }
@@ -411,6 +412,14 @@ Asynchronous guards use refs, not render state, so back-to-back actions are
 safe. Error copy comes from `errorPresentation.ts`, which covers every code in
 the packaged SDK's `ERROR_CODES` table and every `NODE_REASONS` value.
 
+The explicit-node configuration accepts a DNS name or IP plus port. For the
+prototype's Tailscale profile this is the Ubuntu node's MagicDNS name
+(preferred) or Tailscale IP. The app does not link a Tailscale library, hold a
+Tailscale credential, discover DERP, or decide between direct and relayed
+paths. Those are external network-client concerns. The app continues to use
+the SDK's pairing, mTLS, pinned node identity, capability API, cancellation,
+and status/recovery behavior exactly as it does on the LAN.
+
 The adapter maps them to the installed Hybrid AI version and records that version
 in validation evidence. The journal-specific contract is frozen in
 `journal-organize.md` (ADR-019), with its schemas and vectors in
@@ -429,13 +438,17 @@ The result validator enforces:
 - no invented local IDs or mutation instructions;
 - one atomic persisted derivation revision only after terminal validation.
 
-### 7.2 Implemented `journal.organize@1` integration (AJ-2.1, ADR-019)
+### 7.2 Historical implemented `journal.organize@1` integration (AJ-2.1, ADR-019)
 
 The app calls the capability only through `HybridAiGateway.run` with
 `execution: 'node'`, `timeoutMs: 60000`, and `capability`
 `journal.organize` `1.0.0`. The gateway now passes the public SDK event data
 through: `progress` carries `stage` and `fraction`, `partial` carries
 `delta`. Both are untrusted, and consumers validate them before use.
+
+ADR-021 keeps this validation/persistence/UI behavior but supersedes the
+node-only deterministic engine. AJ-RI-3/4 add explicit local/node real-model
+execution through accepted SDK packages; `aj.rules` remains test-only.
 
 **Modules** (`src/features/organize/`):
 

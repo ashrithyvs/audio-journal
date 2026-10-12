@@ -1,5 +1,12 @@
 # `journal.organize@1` Contract
 
+> **ADR-021 amendment (2026-10-12):** the domain schemas, provenance,
+> validation, persistence, history, and task semantics in this document remain
+> authoritative. Execution/engine/deployment language describing node-only
+> `aj.rules` and the standalone companion is the historical AJ-2 baseline.
+> AJ-RI-3/4 execute this contract through real SDK-owned local/node models and
+> the generic Private AI Node. See `real-inference-migration.md`.
+
 **Status:** Frozen for implementation on 2026-10-11 (ADR-019), except the
 items in §12, which stay Open and block only the work named there.
 
@@ -55,12 +62,11 @@ in Draft 7 and are checked by the app and the independent verifier.
 | `inputSchema`, `outputSchema` | the two schema files above, inline in the node's `/v1/capabilities` |
 | `streaming` | `true` (otherwise the SDK drops progress and partial events) |
 | `maximumInputBytes` | `61108` (§8.1) |
-| `preferred` | `node` |
+| `preferred` | Application-selected `local` or `node` under ADR-021; no `auto` |
 
-- **Execution is `node` only.** The app calls the SDK's public `stream()`
-  with `execution: 'node'`. There is no local organize engine (ADR-018: the
-  app bundles no inference runtime for organization), so the app never uses
-  `local` or `auto` for this capability and never falls back.
+- **RI execution is explicit `local` or `node`.** The app calls the SDK's
+  public `stream()` with the user's selected target. There is no `auto`, hidden
+  fallback, or app-bundled inference runtime. The SDK owns both engines.
 - **`document.analyze@1` is never used as a substitute.**
 - **Deadline.** The app sends `timeoutMs: 60000`. The node arms the deadline
   once, at acceptance (SDK ADR-021).
@@ -480,12 +486,16 @@ over them.
   `inputSha256`; the same `requestKey` with a different input fails with
   `EXECUTION_FAILED`. Job-level replay for the SDK's idempotency key is
   separate and follows SDK ADR-021.
-- **Determinism.** The same input gives byte-identical output.
+- **Retry stability.** Node job/idempotency replay returns the retained result
+  for an identical accepted request. Independent real-model executions need not
+  be byte-identical; each must satisfy the same schema, provenance, accuracy,
+  and evidence gates.
 
-## 10. Node companion obligations
+## 10. Node obligations
 
-The companion (`node-companion/`, ADR-018) is a Private AI Node in its own
-right, built only from the SDK's published protocol (ADR-021, ADR-022),
+The historical companion (`node-companion/`, ADR-018) proved the published
+protocol and contract. ADR-021 replaces it for real execution with the generic
+SDK Private AI Node, built from the SDK's published protocol (SDK ADR-021/022),
 schemas, and vectors. It keeps the frozen Android support profile: TLS 1.3,
 and for Android API 26–28 TLS 1.2 restricted to ECDHE-ECDSA AES-GCM or
 ChaCha20-Poly1305 with Extended Master Secret, refusing a TLS 1.2 session
@@ -497,8 +507,8 @@ codes, counts, and durations.
 
 ## 11. Decisions resolving earlier documents (ADR-019)
 
-1. **Execution** is `node` only for this capability; LLD/HLD `local | auto`
-   wording applies to other capabilities.
+1. **Execution** was node-only for the AJ-2 deterministic baseline. ADR-021
+   supersedes this with explicit `local | node`; `auto` remains deferred.
 2. **Error code** is `INVALID_RESULT` (`AI_RESULT_INVALID` in LLD §10 was a
    draft name).
 3. **Character ranges** are UTF-16 code units over the exact stored text,

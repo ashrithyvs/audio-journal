@@ -1,7 +1,8 @@
 # Implementation Roadmap
 
-**Status:** Target staged plan. AJ-0 is in progress; see
-`validation/AJ0-progress.md` for the current gate evidence.
+**Status:** Historical AJ-0–AJ-4-P stages are implemented/recorded as noted
+below. ADR-021 now adds the mandatory AJ-RI migration before release work; see
+`real-inference-migration.md`.
 
 ## 1. Delivery rules
 
@@ -43,8 +44,9 @@ initialization, and device smoke remain open, so AJ-0 is not accepted yet.
   entry detail, startup reconciliation, and storage-pressure behavior.
 - Implement the accepted portable encrypted backup format, create/save flow,
   verified empty-vault restore, and cross-platform round-trip fixtures.
-- Integrate the app-owned on-device transcription engine (ADR-016) with
-  independent cancellation.
+- Historical implementation integrated an app-owned on-device transcription
+  engine. ADR-021 requires AJ-RI-2 to replace it with SDK
+  `audio.transcribe@1` before the real-inference prototype gate.
 - Add transcript correction and source timestamps.
 
 Exit: voice/written capture, pause/resume, restart, playback, transcript, recovery,
@@ -120,10 +122,12 @@ are implemented on branch `aj2/organize` (see §4).
 Exit: organization uses only public SDK APIs; valid results remain traceable and
 all failure paths leave source entries unchanged.
 
-**Status (2026-10-12): accepted for the Android-first profile and merged
+**Status (2026-10-12): accepted for the Android-first contract/transport/UI
+profile and merged
 into `main`** ([AJ-2 progress §11](validation/AJ2-progress.md#11-android-first-aj-2-acceptance-2026-10-12)).
 The acceptance covers AJ-2.0 to AJ-2.2 on the deterministic `aj.rules`
 baseline, and SDK-AJ-5 is closed on SDK `c4b302e` (merged as `855edaf`).
+It is not real-model organization acceptance; ADR-021 requires AJ-RI-3/4.
 Physical Android, iOS, O-4 to O-6, and O-7 chunking stay deferred and
 unpassed.
 
@@ -175,16 +179,17 @@ packages. The physical-network, physical-device, and iOS gates stay open.
 
 ## 6. AJ-4 — Hardening and release acceptance
 
-- Exercise `local`, `node`, and `auto` modes and privacy-safe developer diagnostics.
+- Exercise explicit `local` and `node` real-model modes and privacy-safe
+  developer diagnostics. `auto` is deferred from the RI prototype.
 - Test long recordings, repeated sessions, lifecycle transitions, interruptions,
   cancellation races, low storage, memory pressure, key invalidation, and migration.
 - Run dependency/privacy review and plaintext-at-rest/log/backup inspection.
 - Produce tester guide, fixture media, supported-device matrix, and baselines.
-- Rerun the [organize performance suite](validation/AJ2-organize-performance.md)
-  cumulatively. It covers `journal.organize@1` through the public SDK, cold
-  and warm, from 30 s to 60 min transcripts and at the exact boundaries.
-  Repeat its accepted matrix on physical Android hardware. It stays separate
-  from the transcription benchmarks and the SDK capability load lab.
+- Preserve the historical deterministic
+  [organize performance suite](validation/AJ2-organize-performance.md) as
+  contract/transport evidence. The RI suite replaces it for AI claims with
+  real 30/60/180-second inputs, at most three warm repetitions, and no extended
+  soak. Longer inputs move to future development.
 
 Exit: Android and iOS journeys pass on the frozen matrix, with results attached
 to the Hybrid AI SDK release evidence where required.
@@ -251,6 +256,25 @@ not waived.
   [AJ-4 progress](validation/AJ4-progress.md). Documented minor UI defects
   or emulator-specific variance may be accepted.
 
+### 6.2 AJ-RI — SDK-owned real local/node inference (mandatory next program)
+
+The complete staged handoff is
+[real-inference-migration.md](real-inference-migration.md), paired with SDK
+ADR-024 and `hybridAi/docs/real-inference-roadmap.md`.
+
+- AJ-RI-0: documentation/evidence reset.
+- AJ-RI-2: replace app-owned Whisper with SDK `audio.transcribe@1` local.
+- AJ-RI-3: real local `journal.organize@1`.
+- AJ-RI-4: generic SDK Private AI Node real organization.
+- AJ-RI-5: dual-mode app integration and cumulative regression.
+- AJ-RI-6: installable Android emulator/CPU-node prototype, tester guide, and
+  Android-to-Ubuntu Tailscale direct/relayed connectivity proof.
+
+The gate uses real 30-, 60-, and 180-second voice recordings. It excludes
+long-audio performance, extended soaks, `auto`, iOS, and physical-device
+production certification. Passing `GRI-6-A` authorizes exploratory phone
+testing but does not close canonical AJ-4.
+
 ## 7. Required validation dimensions
 
 - **Unit:** domain invariants, reducers/view models, state machines, validators,
@@ -276,10 +300,12 @@ not waived.
       (2026-10-10; backup-and-restore.md §9). iOS cross-platform evidence pending.
 - [ ] Argon2id parameters benchmarked on the lowest-supported **physical** Android device
       (no device available as of 2026-10-10; the emulator is not a substitute).
-- [x] Transcription engine boundary decided: app-owned, on-device (ADR-016).
+- [x] Transcription engine boundary re-decided: SDK-owned, on-device
+      `audio.transcribe@1` (ADR-021); migration is AJ-RI-2.
 - [ ] Live-transcription window/overlap/cadence frozen from device measurements
       (live UX approved, ADR-017).
-- [x] `journal.organize@1` ownership and runtime decided (ADR-018); contract,
+- [x] `journal.organize@1` contract ownership decided (ADR-018/019) and runtime
+      ownership superseded by ADR-021; contract,
       schemas, and vectors frozen in AJ-2.0 (ADR-019, `journal-organize.md`),
       with open questions O-1 to O-7 listed there.
 - [x] Android minimum API 26 reconciled with the SDK; compile API 36 is required

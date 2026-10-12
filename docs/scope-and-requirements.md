@@ -1,5 +1,11 @@
 # Scope and Requirements
 
+> **ADR-021 authority (2026-10-12):** Audio Journal owns no model runtime.
+> Transcription and organization run through packaged Hybrid AI SDK
+> capabilities. The real-inference migration supports explicit `local` and
+> `node`; `auto` is deferred. See
+> [real-inference-migration.md](real-inference-migration.md).
+
 ## 1. Product statement
 
 Audio Journal lets a person privately capture voice or written entries, preserve
@@ -13,8 +19,8 @@ material into useful views and tasks through Hybrid AI.
 3. Preserve original material and provenance for every derived item.
 4. Provide raw Diary mode and explicit Organized mode.
 5. Work offline for capture, browsing, playback, editing, and local unlock.
-6. Transcribe on-device with an app-owned engine (ADR-016), and use Hybrid AI
-   public APIs for text analysis and private-node organization.
+6. Transcribe on-device through SDK `audio.transcribe@1`, and organize through
+   SDK `journal.organize@1` using an explicit local or Private Node target.
 7. Provide local PIN/passcode locking with optional biometric convenience unlock.
 8. Validate the Hybrid AI SDK as an external packaged consumer.
 
@@ -30,14 +36,22 @@ material into useful views and tasks through Hybrid AI.
 - Local SQLite persistence plus app-private recording files.
 - User-created portable encrypted full-journal backup and empty-vault restore.
 - Local PIN/passcode and optional biometric unlock.
-- Hybrid AI `local`, `node`, and `auto` execution through public APIs.
+- Hybrid AI explicit `local` and `node` execution through public APIs. `auto`
+  remains deferred from the real-inference prototype.
+- Real model-backed local transcription and local/node organization, with exact
+  model/profile identity and reproducible accuracy evidence.
 - Paired Private AI Node discovery/status/pairing/forget flows when SDK support is ready.
+- Prototype Private AI Node reachability through separately installed
+  Tailscale clients on Android and Ubuntu, using an explicit MagicDNS/IP
+  endpoint and preserving SDK pairing/mTLS. Validate direct and relayed paths.
 - Privacy-safe diagnostics that exclude journal content and credentials.
 
 ## 4. Explicitly out of scope for v0.1
 
 - Accounts, profiles, sign-up, sign-in, email recovery, or identity backend.
-- Public cloud AI APIs, cloud fallback, relay service, or public content storage.
+- Public cloud AI APIs, cloud fallback, application-level relay service, or
+  public content storage. The external Tailscale peer/DERP transport profile
+  carries the existing paired mTLS protocol and is not an AJ relay feature.
 - Cross-device synchronization, automatic/hosted backup service, sharing,
   collaboration, or social features. User-directed encrypted archive export and
   restore remain in scope.
@@ -47,6 +61,12 @@ material into useful views and tasks through Hybrid AI.
 - Calendar/email integrations, notifications derived from external accounts, or team workflows.
 - Editing or deleting source audio as a side effect of transcript/AI edits.
 - SDK-private imports or journal-specific logic added to Hybrid AI SDK core.
+- App-owned model runtimes, direct model-server APIs, raw-audio node upload,
+  and `aj.rules` as a production organization engine.
+- Embedded Tailscale libraries, Tailscale control-plane APIs, or treating
+  tailnet membership as application/node authentication.
+- Prototype performance/accuracy recordings longer than 180 seconds; long
+  journal chunking and extended soaks are future development work.
 - A self-describing incomplete backup archive. In v0.1 an export that skips
   damaged entries (after typed confirmation) is marked incomplete only on its
   result screen, in its `-incomplete` file name, and in local backup history.
