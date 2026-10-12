@@ -1,7 +1,7 @@
 // Exposes the packaged Hybrid AI Android AAR as the `:hybrid-ai-android`
 // project that @hybrid-ai/react-native depends on. The AAR is consumed from the
 // pinned package directory, never from SDK source, and its SHA-256 is checked
-// so AJ evidence stays reproducible against the accepted M5.5 package.
+// so AJ evidence stays reproducible against the pinned package.
 import java.security.MessageDigest
 
 def aar = rootProject.file(findProperty('hybridAi.aarPath'))

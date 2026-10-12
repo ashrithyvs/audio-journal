@@ -14,7 +14,9 @@ design or by mocking the stage.
 
 ## Verified facts (2026-10-09)
 
-- The packaged SDK `0.1.0-m5` (`e0fc3c5`) ships two local capability manifests:
+- The packaged SDK `0.1.0-m5` (`e0fc3c5`; unchanged in the SDK-AJ-5 candidate
+  `c4b302e`, whose AAR assets are byte-identical) ships two local capability
+  manifests:
   - `text.complete`: a 260K-parameter `stories260K.gguf`, 8 output tokens;
   - `vector.embed`.
 
