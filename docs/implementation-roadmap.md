@@ -268,7 +268,9 @@ ADR-024 and `hybridAi/docs/real-inference-roadmap.md`.
 - AJ-RI-4: generic SDK Private AI Node real organization.
 - AJ-RI-5: dual-mode app integration and cumulative regression.
 - AJ-RI-6: installable Android emulator/CPU-node prototype, tester guide, and
-  Android-to-Ubuntu Tailscale direct/relayed connectivity proof.
+  Android-to-Linux Tailscale direct/relayed connectivity proof (Ubuntu is the
+  first validation distribution). Windows/macOS node validation is owned by
+  the SDK's separate platform gates and requires no AJ architecture fork.
 
 The functional/performance gate uses the API 35 emulator, CPU node, and real
 30-, 60-, and 180-second voice recordings. One physical Android phone is used

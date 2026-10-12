@@ -5,6 +5,11 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 
 ## Current snapshot
 
+- **Node platform correction (2026-10-13, owner/Codex):** AJ uses the same SDK
+  node API for Linux, Windows, and macOS. Ubuntu is only the first Linux
+  validation distribution; Windows/macOS require native SDK-owned node gates
+  before support claims. AJ contains no host-OS branch. Documentation only; no
+  implementation/platform gate changed and no claim remains active.
 - **Future context direction (2026-10-12, owner/Codex):** node-initiated
   requests for more journal context/device capabilities are recorded as
   post-AJ-RI only. They require a separate typed, bounded, consented SDK
@@ -24,11 +29,10 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
   package, model, test, merge, push, or release changes. Historical AJ-1–AJ-4-P
   results remain intact; direct Whisper and `aj.rules` are explicitly pre-RI
   evidence, not the target architecture.
-- **Tailscale prototype profile (2026-10-12, owner/Codex):** frozen as an
-  external Android-to-Ubuntu deployment profile. AJ embeds no Tailscale code;
-  it supplies the SDK a MagicDNS/IP endpoint and retains SDK pairing/mTLS.
-  `GRI-6-A` includes direct and relayed real-model journeys on one physical
-  phone for connectivity only; physical-device certification stays deferred.
+- **Tailscale prototype profile (2026-10-12, amended 2026-10-13):** frozen as
+  an external Android-to-desktop-node profile. Linux/Ubuntu is validated first;
+  Windows/macOS repeat the relevant proof in their SDK platform gates. AJ
+  embeds no Tailscale code and retains SDK pairing/mTLS.
 - **AJ-RI status:** implementation has not started. `GRI-0` is accepted. Next
   AJ feature work is AJ-RI-2/3/4 only after the corresponding SDK package gate.
   No active Codex file claim remains.

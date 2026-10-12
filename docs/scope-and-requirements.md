@@ -42,8 +42,10 @@ material into useful views and tasks through Hybrid AI.
   model/profile identity and reproducible accuracy evidence.
 - Paired Private AI Node discovery/status/pairing/forget flows when SDK support is ready.
 - Prototype Private AI Node reachability through separately installed
-  Tailscale clients on Android and Ubuntu, using an explicit MagicDNS/IP
-  endpoint and preserving SDK pairing/mTLS. Validate direct and relayed paths.
+  Tailscale clients on Android and the desktop node host, using an explicit
+  MagicDNS/IP endpoint and preserving SDK pairing/mTLS. Validate direct and
+  relayed paths first on Linux/Ubuntu; Windows/macOS node support follows its
+  native SDK validation gates without changing AJ.
 - Privacy-safe diagnostics that exclude journal content and credentials.
 
 ## 4. Explicitly out of scope for v0.1

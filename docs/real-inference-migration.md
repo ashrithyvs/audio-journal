@@ -129,10 +129,11 @@ Produce the debug-signed Android APK, tester guide, accuracy/performance
 reports, known issues, and generic node startup instructions. Emulator and node
 runs obey the shared-machine rules in the SDK roadmap.
 
-The tester guide must also cover the stock Tailscale clients on Android and
-Ubuntu, the configured MagicDNS/IP endpoint, tailnet access control, and how
-the retained evidence distinguishes direct from relayed connectivity. The same
-SDK pairing/mTLS identity remains in force in both cases.
+The first tester guide covers the stock Tailscale clients on Android and the
+Linux/Ubuntu node profile, the configured MagicDNS/IP endpoint, tailnet access
+control, and how retained evidence distinguishes direct from relayed
+connectivity. Windows and macOS node guides/evidence accompany their native
+SDK gates. AJ uses the same public API and pairing/mTLS identity on every host.
 
 One physical Android phone is required only for the direct and relayed
 Tailscale reachability journeys. All physical-device performance, thermal,

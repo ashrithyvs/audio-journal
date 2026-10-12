@@ -618,9 +618,9 @@ schemas and vectors in `schemas/journal/v1/`. In summary:
 
 The following execution and companion bullets describe the historical AJ-2
 baseline. ADR-021 supersedes them for the RI target: execution is explicit
-`local | node`, and the generic SDK-owned Ubuntu Private AI Node replaces the
-standalone companion. Schema, provenance, validation, persistence, and TLS
-requirements remain authoritative.
+`local | node`, and the generic SDK-owned cross-platform desktop Private AI
+Node replaces the standalone companion. Schema, provenance, validation,
+persistence, and TLS requirements remain authoritative.
 
 - **Historical AJ-2 capability deployment:** `journal.organize` `1.0.0`,
   streaming, executed only on the paired node (`execution: 'node'`), with a
@@ -817,13 +817,16 @@ ADR-024 and its RI-0–RI-6 roadmap.
    not real-model organization acceptance and do not close the RI gates.
 9. `auto`, iOS, physical-device production budgets, arbitrary model choice,
    raw-audio node processing, and knowledge graphs are deferred.
-10. Before the prototype gate closes, Android-to-Ubuntu Private AI Node use is
-    validated through independently installed Tailscale clients. Audio Journal
-    supplies the SDK a configured MagicDNS name or Tailscale IP plus port; it
-    does not embed a Tailscale SDK or call its control plane. Both an observed
-    direct path and an observed relayed path are exercised. Tailnet membership
-    does not replace Hybrid AI pairing, mTLS, node-key pins, consent, or result
-    validation, and mDNS is not required across the tailnet.
+10. Before the first prototype gate closes, Android-to-Linux Private AI Node
+    use is validated on the available Ubuntu host through independently
+    installed Tailscale clients. Audio Journal supplies the SDK a configured
+    MagicDNS name or Tailscale IP plus port; it does not embed a Tailscale SDK
+    or call its control plane. Both an observed direct path and an observed
+    relayed path are exercised. Tailnet membership does not replace Hybrid AI
+    pairing, mTLS, node-key pins, consent, or result validation, and mDNS is not
+    required across the tailnet. The node product also targets Windows and
+    macOS; their native SDK-owned node profiles require separate evidence
+    before cross-platform support is claimed.
 11. **Future, not AJ-RI scope:** a node capability may eventually ask the app
     for additional typed journal context or a device capability during a job.
     AJ remains the data authority and may deny every request. Each item must be

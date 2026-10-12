@@ -61,7 +61,7 @@ Android/iOS and Hybrid AI package matrix.
 | AJB1 reference and vectors | `tools/ajb1-reference` (Node 22, dependency-free; independent Argon2id checked against RFC 9106) | Proposed format, not frozen |
 | Historical AJ-owned transcription | whisper.cpp v1.9.5 (`d1be6fde`), `base.en-q5_1` / `tiny.en-q5_1` (ADR-016) | Implemented pre-RI baseline; must be removed from the app by AJ-RI-2 |
 | Target transcription and organization runtimes | Version-pinned packaged Hybrid AI SDK providers and exact model profiles (ADR-021) | RI-2/RI-3/RI-4; the app owns no runtime or model artifact |
-| Private-node network profile | Stock Tailscale clients installed independently on Android and Ubuntu | RI-4/RI-6 validation only; no AJ/SDK library or control-plane dependency |
+| Private-node network profile | Stock Tailscale clients installed independently on Android and the Linux/Windows/macOS node host | Linux/Ubuntu is validated first; no AJ/SDK library or control-plane dependency |
 | Android device E2E | Node.js 22 driver over `adb` + `uiautomator` (`e2e/android/`), no third-party framework | AJ-3 device suite (ADR-015) |
 
 Android uses min API 26 and target API 35 to match the accepted SDK profile.

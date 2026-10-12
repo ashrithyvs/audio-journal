@@ -30,8 +30,10 @@ targets rather than implemented behavior.
 - [UML and behavioral diagrams](uml-diagrams.md) — visual trace of the architecture and lifecycle.
 - [Implementation roadmap](implementation-roadmap.md) — milestone order and acceptance gates.
 - [Real-inference migration](real-inference-migration.md) — mandatory AJ handoff for SDK-owned transcription and real local/node organization before release work.
-- The migration's prototype gate includes separately installed Tailscale
-  clients for Android-to-Ubuntu node access over direct and relayed paths;
+- The migration's first prototype gate includes separately installed Tailscale
+  clients for Android-to-Linux node access (Ubuntu is the first validation
+  distribution) over direct and relayed paths. The Private AI Node product
+  also targets Windows and macOS, with separate native validation gates;
   Tailscale is not an application or SDK dependency.
 - [Cross-agent decision bridge](../../hybridAi/docs/agent-decision-bridge.md) — shared non-interactive decision protocol for Codex/Claude implementation sessions.
 - [Agent coordination](AGENT_COORDINATION.md) — temporary shared operational memory.

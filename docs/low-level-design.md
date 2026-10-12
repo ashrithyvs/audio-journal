@@ -413,12 +413,14 @@ safe. Error copy comes from `errorPresentation.ts`, which covers every code in
 the packaged SDK's `ERROR_CODES` table and every `NODE_REASONS` value.
 
 The explicit-node configuration accepts a DNS name or IP plus port. For the
-prototype's Tailscale profile this is the Ubuntu node's MagicDNS name
+prototype's Tailscale profile this is the desktop node's MagicDNS name
 (preferred) or Tailscale IP. The app does not link a Tailscale library, hold a
 Tailscale credential, discover DERP, or decide between direct and relayed
-paths. Those are external network-client concerns. The app continues to use
-the SDK's pairing, mTLS, pinned node identity, capability API, cancellation,
-and status/recovery behavior exactly as it does on the LAN.
+paths. Those are external network-client concerns. Linux/Ubuntu, Windows, and
+macOS node packages expose the same SDK-owned protocol, so AJ contains no
+host-OS branch. The app continues to use the SDK's pairing, mTLS, pinned node
+identity, capability API, cancellation, and status/recovery behavior exactly
+as it does on the LAN.
 
 AJ-RI implements no node-to-device context request. A future SDK event/message
 may surface a typed request correlated to the active parent job. Before AJ
