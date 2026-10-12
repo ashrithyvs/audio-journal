@@ -5,42 +5,47 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 
 ## Current snapshot
 
-- **Active claim (2026-10-12, Codex):** remediate the independent `GRI-0`
-  documentation review findings shared with the SDK repository, then re-run
-  review. Documentation only.
+- **GRI-0 accepted (2026-10-12, owner/Codex):** an independent read-only agent
+  reviewed SDK baseline `7e5373d` and AJ baseline `ec1c3fd`, found four
+  blockers and four follow-ups, then cleared every item after remediation in
+  SDK `5bb6a39` and AJ `56ca1bc`. AJ-RI may proceed only behind the matching
+  accepted SDK package gates.
 - **AJ-RI documentation handoff (2026-10-12, Codex):** ADR-021 and the
   resumable [real-inference migration](real-inference-migration.md) are written
   and reconciled through scope, use cases, HLD, LLD, UML, organization
-  contract, technology stack, roadmap, and index. Documentation only: no app,
-  native, companion, package, model, test, commit, merge, push, or release
-  changes. Historical AJ-1–AJ-4-P results remain intact; direct Whisper and
-  `aj.rules` are explicitly pre-RI evidence, not the target architecture.
+  contract, technology stack, roadmap, and index, committed by `ec1c3fd` and
+  corrected by `56ca1bc`. Documentation only: no app, native, companion,
+  package, model, test, merge, push, or release changes. Historical AJ-1–AJ-4-P
+  results remain intact; direct Whisper and `aj.rules` are explicitly pre-RI
+  evidence, not the target architecture.
 - **Tailscale prototype profile (2026-10-12, owner/Codex):** frozen as an
   external Android-to-Ubuntu deployment profile. AJ embeds no Tailscale code;
   it supplies the SDK a MagicDNS/IP endpoint and retains SDK pairing/mTLS.
-  `GRI-6-A` includes direct and relayed real-model journeys.
-- **AJ-RI status:** implementation has not started. `GRI-0` awaits independent
-  documentation review and an accepted baseline commit in the SDK/AJ repos.
-  Next AJ feature work is AJ-RI-2/3/4 only after the corresponding SDK package
-  gate. No active Codex file claim remains.
+  `GRI-6-A` includes direct and relayed real-model journeys on one physical
+  phone for connectivity only; physical-device certification stays deferred.
+- **AJ-RI status:** implementation has not started. `GRI-0` is accepted. Next
+  AJ feature work is AJ-RI-2/3/4 only after the corresponding SDK package gate.
+  No active Codex file claim remains.
 - **Validation:** `git diff --check` passes in both repositories; a read-only
   checker validated balanced Markdown fences and relative link targets across
   62 Markdown files; new-file trailing-whitespace scan passes. No build/test
   suite was run because only documentation changed.
 
 - **Phase:** AJ-4-P is historical prototype evidence; AJ-RI is the mandatory
-  next program and awaits RI-0 independent documentation review. AJ-4-E remains
-  deferred. AJ-4-P is complete on merged `main`
+  next program and `GRI-0` is accepted. AJ-4-E remains deferred. AJ-4-P is
+  complete on merged `main`
   ([AJ-4 progress](validation/AJ4-progress.md)). The owner's records of
   2026-10-12:
   - AJ-1 and AJ-3 are accepted for the Android-emulator development profile;
   - AJ-2 is accepted for the Android-first profile.
 
   None of these is canonical, production, or cross-platform acceptance.
-  Physical Android and iOS stay deferred.
-- **Branch:** `main` at `ff669a7` before the uncommitted RI documentation
-  changes. AJ-4-P was merged as `ff669a7`; AJ-2 was merged as `692ac0b`.
-- **Last agent:** Codex (RI documentation reset; no implementation).
+  Physical Android production certification and iOS stay deferred; only the
+  bounded Tailscale phone-connectivity proof is inside `GRI-6-A`.
+- **Branch:** `main`; accepted AJ-RI design baseline through `56ca1bc`.
+  AJ-4-P was merged as `ff669a7`; AJ-2 was merged as `692ac0b`.
+- **Last agent:** Codex (GRI-0 review remediation and acceptance; no
+  implementation).
 ## Historical coordination record
 
 Items below retain earlier agent handoffs and may describe branch state at that
