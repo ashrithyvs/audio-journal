@@ -30,6 +30,7 @@ const PHRASES = [
   'project atlas',
   'onboarding slides',
   'car insurance',
+  'arjun about the trip',
   'harbor launch',
   'quieter office layout',
   'weekly status email',

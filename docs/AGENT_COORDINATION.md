@@ -261,7 +261,12 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
       - the full performance matrix complete;
       - fresh AJ-3 S00–S19 20/20;
       - API 26 and 28 TLS 1.2 smokes pass;
-      - the privacy scan: 0 findings in 54 logs.
+      - the privacy scan: 0 findings in 54 logs, plus the API 26 and 28
+        device logs from repeat smokes (`privacy-api26-28/`: streamed
+        logcat with start and end markers; 0 findings in 4 logs).
+
+      The baseline is accepted as technically successful (owner,
+      2026-10-12). The API 26/28 device-log closure was the only open item.
 
       Evidence is in `aj1-artifacts/evidence/aj2-sdkaj5/`. Release APK
       `22c0f35d…e015`.
