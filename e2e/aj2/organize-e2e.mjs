@@ -419,7 +419,8 @@ try {
         )
         .catch(() => undefined);
       expect(reason, 'refusal does not say why');
-      expect((await jobs()) === jobsBefore, 'an over-cap request was sent');
+      const overCapJobsSent = (await jobs()) - jobsBefore;
+      expect(overCapJobsSent === 0, 'an over-cap request was sent');
       note('O06', 'refused over the cap');
       await done();
       return {
@@ -427,6 +428,11 @@ try {
         completedMessageBytes: ended.lastMessageBytes,
         completedSequence: ended.sequence,
         ms: run.ms,
+        overCap: {
+          state: over.result,
+          reasonShown: reason?.text ?? null,
+          jobsSent: overCapJobsSent,
+        },
       };
     },
   );
