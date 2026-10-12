@@ -6,8 +6,9 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 ## Current snapshot
 
 - **Phase:** AJ-1 (Android, emulator evidence) and the AJ-3 node workflow are on
-  `main`; neither milestone is accepted. AJ-2.0, AJ-2.1, and AJ-2.2 are
-  implemented on branch `aj2/organize` (not merged); AJ-2 is not accepted.
+  `main`; neither milestone is accepted. **AJ-2 is accepted for the
+  Android-first profile (owner, 2026-10-12)** and merged into `main`
+  ([AJ-2 progress §11](validation/AJ2-progress.md#11-android-first-aj-2-acceptance-2026-10-12)).
 - **Branch:** `main`.
 - **Last agent:** Claude Code `hybridai-81` (AJ-2.2 on `aj2/organize`).
 - **Last updated:** 2026-10-12.
@@ -30,7 +31,8 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
     evidence and is **merged into `main`** (`a759db8`, 2026-10-11), with the
     F3 and status-recovery fixes after it (`57f316c`, `f294c87`); not
     accepted (physical-device, live-timing, and iOS gates deferred).
-  - AJ-2.0 and AJ-2.1 are implemented on `aj2/organize`
+  - AJ-2.0, AJ-2.1, and AJ-2.2 are accepted for the Android-first profile
+    and merged into `main` (§11). The record of what was implemented
     ([AJ-2 progress](validation/AJ2-progress.md)): the frozen
     `journal.organize@1` contract, `node-companion/`, and the app
     integration through the public SDK. AJ-2.2 (due dates, history,
@@ -241,19 +243,20 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
       O-4 to O-6 and O-7 chunking (deferred); physical-device and iOS
       gates.
   - **Emulators:** stopped; `.aj-exclusive-run` is released.
-  - **SDK-AJ-5 candidate integration and AJ-2 closing baseline (2026-10-12,
+  - **SDK-AJ-5 package integration and AJ-2 closing baseline (2026-10-12,
     Claude Code; complete; not merged, pushed, released, or accepted).**
     - **Pin.** SDK packages from `c4b302e` (SDK branch
-      `fix/sdk-aj-5-node-cancel`, unmerged; ADR-015 amendment). AAR
+      `fix/sdk-aj-5-node-cancel`, accepted and merged into SDK `main` by `855edaf`;
+      ADR-015 amendment). AAR
       `8751a5a7…b1a`, RN tarball `a11cba67…e2a`, both verified. No
-      `e0fc3c5` remains in the build inputs; the APKs embed the candidate's
+      `e0fc3c5` remains in the build inputs; the APKs embed the accepted package's
       `libhybrid_ai_core.so`.
     - **Commits:**
       - `aabc8b1`: the pin;
       - `2903a7c`: the strict closing checks;
       - the follow-up harness and evidence commits.
     - **Validation**
-      ([AJ-2 progress §10](validation/AJ2-progress.md#10-sdk-aj-5-candidate-and-the-aj-2-closing-baseline-2026-10-12)):
+      ([AJ-2 progress §10](validation/AJ2-progress.md#10-sdk-aj-5-packages-and-the-aj-2-closing-baseline-2026-10-12)):
       - JS baseline: unit 308, smoke 3, integration 153, performance 6;
       - JVM 61/61; release and `e2e` builds;
       - SDK-AJ-5 closing test 2/2 and strict cancel block 5/5;
@@ -265,9 +268,8 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
         device logs from repeat smokes (`privacy-api26-28/`: streamed
         logcat with start and end markers; 0 findings in 4 logs).
 
-      The closing baseline passed technically. AJ-2 is **not accepted and
-      not merged**: acceptance is the owner's decision after independent
-      review.
+      The closing baseline passed technically. AJ-2 was then accepted for
+      the Android-first profile and merged (see the outcome below).
     - **Evidence hygiene (2026-10-12):** see AJ-2 progress §10.
       - The privacy scanner was extended and self-tested.
       - The final scan over `aj2-device` and `aj2-sdkaj5` found 0 findings
@@ -280,12 +282,18 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
       `22c0f35d…e015`.
     - **SDK-AJ-5** is closed in the AJ path by consumer evidence, and the
       pre-job-ID limitation is kept.
-    - **Remaining:**
-      - the SDK branch's acceptance and merge before AJ-2 merges into
-        `main`; if the merged packages differ, re-pin and rerun;
-      - independent review and the owner's AJ-2 decision;
-      - physical-device runs, iOS, O-4 to O-6, and O-7 chunking stay
-        deferred.
+    - **Outcome (2026-10-12):**
+      - The SDK owner accepted SDK-AJ-5 and merged it into SDK `main`
+        (`855edaf`; `main` at `59b2cd8`; package source `c4b302e`; hashes
+        unchanged).
+      - The owner accepted AJ-2 for the Android-first profile (AJ-2.0 to
+        AJ-2.2, the deterministic `aj.rules` baseline, SDK-AJ-5 closed).
+      - The historical `voice-api35-run3` console finding is classified as a
+        non-blocking test-harness finding.
+      - Harness failure messages now withhold screen text, pinned by
+        `harnessFailureMessages.test.ts`.
+      - Deferred and unpassed: physical Android, iOS, O-4 to O-6, and O-7
+        chunking.
     - **Environment note.** Timing evidence needs AC power. On battery the
       host ran at about 1.05 GHz and a timing test failed.
     - **Emulators:** stopped; `.aj-exclusive-run` is released.

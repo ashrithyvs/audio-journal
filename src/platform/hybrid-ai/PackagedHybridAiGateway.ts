@@ -25,7 +25,7 @@ import {
   type RunAudit,
 } from './HybridAiGateway';
 
-/** Pinned packaged SDK (`0.1.0-m5`, SDK-AJ-5 candidate `c4b302e`); a unit test checks the installed package. */
+/** Pinned packaged SDK (`0.1.0-m5`, built from accepted SDK commit `c4b302e`); a unit test checks the installed package. */
 export const SDK_PACKAGE_VERSION = '0.1.0-m5';
 
 function failureOf(error: unknown, fallbackCode: string): HybridAiFailure {

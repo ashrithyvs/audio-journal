@@ -15,8 +15,9 @@ edited, and no external issue was filed.
 - Reference node at `07a8bf7`.
 
 SDK-AJ-1 to SDK-AJ-5 were found on those packages. From 2026-10-12 the app
-pins the SDK-AJ-5 candidate built from SDK `c4b302e` (ADR-015 amendment).
-That candidate is how SDK-AJ-5 was closed below.
+pins the SDK-AJ-5 packages built from SDK `c4b302e` (ADR-015 amendment),
+which the SDK owner accepted and merged into SDK `main` (`855edaf`; `main` at
+`59b2cd8`). Those packages closed SDK-AJ-5 below.
 
 **How these were found:**
 
@@ -212,15 +213,14 @@ ADR-021 or the node schemas.
 ## SDK-AJ-5: a cancel during a pending event read is not sent to the node
 
 **Status: closed in the Audio Journal path by consumer evidence
-(2026-10-12)**, on the SDK candidate built from `c4b302e` (SDK branch
-`fix/sdk-aj-5-node-cancel`):
+(2026-10-12)**, on the SDK packages built from `c4b302e`, which the SDK
+owner accepted and merged into SDK `main` (merge commit `855edaf`, `main`
+at `59b2cd8`):
 
 - AAR `8751a5a7623a2c6ea5a75216afd410d9483410da3c9f96f4c4527c852da86b1a`;
 - RN tarball `a11cba67036d6e38662e6485c75d891dfc0110ebc41cd05aa7ea8f870c14ee2a`.
 
-See **Closing evidence** below. The closure holds for these packages. The SDK
-branch has not been merged yet; if its accepted merge produces different
-packages, this re-test runs again on them.
+See **Closing evidence** below. The merge did not change the packages.
 
 The SDK's documented limitation stays: a cancel that arrives before the
 job-creation response, while the job ID is still unknown, cannot be
@@ -315,7 +315,7 @@ cancel.
 
 - App `aj2/organize` at `2903a7c`.
 - Release APK `22c0f35d422399cd9eb6595dd9b4274031ce9928263b718cf5b08a0f8506e015`.
-  It embeds the candidate's `libhybrid_ai_core.so` for both ABIs: `x86_64`
+  It embeds the accepted package's `libhybrid_ai_core.so` for both ABIs: `x86_64`
   `dbc94964…`, `arm64-v8a` `783e25e4…`. Each is byte-identical to the
   `c4b302e` AAR and differs from `e0fc3c5`.
 - Emulator `aj-api35-4g`.

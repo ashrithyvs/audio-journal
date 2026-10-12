@@ -203,7 +203,7 @@ package link.
 - **Pinned artifacts.** The app depends on the packed
   `hybrid-ai-react-native-0.1.0-m5.tgz`. It was built from SDK M5.5 `e0fc3c5`
   (G5-A `07a8bf7`) until the 2026-10-12 amendment below moved the pin to the
-  SDK-AJ-5 candidate `c4b302e`. The package's `:hybrid-ai-android` Gradle project is satisfied
+  accepted SDK-AJ-5 packages from `c4b302e`. The package's `:hybrid-ai-android` Gradle project is satisfied
   by `android/hybrid-ai-android`, a wrapper over the packaged release AAR from
   the same commit. The build fails if the AAR's SHA-256 differs from
   `hybridAi.aarSha256`. Neither file is copied into this repository, and no
@@ -250,7 +250,7 @@ package link.
   services through Android's public `NsdManager` for discovery and spoofing
   scenarios. No SDK code is imported.
 
-**Amendment (2026-10-12): SDK-AJ-5 candidate pin.** The pinned artifacts move
+**Amendment (2026-10-12): SDK-AJ-5 package pin.** The pinned artifacts move
 to the packages built from SDK commit `c4b302e`, in
 `../hybrid-ai-packages/c4b302e/`:
 
@@ -268,10 +268,10 @@ to the packages built from SDK commit `c4b302e`, in
     byte-identical to `e0fc3c5`.
   - In the tarball, the runtime sources are identical. It only drops stray
     Gradle cache files and updates an instrumented test.
-- **Candidate status.** The packages are built from an unmerged SDK branch.
-  Before AJ-2 merges into `main`, the SDK branch must receive its acceptance
-  and merge commit. If the merged SDK commit's packages differ, the pin moves
-  to them and the affected suites are re-run.
+- **SDK acceptance.** The SDK owner accepted the fix and merged it into SDK
+  `main`: merge commit `855edaf`, SDK `main` at `59b2cd8`. The accepted
+  package source is `c4b302e`, with the hashes above. The merge did not
+  change the packages, so the pin and the evidence stand.
 - **History.** Evidence recorded earlier against `e0fc3c5` stays attributed
   to that package.
 

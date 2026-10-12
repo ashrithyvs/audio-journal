@@ -142,7 +142,7 @@ not model inference or quality. They are development baselines from an
 emulator.
 
 **Current run:** `aj2-sdkaj5/perf`, 2026-10-12. This is the cumulative rerun
-on the SDK-AJ-5 candidate SDK (`c4b302e`, ADR-015 amendment) with the
+on the accepted SDK-AJ-5 packages (`c4b302e`, ADR-015 amendment) with the
 AJ-2.2 app. It ran on AC power, with the strict node-cancel check on.
 
 - APK: release build at `2903a7c`
@@ -266,7 +266,7 @@ about 65 ms at 30 s and 287 ms at the cap.
 - Deadlines: 3/3 `DEADLINE_EXCEEDED`.
 - There were no unexpected outcomes.
 
-**Cancellation at the node (SDK-AJ-5 closed).** With the candidate SDK,
+**Cancellation at the node (SDK-AJ-5 closed).** With the fixed SDK,
 every cancelled run reached the node, and `--expect-node-cancel` asserted
 it:
 

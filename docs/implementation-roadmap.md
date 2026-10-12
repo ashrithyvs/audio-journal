@@ -118,7 +118,14 @@ are implemented on branch `aj2/organize` (see §4).
 Exit: organization uses only public SDK APIs; valid results remain traceable and
 all failure paths leave source entries unchanged.
 
-**Status (2026-10-11, branch `aj2/organize`, not merged):**
+**Status (2026-10-12): accepted for the Android-first profile and merged
+into `main`** ([AJ-2 progress §11](validation/AJ2-progress.md#11-android-first-aj-2-acceptance-2026-10-12)).
+The acceptance covers AJ-2.0 to AJ-2.2 on the deterministic `aj.rules`
+baseline, and SDK-AJ-5 is closed on SDK `c4b302e` (merged as `855edaf`).
+Physical Android, iOS, O-4 to O-6, and O-7 chunking stay deferred and
+unpassed.
+
+History of the milestone:
 
 - Done:
   - AJ-2.0: the contract, schemas, vectors, and independent verifier
@@ -134,8 +141,8 @@ all failure paths leave source entries unchanged.
   - cited-source navigation;
   - a real voice-entry device journey;
   - the performance wording and labels.
-- Blocked: final cancellation acceptance, on SDK-AJ-5 (an SDK fix and a
-  re-test).
+- Blocked, then closed on 2026-10-12: final cancellation acceptance, on
+  SDK-AJ-5 (an SDK fix and a re-test).
 - Required for completion: the
   [organize performance suite](validation/AJ2-organize-performance.md) for
   `journal.organize@1` through the public SDK.

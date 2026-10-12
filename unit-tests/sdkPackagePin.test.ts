@@ -5,8 +5,8 @@ import path from 'node:path';
 
 import { SDK_PACKAGE_VERSION } from '../src/platform/hybrid-ai/PackagedHybridAiGateway';
 
-// Evidence must stay reproducible against the pinned packages: the SDK-AJ-5
-// candidate built from SDK commit `c4b302e` (ADR-015 amendment). These checks
+// Evidence must stay reproducible against the pinned packages: the accepted
+// SDK-AJ-5 packages built from SDK commit `c4b302e` (ADR-015 amendment). These checks
 // fail if the app drifts to a live SDK working tree or to a different artifact.
 const root = path.join(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8');

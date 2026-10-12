@@ -1,31 +1,25 @@
 # AJ-2 Progress Validation
 
-**Date:** 2026-10-11, amended 2026-10-12 (AJ-2.2, §9)
+**Date:** 2026-10-11, amended 2026-10-12 (AJ-2.2 §9, closing baseline §10,
+acceptance §11)
 **Branch:** `aj2/organize` (worktree `../audio-journal-aj2`), from `main`
-`c5fb510`. Not merged, not pushed, not released.
+`c5fb510`. It is merged into Audio Journal `main` with a non-fast-forward
+merge (§11). It is not pushed or released.
 
-**Status:** AJ-2.0 (the `journal.organize@1` contract) and AJ-2.1 (the node
-companion and the minimum app integration through the public SDK) are
-**accepted by the owner as completed development checkpoints**
-(2026-10-11). This is not AJ-2 acceptance, and there is no merge.
+**Status: AJ-2 is accepted for the Android-first profile (owner decision,
+2026-10-12; §11).** The acceptance covers AJ-2.0, AJ-2.1, and AJ-2.2. It
+rests on the deterministic `aj.rules` organization baseline, not on
+model-backed quality or performance. SDK-AJ-5 is closed.
 
-The owner's amendments before AJ-2.2 are done (§8):
+The following stay **deferred and unpassed**:
 
-- the explicit partial-result contract (amendment A1);
-- cited-source navigation;
-- a real voice-entry journey;
-- the corrected performance wording and labels;
-- SDK-AJ-5 recorded as a blocker.
+- physical Android devices;
+- iOS;
+- O-4 to O-6;
+- the chunking part of O-7.
 
-AJ-2 is **not accepted**:
-
-- final cancellation acceptance is blocked by SDK-AJ-5 until a fixed
-  packaged SDK is re-tested;
-- AJ-2.2 (Organized and Tasks, after the owner's approval of O-1 to O-3
-  with amendments) is implemented and validated on emulators (§9), but not
-  accepted;
-- O-4 to O-6, and the chunking part of O-7, stay deferred;
-- the physical-device and iOS gates are deferred, not passed.
+The sections below keep the history in order. Earlier "not accepted"
+statements were true when they were written.
 
 ## 1. Commits
 
@@ -420,10 +414,11 @@ cancellation acceptance:
 **Not done here:** physical-device and iOS runs (deferred gates); O-4 to
 O-6 and the chunking part of O-7 (deferred by the owner).
 
-## 10. SDK-AJ-5 candidate and the AJ-2 closing baseline (2026-10-12)
+## 10. SDK-AJ-5 packages and the AJ-2 closing baseline (2026-10-12)
 
-The app now pins the SDK-AJ-5 candidate built from SDK `c4b302e`, on the
-unmerged SDK branch `fix/sdk-aj-5-node-cancel` (ADR-015 amendment):
+The app now pins the SDK-AJ-5 packages built from SDK `c4b302e` (ADR-015
+amendment). The SDK owner accepted them and merged the fix into SDK `main`
+(merge commit `855edaf`, `main` at `59b2cd8`); the packages did not change:
 
 - RN tarball `a11cba67036d6e38662e6485c75d891dfc0110ebc41cd05aa7ea8f870c14ee2a`;
 - AAR `8751a5a7623a2c6ea5a75216afd410d9483410da3c9f96f4c4527c852da86b1a`.
@@ -439,7 +434,7 @@ in `aj1-artifacts/evidence/aj2-sdkaj5/`, outside the repository.
   `android/gradle.properties` (AAR path and SHA-256), and the pin test name
   only `c4b302e`.
 - The installed package is byte-identical to the tarball (13 files).
-- **APK proof.** Both APKs contain the candidate's `libhybrid_ai_core.so` for
+- **APK proof.** Both APKs contain the accepted package's `libhybrid_ai_core.so` for
   both ABIs, byte-identical to the `c4b302e` AAR and different from
   `e0fc3c5`:
 
@@ -490,13 +485,14 @@ in `aj1-artifacts/evidence/aj2-sdkaj5/`, outside the repository.
 emulators. SDK-AJ-5 is closed in the real Audio Journal path
 ([SDK findings](hybrid-ai-sdk-issues.md#sdk-aj-5-closing-evidence-2026-10-12)).
 The branch is ready for independent review and an Android-first AJ-2
-acceptance decision. AJ-2 is **not accepted**. It is not merged, pushed, or
-released. What remains before a merge into `main`:
+acceptance decision. At that point AJ-2 was **not accepted**, and it was not
+merged, pushed, or released; §11 records the later acceptance and merge.
+What remained before a merge into `main`:
 
-1. The SDK branch `fix/sdk-aj-5-node-cancel` must receive its acceptance and
-   merge commit. If the merged packages differ from `c4b302e`, the pin moves
-   and the affected suites are re-run.
-2. Independent review, then the owner's acceptance decision.
+1. *(Done: the SDK owner accepted and merged the fix into SDK `main`, at
+   merge commit `855edaf`, with `main` at `59b2cd8`. The packages did not
+   change, §11.)*
+2. *(Done: AJ-2 was accepted for the Android-first profile, §11.)*
 3. These stay deferred and are not passed:
    - physical-device runs and the physical-device performance matrix (AJ-4);
    - iOS;
@@ -560,4 +556,72 @@ not rerun. Evidence is in `aj1-artifacts/evidence/aj2-sdkaj5/hygiene/`.
   too long to send in one request. Nothing was sent or shortened." was
   shown. **0 jobs** were sent. The boundary half held too: a 60,045-byte
   request and an exact 61,440-byte completed message.
+
+**Two privacy conclusions:**
+
+1. **Accepted product-log result.** **0 findings** in every app, device,
+   companion, and boot log of the accepted evidence: 131 files in the final
+   scan.
+2. **Historical evidence audit.** **1 finding**, in a host harness console
+   summary from the superseded run `voice-api35-run3` (2026-10-11).
+   - **Owner's classification:** a non-blocking test-harness finding, not a
+     product privacy failure.
+   - **Why:** it was emitted by the host test harness, not by Audio Journal,
+     the SDK, or the node companion; it quotes public-domain fixture speech,
+     not user data; and the run is superseded.
+   - **Handling:** the evidence is retained unedited.
+
+## 11. Android-first AJ-2 acceptance (2026-10-12)
+
+**Decision (owner, 2026-10-12): AJ-2 is accepted for the Android-first
+profile.**
+
+**Scope:**
+
+- AJ-2.0 (the `journal.organize@1` contract), AJ-2.1 (the node companion and
+  the integration through the public SDK), and AJ-2.2 (due dates, history,
+  staleness, task states, and the Organized and Tasks UI) are accepted.
+- The organization evidence is the deterministic `aj.rules` baseline:
+  protocol and SDK overhead and correctness. It says nothing about
+  model-backed organization quality or performance, which needs its own
+  baseline.
+- SDK-AJ-5 is closed on consumer evidence (§10). The SDK fix was accepted
+  and merged into SDK `main`:
+
+  | Item | Value |
+  |---|---|
+  | SDK `main` | `59b2cd8` |
+  | Merge commit | `855edaf` |
+  | Accepted package source | `c4b302e` |
+  | AAR SHA-256 | `8751a5a7623a2c6ea5a75216afd410d9483410da3c9f96f4c4527c852da86b1a` |
+  | RN tarball SHA-256 | `a11cba67036d6e38662e6485c75d891dfc0110ebc41cd05aa7ea8f870c14ee2a` |
+
+  The pins are unchanged, so the closing evidence stands without a rerun.
+- The documented SDK limitation stays: a cancel before the job ID is known
+  cannot be forwarded.
+- **Deferred and unpassed:**
+  - physical Android devices, including the physical-device performance
+    matrix (AJ-4);
+  - iOS;
+  - O-4 to O-6;
+  - the chunking part of O-7.
+
+**Harness failure messages.** The owner's classification assumed the current
+harness no longer echoes screen text. Checking showed that it still could:
+
+- the shared device library appended every on-screen text to wait, tap, and
+  scroll failures;
+- two aj2 messages interpolated a UI snapshot.
+
+All these now name element IDs and withhold text, through
+`screenSummary()`. `unit-tests/harnessFailureMessages.test.ts` pins this.
+It fails on any harness template that interpolates a snapshot, visible
+text, or a node text list (a planted violation was caught). It also runs
+the real `screenSummary` on nodes containing journal text. UI-hierarchy
+captures stored deliberately as evidence (FLAG_SECURE blocks screenshots)
+are unchanged.
+
+**Merge.** `aj2/organize` was merged into Audio Journal `main` without a
+fast-forward, preserving the history. The merge commit and the post-merge
+smoke are recorded in the coordination file.
 
