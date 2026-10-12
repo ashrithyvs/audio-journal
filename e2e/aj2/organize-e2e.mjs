@@ -364,7 +364,7 @@ try {
       expect(run.result === 'failed', `outcome ${run.result}`);
       expect(
         /did not finish in time|DEADLINE_EXCEEDED/.test(run.ui),
-        `not a deadline failure: ${run.ui}`,
+        `not a deadline failure; on screen: ${d.screenSummary()}`,
       );
       note('O05', 'deadline');
       await done();

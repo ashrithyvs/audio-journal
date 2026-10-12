@@ -15,6 +15,7 @@ import {
   adb,
   describe,
   find,
+  screenSummary,
   shell,
   sleep,
 } from '../../android/lib/device.mjs';
@@ -155,10 +156,9 @@ export async function liveWaitForAny(selectors, { timeoutMs = 20_000 } = {}) {
     await sleep(300);
   }
   throw new Error(
-    `none found: ${selectors.map(describe).join(', ')}\nvisible: ${nodes
-      .map(node => node.text)
-      .filter(Boolean)
-      .join(' | ')}`,
+    `none found: ${selectors
+      .map(describe)
+      .join(', ')}\non screen: ${screenSummary(nodes)}`,
   );
 }
 

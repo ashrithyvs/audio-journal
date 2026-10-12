@@ -77,6 +77,19 @@ export function describe(selector) {
   );
 }
 
+/**
+ * What was on screen, for failure messages: element IDs and a count of text
+ * nodes, never their text. Screen text can be journal content and must not
+ * reach console logs or reports through a failure message.
+ */
+export function screenSummary(nodes = dump()) {
+  const ids = [...new Set(nodes.map(node => node.id).filter(Boolean))].map(id =>
+    id.replace(/^.*:id\//, ''),
+  );
+  const texts = nodes.filter(node => node.text).length;
+  return `ids ${ids.join(', ') || '(none)'}; ${texts} text nodes withheld`;
+}
+
 export function find(nodes, selector) {
   return nodes.find(node => matches(node, selector) && node.bounds);
 }
@@ -93,14 +106,10 @@ export async function waitFor(
     if (absent ? !node : node) return node ?? true;
     await sleep(400);
   }
-  const visible = nodes
-    .map(node => node.text)
-    .filter(Boolean)
-    .join(' | ');
   throw new Error(
     `${absent ? 'still present' : 'not found'}: ${describe(
       selector,
-    )}\nvisible: ${visible}`,
+    )}\non screen: ${screenSummary(nodes)}`,
   );
 }
 
@@ -116,10 +125,9 @@ export async function waitForAny(selectors, { timeoutMs = 20_000 } = {}) {
     await sleep(400);
   }
   throw new Error(
-    `none found: ${selectors.map(describe).join(', ')}\nvisible: ${nodes
-      .map(node => node.text)
-      .filter(Boolean)
-      .join(' | ')}`,
+    `none found: ${selectors
+      .map(describe)
+      .join(', ')}\non screen: ${screenSummary(nodes)}`,
   );
 }
 
@@ -188,9 +196,7 @@ export async function tap(selector, { timeoutMs = 20_000 } = {}) {
     } catch (error) {
       if (Date.now() > deadline) {
         throw new Error(
-          `not found: ${describe(selector)}\nvisible: ${visibleText().join(
-            ' | ',
-          )}`,
+          `not found: ${describe(selector)}\non screen: ${screenSummary()}`,
         );
       }
       await sleep(400);
@@ -418,7 +424,7 @@ export async function findScrolling(selector, { timeoutMs = 30_000 } = {}) {
         throw new Error(
           `not found (scrolling): ${describe(
             selector,
-          )}\nvisible: ${visibleText().join(' | ')}`,
+          )}\non screen: ${screenSummary()}`,
         );
       }
       await sleep(500);

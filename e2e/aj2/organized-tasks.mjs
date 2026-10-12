@@ -219,7 +219,10 @@ try {
       const run = await organize();
       // An app validator that disagreed with the engine on any date would
       // reject the whole result as RESULT_DUE.
-      expect(run.result === 'stored', `outcome ${run.result}: ${run.ui}`);
+      expect(
+        run.result === 'stored',
+        `outcome ${run.result}; on screen: ${d.screenSummary()}`,
+      );
       evidence.push({ step: 'T01', ui: run.ui });
       await done();
       return { today, timeZone, due: Object.fromEntries(due) };
@@ -324,7 +327,10 @@ try {
       await liveWaitFor({ id: 'transcript-kind-final' }, { timeoutMs: 60_000 });
       await correctLine(CORRECTED);
       const run = await organize();
-      expect(run.result === 'stored', `outcome ${run.result}: ${run.ui}`);
+      expect(
+        run.result === 'stored',
+        `outcome ${run.result}; on screen: ${d.screenSummary()}`,
+      );
       await done();
     },
   );
