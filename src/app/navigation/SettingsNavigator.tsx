@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { BackupScreen } from '../../features/backup/ui/BackupScreen';
 import { LoadLabScreen } from '../../features/load-lab/ui/LoadLabScreen';
+import { OrganizeBenchScreen } from '../../features/organize/ui/OrganizeBenchScreen';
 import { DiagnosticsScreen } from '../../features/private-node/ui/DiagnosticsScreen';
 import { PairNodeScreen } from '../../features/private-node/ui/PairNodeScreen';
 import { PrivateNodeScreen } from '../../features/private-node/ui/PrivateNodeScreen';
@@ -15,6 +16,7 @@ export type SettingsStackParamList = {
   PairNode: undefined;
   Diagnostics: undefined;
   LoadLab: undefined;
+  OrganizeBench: undefined;
   Backup: undefined;
 };
 
@@ -56,6 +58,7 @@ export function SettingsNavigator() {
         {({ navigation }) => (
           <DiagnosticsScreen
             onOpenLoadLab={() => navigation.navigate('LoadLab')}
+            onOpenOrganizeBench={() => navigation.navigate('OrganizeBench')}
           />
         )}
       </Stack.Screen>
@@ -68,6 +71,11 @@ export function SettingsNavigator() {
         name="LoadLab"
         component={LoadLabScreen}
         options={{ title: 'Load lab' }}
+      />
+      <Stack.Screen
+        name="OrganizeBench"
+        component={OrganizeBenchScreen}
+        options={{ title: 'Organize benchmark' }}
       />
     </Stack.Navigator>
   );

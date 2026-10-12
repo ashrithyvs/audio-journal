@@ -18,6 +18,7 @@ import type { RecordingRecord } from '../domain/entry';
 import {
   formatDayHeading,
   formatDuration,
+  formatRange,
   formatTimeOfDay,
 } from '../domain/format';
 import { localDayKey } from '../domain/timeline';
@@ -27,6 +28,10 @@ import {
   type JournalEntryDetail,
 } from '../ports/JournalRepository';
 import type { PlaybackEvent } from '../ports/PlaybackService';
+import type { SourceRef } from '../../organize/domain/contract';
+import { useOrganize } from '../../organize/application/OrganizeContext';
+import { writtenUnits } from '../../organize/domain/request';
+import { OrganizePanel } from '../../organize/ui/OrganizePanel';
 import { journalStyles } from './journalStyles';
 
 // Entry detail (UX §6): the original audio or written text is primary; the
@@ -39,7 +44,16 @@ type Load =
   | { phase: 'failed' }
   | { phase: 'ready'; detail: JournalEntryDetail };
 
-export function EntryDetailScreen({ entryId }: { entryId: string }) {
+export function EntryDetailScreen({
+  entryId,
+  source,
+  onOpenSource,
+}: {
+  entryId: string;
+  /** A cited source to show, from an organized item (UX §7, AJ-FR-025). */
+  source?: SourceRef;
+  onOpenSource?(source: SourceRef): void;
+}) {
   const { journal, revision } = useJournal();
   const [load, setLoad] = useState<Load>({ phase: 'loading' });
 
@@ -101,6 +115,14 @@ export function EntryDetailScreen({ entryId }: { entryId: string }) {
         </View>
       ) : null}
 
+      {source && source.entryId === entry.id ? (
+        <CitedSource
+          source={source}
+          detail={load.detail}
+          recording={recording}
+        />
+      ) : null}
+
       {entry.kind === 'written' ? (
         <Text
           selectable
@@ -143,6 +165,10 @@ export function EntryDetailScreen({ entryId }: { entryId: string }) {
               ) : null}
               {transcript.lines.map((line, position) => (
                 <TranscriptRow
+                  cited={
+                    source?.entryId === entry.id &&
+                    source.unitId === line.segmentId
+                  }
                   key={line.originSegmentId}
                   editable={transcript.kind === 'final'}
                   line={line}
@@ -155,6 +181,9 @@ export function EntryDetailScreen({ entryId }: { entryId: string }) {
             <TranscriptAction recording={recording} />
           )}
         </View>
+      ) : null}
+      {entry.status === 'ready' ? (
+        <OrganizePanel entryId={entry.id} onOpenSource={onOpenSource} />
       ) : null}
     </ScrollView>
   );
@@ -307,13 +336,191 @@ function RecordingSource({ recording }: { recording?: RecordingRecord }) {
   );
 }
 
+/**
+ * The source an organized item cites (contract §3.1): its excerpt, and for a
+ * voice entry the exact audio range, played on its own (UX §7).
+ */
+function CitedSource({
+  source,
+  detail,
+  recording,
+}: {
+  source: SourceRef;
+  detail: JournalEntryDetail;
+  recording?: RecordingRecord;
+}) {
+  const { playback, transcripts } = useJournal();
+  const organize = useOrganize();
+  const [state, setState] = useState<'idle' | 'playing' | 'ended' | 'failed'>(
+    'idle',
+  );
+  // ADR-020: a cited line that was corrected or re-transcribed since is
+  // still shown as it was cited, from its immutable row.
+  const [history, setHistory] = useState<{
+    original?: string;
+    now?: string;
+  }>();
+  const [positionMs, setPositionMs] = useState<number>();
+  const mounted = useRef(true);
+  useEffect(
+    () => () => {
+      mounted.current = false;
+      playback?.stop().catch(() => undefined);
+    },
+    [playback],
+  );
+
+  const line = detail.transcript.lines.find(l => l.segmentId === source.unitId);
+  const edited = detail.entry.kind === 'voice' && !line;
+  useEffect(() => {
+    if (!edited || !recording) {
+      return;
+    }
+    let active = true;
+    transcripts.records(recording.id).then(
+      records => {
+        const byId = new Map(records.map(r => [r.id, r]));
+        let origin = byId.get(source.unitId);
+        const original = origin?.text;
+        while (origin?.supersedesSegmentId) {
+          origin = byId.get(origin.supersedesSegmentId);
+        }
+        const now = detail.transcript.lines.find(
+          l => l.originSegmentId === origin?.id,
+        )?.text;
+        if (active) setHistory({ original, now });
+      },
+      () => undefined,
+    );
+    return () => {
+      active = false;
+    };
+  }, [detail, edited, recording, source.unitId, transcripts]);
+  // Written text is not editable in v1, so a written unit should always
+  // match its cited digest. If it ever does not, the original is not stored:
+  // say so rather than slice the wrong words.
+  const written =
+    detail.entry.kind === 'written'
+      ? writtenUnitText(detail.entry.sourceText, source.unitId)
+      : undefined;
+  const writtenChanged =
+    detail.entry.kind === 'written' &&
+    (written === undefined ||
+      (organize !== undefined &&
+        organize.services.crypto.sha256Hex(written) !== source.unitSha256));
+  const unitText =
+    detail.entry.kind === 'voice'
+      ? line?.text ?? history?.original
+      : writtenChanged
+      ? undefined
+      : written;
+  const excerpt = unitText?.slice(source.charStart, source.charEnd);
+  const audio =
+    source.audioStartMs !== undefined && source.audioEndMs !== undefined
+      ? { startMs: source.audioStartMs, endMs: source.audioEndMs }
+      : undefined;
+
+  const play = async () => {
+    if (!playback || !recording || !audio) {
+      return;
+    }
+    setState('playing');
+    await playback.play(recording.id, audio, event => {
+      if (!mounted.current) {
+        return;
+      }
+      if (event.type === 'position' || event.type === 'paused') {
+        setPositionMs(event.positionMs);
+      }
+      if (event.type === 'paused') setState('idle');
+      if (event.type === 'ended') setState('ended');
+      if (event.type === 'failed') setState('failed');
+    });
+  };
+
+  return (
+    <View style={journalStyles.notice} testID="cited-source">
+      <Text style={styles.noticeTitle}>Cited source</Text>
+      {audio ? (
+        <Text style={journalStyles.meta} testID="cited-range">
+          {formatRange(audio.startMs, audio.endMs)}
+        </Text>
+      ) : null}
+      {edited && history ? (
+        <Text style={styles.edited} testID="cited-edited">
+          {history.now
+            ? 'Edited since organizing. As cited, then as it reads now:'
+            : 'Changed since organizing: this part was transcribed again. As cited:'}
+        </Text>
+      ) : null}
+      {excerpt ? (
+        <Text style={journalStyles.body} testID="cited-text">
+          {excerpt}
+        </Text>
+      ) : null}
+      {edited && history?.now ? (
+        <Text style={journalStyles.muted} testID="cited-now">
+          {history.now}
+        </Text>
+      ) : null}
+      {writtenChanged ? (
+        <Text style={styles.edited} testID="cited-edited">
+          Changed since organizing: this paragraph no longer reads as cited.
+        </Text>
+      ) : excerpt || (edited && !history) ? null : (
+        <Text style={journalStyles.muted} testID="cited-missing">
+          This source is no longer in the current transcript.
+        </Text>
+      )}
+      {audio && playback && recording?.state === 'ready' ? (
+        <View style={journalStyles.row}>
+          <PrimaryButton
+            label={state === 'playing' ? 'Playing…' : 'Play this part'}
+            disabled={state === 'playing'}
+            onPress={() => {
+              play();
+            }}
+            testID="cited-play"
+          />
+          <Text
+            style={[journalStyles.meta, styles.position]}
+            testID="cited-state"
+          >
+            {state === 'ended'
+              ? 'Played'
+              : state === 'failed'
+              ? 'Could not play'
+              : positionMs !== undefined
+              ? formatDuration(positionMs)
+              : ''}
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/** A written unit's text: the paragraph `w<n>` as the request split it. */
+function writtenUnitText(
+  sourceText: string | undefined,
+  unitId: string,
+): string | undefined {
+  const match = /^w(\d+)$/.exec(unitId);
+  return match
+    ? writtenUnits(sourceText ?? '')[Number(match[1])]?.text
+    : undefined;
+}
+
 function TranscriptRow({
   line,
   editable,
   position,
+  cited = false,
 }: {
   line: TranscriptLine;
   editable: boolean;
+  /** The line an organized item cites: highlighted. */
+  cited?: boolean;
   /** Display order; provisional rows repeat engine ordinals per window. */
   position: number;
 }) {
@@ -345,7 +552,11 @@ function TranscriptRow({
   };
 
   return (
-    <View style={styles.line} testID={`transcript-line-${position}`}>
+    <View
+      accessibilityState={{ selected: cited }}
+      style={[styles.line, cited && styles.cited]}
+      testID={cited ? 'transcript-cited' : `transcript-line-${position}`}
+    >
       <Text style={journalStyles.meta}>{formatDuration(line.startMs)}</Text>
       {draft === undefined ? (
         <Pressable
@@ -408,7 +619,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   noticeTitle: { color: colors.ink, fontSize: 15, fontWeight: '700' },
+  edited: { color: '#7A4E12', fontSize: 13, fontWeight: '700', marginTop: 4 },
   line: { paddingVertical: 10 },
+  cited: {
+    backgroundColor: colors.surface,
+    borderLeftColor: colors.moss,
+    borderLeftWidth: 3,
+    paddingLeft: 10,
+  },
   position: { alignSelf: 'center' },
   grow: { alignSelf: 'center', flex: 1 },
 });

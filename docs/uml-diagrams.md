@@ -130,6 +130,8 @@ classDiagram
       id
       text
       state
+      dueDate
+      predecessorTaskId
     }
     class SourceReference {
       segmentId
@@ -143,9 +145,26 @@ classDiagram
     DerivedArtifact "1" --> "0..*" Task
     DerivedArtifact "1" --> "1..*" SourceReference
     Task "1" --> "1..*" SourceReference
+    Task "0..*" --> "0..1" Task : carried from
     SourceReference --> JournalEntry
     SourceReference --> TranscriptSegment
 ```
+
+### Task state (ADR-020)
+
+```mermaid
+stateDiagram-v2
+    [*] --> open: new, ambiguous, or unproven task
+    [*] --> done: carried from a done predecessor
+    [*] --> dismissed: carried from a dismissed predecessor
+    open --> done: Done
+    open --> dismissed: Dismiss
+    done --> open: Restore
+    dismissed --> open: Restore
+```
+
+A task's text, due date, and predecessor never change; only its state does.
+A reorganize adds a new revision and leaves earlier task rows unchanged.
 
 ## 6. App-lock state
 

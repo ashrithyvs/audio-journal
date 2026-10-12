@@ -1,0 +1,921 @@
+{
+  "testKeyHex": "1bade0643fc491eed82cc19363e815c1d378894aab5c8fc1ae3857fd6cce1cfa",
+  "cases": [
+    {
+      "name": "mixed",
+      "input": {
+        "contract": "journal.organize@1",
+        "requestKey": "org_8p5jpt41awce1ygzs1qy99ffr4",
+        "locale": "en-IN",
+        "timeZone": "Asia/Kolkata",
+        "kinds": [
+          "summary",
+          "sections",
+          "tasks",
+          "ideas",
+          "people",
+          "projects"
+        ],
+        "entries": [
+          {
+            "entryId": "ent_00000000000000000000000001",
+            "kind": "written",
+            "createdAt": "2026-10-09T08:30:00.000Z",
+            "units": [
+              {
+                "unitId": "w0",
+                "text": "Quarterly report review with the client went well.",
+                "sha256": "5b9754c87dd1bf3613505625b025c98838c6ec21381ebce3e1bbc193f839d2e8",
+                "offset": 0
+              },
+              {
+                "unitId": "w1",
+                "text": "I need to send the revised budget to Priya by Friday.",
+                "sha256": "3459c34194c2fcf4bbff707784f08b10d1a40c5b50a2028ed5fdb1b2a5ec03ef",
+                "offset": 52
+              },
+              {
+                "unitId": "w2",
+                "text": "After work I want to call Mom about the birthday dinner.",
+                "sha256": "c8280e94a2c120578976c2e2387006aece89ae85ee7734ee01c92828e7284e3d",
+                "offset": 107
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000002",
+            "kind": "written",
+            "createdAt": "2026-10-09T20:15:00.000Z",
+            "units": [
+              {
+                "unitId": "w0",
+                "text": "Idea: a weekend reading club for the neighbourhood.",
+                "sha256": "4d74c5112e125dd131673a53d88c7354b385fd1bc50a96692d1c98853171e94f",
+                "offset": 0
+              },
+              {
+                "unitId": "w1",
+                "text": "Remember to book the dentist appointment.",
+                "sha256": "6c2735cb5f59ad8eef4f70c0977c5ced08ee964d6d2503295179e1c5a76ba779",
+                "offset": 53
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000003",
+            "kind": "voice",
+            "createdAt": "2026-10-10T07:05:00.000Z",
+            "recordingId": "rec_00000000000000000000000003",
+            "transcriptRevision": 1,
+            "durationMs": 16500,
+            "units": [
+              {
+                "unitId": "seg_0000000000000000000000009c",
+                "text": "Morning stand-up with the design team about Project Atlas.",
+                "sha256": "bc94d8f65a65b80ce6fe52428b999ab1a65cce6313f64fe5c4321dfe6773f0df",
+                "startMs": 0,
+                "endMs": 4000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009d",
+                "text": "I have to finish the onboarding slides before the sprint demo.",
+                "sha256": "c47d595e362f5f324e555a56ab7b0303d49da330e9049e278b36f0ae7cdf6183",
+                "startMs": 4000,
+                "endMs": 8000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009e",
+                "text": "What if we tried pairing on the hard bugs every Thursday.",
+                "sha256": "a84a23ccdf61e8390959443237cf7f5cd640c98684254d9789674b26f394110b",
+                "startMs": 8000,
+                "endMs": 12000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009f",
+                "text": "Pick up groceries and the dry cleaning on the way home.",
+                "sha256": "f3cf6065e010ca5813ff7324087d3cbab0f981e4e6c38af11632dd7d8c595073",
+                "startMs": 12000,
+                "endMs": 16000
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000004",
+            "kind": "voice",
+            "createdAt": "2026-10-10T19:40:00.000Z",
+            "recordingId": "rec_00000000000000000000000004",
+            "transcriptRevision": 2,
+            "durationMs": 12000,
+            "units": [
+              {
+                "unitId": "seg_000000000000000000000000cg",
+                "text": "Long walk with Arjun in the park this evening.",
+                "sha256": "73224c97618f19b0fd9a2e5687263a3656d77087d8001be46ef090c5e4cb75a4",
+                "startMs": 0,
+                "endMs": 4000
+              },
+              {
+                "unitId": "seg_000000000000000000000008s9",
+                "text": "We should plan the Goa trip for December.",
+                "sha256": "25de6e3b151bdf0f797f8686c42f5055f59ad32cf63e75be85835cc3d188aa6c",
+                "startMs": 4000,
+                "endMs": 7500
+              },
+              {
+                "unitId": "seg_000000000000000000000000cj",
+                "text": "Need to renew the car insurance this week.",
+                "sha256": "7cce164a9ef424ca9e19e9066a897d1251007e628b72bd6cb8648ea43bbfed25",
+                "startMs": 7500,
+                "endMs": 11500
+              }
+            ]
+          }
+        ]
+      },
+      "note": "the fixture",
+      "expect": {
+        "requestKey": "org_8p5jpt41awce1ygzs1qy99ffr4"
+      }
+    },
+    {
+      "name": "identical-copy",
+      "input": {
+        "contract": "journal.organize@1",
+        "requestKey": "org_8p5jpt41awce1ygzs1qy99ffr4",
+        "locale": "en-IN",
+        "timeZone": "Asia/Kolkata",
+        "kinds": [
+          "summary",
+          "sections",
+          "tasks",
+          "ideas",
+          "people",
+          "projects"
+        ],
+        "entries": [
+          {
+            "entryId": "ent_00000000000000000000000001",
+            "kind": "written",
+            "createdAt": "2026-10-09T08:30:00.000Z",
+            "units": [
+              {
+                "unitId": "w0",
+                "text": "Quarterly report review with the client went well.",
+                "sha256": "5b9754c87dd1bf3613505625b025c98838c6ec21381ebce3e1bbc193f839d2e8",
+                "offset": 0
+              },
+              {
+                "unitId": "w1",
+                "text": "I need to send the revised budget to Priya by Friday.",
+                "sha256": "3459c34194c2fcf4bbff707784f08b10d1a40c5b50a2028ed5fdb1b2a5ec03ef",
+                "offset": 52
+              },
+              {
+                "unitId": "w2",
+                "text": "After work I want to call Mom about the birthday dinner.",
+                "sha256": "c8280e94a2c120578976c2e2387006aece89ae85ee7734ee01c92828e7284e3d",
+                "offset": 107
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000002",
+            "kind": "written",
+            "createdAt": "2026-10-09T20:15:00.000Z",
+            "units": [
+              {
+                "unitId": "w0",
+                "text": "Idea: a weekend reading club for the neighbourhood.",
+                "sha256": "4d74c5112e125dd131673a53d88c7354b385fd1bc50a96692d1c98853171e94f",
+                "offset": 0
+              },
+              {
+                "unitId": "w1",
+                "text": "Remember to book the dentist appointment.",
+                "sha256": "6c2735cb5f59ad8eef4f70c0977c5ced08ee964d6d2503295179e1c5a76ba779",
+                "offset": 53
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000003",
+            "kind": "voice",
+            "createdAt": "2026-10-10T07:05:00.000Z",
+            "recordingId": "rec_00000000000000000000000003",
+            "transcriptRevision": 1,
+            "durationMs": 16500,
+            "units": [
+              {
+                "unitId": "seg_0000000000000000000000009c",
+                "text": "Morning stand-up with the design team about Project Atlas.",
+                "sha256": "bc94d8f65a65b80ce6fe52428b999ab1a65cce6313f64fe5c4321dfe6773f0df",
+                "startMs": 0,
+                "endMs": 4000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009d",
+                "text": "I have to finish the onboarding slides before the sprint demo.",
+                "sha256": "c47d595e362f5f324e555a56ab7b0303d49da330e9049e278b36f0ae7cdf6183",
+                "startMs": 4000,
+                "endMs": 8000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009e",
+                "text": "What if we tried pairing on the hard bugs every Thursday.",
+                "sha256": "a84a23ccdf61e8390959443237cf7f5cd640c98684254d9789674b26f394110b",
+                "startMs": 8000,
+                "endMs": 12000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009f",
+                "text": "Pick up groceries and the dry cleaning on the way home.",
+                "sha256": "f3cf6065e010ca5813ff7324087d3cbab0f981e4e6c38af11632dd7d8c595073",
+                "startMs": 12000,
+                "endMs": 16000
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000004",
+            "kind": "voice",
+            "createdAt": "2026-10-10T19:40:00.000Z",
+            "recordingId": "rec_00000000000000000000000004",
+            "transcriptRevision": 2,
+            "durationMs": 12000,
+            "units": [
+              {
+                "unitId": "seg_000000000000000000000000cg",
+                "text": "Long walk with Arjun in the park this evening.",
+                "sha256": "73224c97618f19b0fd9a2e5687263a3656d77087d8001be46ef090c5e4cb75a4",
+                "startMs": 0,
+                "endMs": 4000
+              },
+              {
+                "unitId": "seg_000000000000000000000008s9",
+                "text": "We should plan the Goa trip for December.",
+                "sha256": "25de6e3b151bdf0f797f8686c42f5055f59ad32cf63e75be85835cc3d188aa6c",
+                "startMs": 4000,
+                "endMs": 7500
+              },
+              {
+                "unitId": "seg_000000000000000000000000cj",
+                "text": "Need to renew the car insurance this week.",
+                "sha256": "7cce164a9ef424ca9e19e9066a897d1251007e628b72bd6cb8648ea43bbfed25",
+                "startMs": 7500,
+                "endMs": 11500
+              }
+            ]
+          }
+        ]
+      },
+      "note": "an identical request reuses the key",
+      "expect": {
+        "requestKey": "org_8p5jpt41awce1ygzs1qy99ffr4"
+      }
+    },
+    {
+      "name": "stale-key-ignored",
+      "input": {
+        "contract": "journal.organize@1",
+        "requestKey": "org_00000000000000000000000005",
+        "locale": "en-IN",
+        "timeZone": "Asia/Kolkata",
+        "kinds": [
+          "summary",
+          "sections",
+          "tasks",
+          "ideas",
+          "people",
+          "projects"
+        ],
+        "entries": [
+          {
+            "entryId": "ent_00000000000000000000000001",
+            "kind": "written",
+            "createdAt": "2026-10-09T08:30:00.000Z",
+            "units": [
+              {
+                "unitId": "w0",
+                "text": "Quarterly report review with the client went well.",
+                "sha256": "5b9754c87dd1bf3613505625b025c98838c6ec21381ebce3e1bbc193f839d2e8",
+                "offset": 0
+              },
+              {
+                "unitId": "w1",
+                "text": "I need to send the revised budget to Priya by Friday.",
+                "sha256": "3459c34194c2fcf4bbff707784f08b10d1a40c5b50a2028ed5fdb1b2a5ec03ef",
+                "offset": 52
+              },
+              {
+                "unitId": "w2",
+                "text": "After work I want to call Mom about the birthday dinner.",
+                "sha256": "c8280e94a2c120578976c2e2387006aece89ae85ee7734ee01c92828e7284e3d",
+                "offset": 107
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000002",
+            "kind": "written",
+            "createdAt": "2026-10-09T20:15:00.000Z",
+            "units": [
+              {
+                "unitId": "w0",
+                "text": "Idea: a weekend reading club for the neighbourhood.",
+                "sha256": "4d74c5112e125dd131673a53d88c7354b385fd1bc50a96692d1c98853171e94f",
+                "offset": 0
+              },
+              {
+                "unitId": "w1",
+                "text": "Remember to book the dentist appointment.",
+                "sha256": "6c2735cb5f59ad8eef4f70c0977c5ced08ee964d6d2503295179e1c5a76ba779",
+                "offset": 53
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000003",
+            "kind": "voice",
+            "createdAt": "2026-10-10T07:05:00.000Z",
+            "recordingId": "rec_00000000000000000000000003",
+            "transcriptRevision": 1,
+            "durationMs": 16500,
+            "units": [
+              {
+                "unitId": "seg_0000000000000000000000009c",
+                "text": "Morning stand-up with the design team about Project Atlas.",
+                "sha256": "bc94d8f65a65b80ce6fe52428b999ab1a65cce6313f64fe5c4321dfe6773f0df",
+                "startMs": 0,
+                "endMs": 4000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009d",
+                "text": "I have to finish the onboarding slides before the sprint demo.",
+                "sha256": "c47d595e362f5f324e555a56ab7b0303d49da330e9049e278b36f0ae7cdf6183",
+                "startMs": 4000,
+                "endMs": 8000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009e",
+                "text": "What if we tried pairing on the hard bugs every Thursday.",
+                "sha256": "a84a23ccdf61e8390959443237cf7f5cd640c98684254d9789674b26f394110b",
+                "startMs": 8000,
+                "endMs": 12000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009f",
+                "text": "Pick up groceries and the dry cleaning on the way home.",
+                "sha256": "f3cf6065e010ca5813ff7324087d3cbab0f981e4e6c38af11632dd7d8c595073",
+                "startMs": 12000,
+                "endMs": 16000
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000004",
+            "kind": "voice",
+            "createdAt": "2026-10-10T19:40:00.000Z",
+            "recordingId": "rec_00000000000000000000000004",
+            "transcriptRevision": 2,
+            "durationMs": 12000,
+            "units": [
+              {
+                "unitId": "seg_000000000000000000000000cg",
+                "text": "Long walk with Arjun in the park this evening.",
+                "sha256": "73224c97618f19b0fd9a2e5687263a3656d77087d8001be46ef090c5e4cb75a4",
+                "startMs": 0,
+                "endMs": 4000
+              },
+              {
+                "unitId": "seg_000000000000000000000008s9",
+                "text": "We should plan the Goa trip for December.",
+                "sha256": "25de6e3b151bdf0f797f8686c42f5055f59ad32cf63e75be85835cc3d188aa6c",
+                "startMs": 4000,
+                "endMs": 7500
+              },
+              {
+                "unitId": "seg_000000000000000000000000cj",
+                "text": "Need to renew the car insurance this week.",
+                "sha256": "7cce164a9ef424ca9e19e9066a897d1251007e628b72bd6cb8648ea43bbfed25",
+                "startMs": 7500,
+                "endMs": 11500
+              }
+            ]
+          }
+        ]
+      },
+      "note": "the key is computed without the requestKey member",
+      "expect": {
+        "requestKey": "org_8p5jpt41awce1ygzs1qy99ffr4"
+      }
+    },
+    {
+      "name": "kinds-changed",
+      "input": {
+        "contract": "journal.organize@1",
+        "requestKey": "org_8p5jpt41awce1ygzs1qy99ffr4",
+        "locale": "en-IN",
+        "timeZone": "Asia/Kolkata",
+        "kinds": [
+          "tasks"
+        ],
+        "entries": [
+          {
+            "entryId": "ent_00000000000000000000000001",
+            "kind": "written",
+            "createdAt": "2026-10-09T08:30:00.000Z",
+            "units": [
+              {
+                "unitId": "w0",
+                "text": "Quarterly report review with the client went well.",
+                "sha256": "5b9754c87dd1bf3613505625b025c98838c6ec21381ebce3e1bbc193f839d2e8",
+                "offset": 0
+              },
+              {
+                "unitId": "w1",
+                "text": "I need to send the revised budget to Priya by Friday.",
+                "sha256": "3459c34194c2fcf4bbff707784f08b10d1a40c5b50a2028ed5fdb1b2a5ec03ef",
+                "offset": 52
+              },
+              {
+                "unitId": "w2",
+                "text": "After work I want to call Mom about the birthday dinner.",
+                "sha256": "c8280e94a2c120578976c2e2387006aece89ae85ee7734ee01c92828e7284e3d",
+                "offset": 107
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000002",
+            "kind": "written",
+            "createdAt": "2026-10-09T20:15:00.000Z",
+            "units": [
+              {
+                "unitId": "w0",
+                "text": "Idea: a weekend reading club for the neighbourhood.",
+                "sha256": "4d74c5112e125dd131673a53d88c7354b385fd1bc50a96692d1c98853171e94f",
+                "offset": 0
+              },
+              {
+                "unitId": "w1",
+                "text": "Remember to book the dentist appointment.",
+                "sha256": "6c2735cb5f59ad8eef4f70c0977c5ced08ee964d6d2503295179e1c5a76ba779",
+                "offset": 53
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000003",
+            "kind": "voice",
+            "createdAt": "2026-10-10T07:05:00.000Z",
+            "recordingId": "rec_00000000000000000000000003",
+            "transcriptRevision": 1,
+            "durationMs": 16500,
+            "units": [
+              {
+                "unitId": "seg_0000000000000000000000009c",
+                "text": "Morning stand-up with the design team about Project Atlas.",
+                "sha256": "bc94d8f65a65b80ce6fe52428b999ab1a65cce6313f64fe5c4321dfe6773f0df",
+                "startMs": 0,
+                "endMs": 4000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009d",
+                "text": "I have to finish the onboarding slides before the sprint demo.",
+                "sha256": "c47d595e362f5f324e555a56ab7b0303d49da330e9049e278b36f0ae7cdf6183",
+                "startMs": 4000,
+                "endMs": 8000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009e",
+                "text": "What if we tried pairing on the hard bugs every Thursday.",
+                "sha256": "a84a23ccdf61e8390959443237cf7f5cd640c98684254d9789674b26f394110b",
+                "startMs": 8000,
+                "endMs": 12000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009f",
+                "text": "Pick up groceries and the dry cleaning on the way home.",
+                "sha256": "f3cf6065e010ca5813ff7324087d3cbab0f981e4e6c38af11632dd7d8c595073",
+                "startMs": 12000,
+                "endMs": 16000
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000004",
+            "kind": "voice",
+            "createdAt": "2026-10-10T19:40:00.000Z",
+            "recordingId": "rec_00000000000000000000000004",
+            "transcriptRevision": 2,
+            "durationMs": 12000,
+            "units": [
+              {
+                "unitId": "seg_000000000000000000000000cg",
+                "text": "Long walk with Arjun in the park this evening.",
+                "sha256": "73224c97618f19b0fd9a2e5687263a3656d77087d8001be46ef090c5e4cb75a4",
+                "startMs": 0,
+                "endMs": 4000
+              },
+              {
+                "unitId": "seg_000000000000000000000008s9",
+                "text": "We should plan the Goa trip for December.",
+                "sha256": "25de6e3b151bdf0f797f8686c42f5055f59ad32cf63e75be85835cc3d188aa6c",
+                "startMs": 4000,
+                "endMs": 7500
+              },
+              {
+                "unitId": "seg_000000000000000000000000cj",
+                "text": "Need to renew the car insurance this week.",
+                "sha256": "7cce164a9ef424ca9e19e9066a897d1251007e628b72bd6cb8648ea43bbfed25",
+                "startMs": 7500,
+                "endMs": 11500
+              }
+            ]
+          }
+        ]
+      },
+      "note": "different kinds, different key",
+      "expect": {
+        "requestKey": "org_1xvy6ra3cym30k031s9v0xr3n2"
+      }
+    },
+    {
+      "name": "text-changed",
+      "input": {
+        "contract": "journal.organize@1",
+        "requestKey": "org_8p5jpt41awce1ygzs1qy99ffr4",
+        "locale": "en-IN",
+        "timeZone": "Asia/Kolkata",
+        "kinds": [
+          "summary",
+          "sections",
+          "tasks",
+          "ideas",
+          "people",
+          "projects"
+        ],
+        "entries": [
+          {
+            "entryId": "ent_00000000000000000000000001",
+            "kind": "written",
+            "createdAt": "2026-10-09T08:30:00.000Z",
+            "units": [
+              {
+                "unitId": "w0",
+                "text": "Quarterly report review with the client went well. ",
+                "sha256": "5d22a08a967bc8eebb73fc679cb39152290150dcafa8eb9ae60fa7939477a32c",
+                "offset": 0
+              },
+              {
+                "unitId": "w1",
+                "text": "I need to send the revised budget to Priya by Friday.",
+                "sha256": "3459c34194c2fcf4bbff707784f08b10d1a40c5b50a2028ed5fdb1b2a5ec03ef",
+                "offset": 52
+              },
+              {
+                "unitId": "w2",
+                "text": "After work I want to call Mom about the birthday dinner.",
+                "sha256": "c8280e94a2c120578976c2e2387006aece89ae85ee7734ee01c92828e7284e3d",
+                "offset": 107
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000002",
+            "kind": "written",
+            "createdAt": "2026-10-09T20:15:00.000Z",
+            "units": [
+              {
+                "unitId": "w0",
+                "text": "Idea: a weekend reading club for the neighbourhood.",
+                "sha256": "4d74c5112e125dd131673a53d88c7354b385fd1bc50a96692d1c98853171e94f",
+                "offset": 0
+              },
+              {
+                "unitId": "w1",
+                "text": "Remember to book the dentist appointment.",
+                "sha256": "6c2735cb5f59ad8eef4f70c0977c5ced08ee964d6d2503295179e1c5a76ba779",
+                "offset": 53
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000003",
+            "kind": "voice",
+            "createdAt": "2026-10-10T07:05:00.000Z",
+            "recordingId": "rec_00000000000000000000000003",
+            "transcriptRevision": 1,
+            "durationMs": 16500,
+            "units": [
+              {
+                "unitId": "seg_0000000000000000000000009c",
+                "text": "Morning stand-up with the design team about Project Atlas.",
+                "sha256": "bc94d8f65a65b80ce6fe52428b999ab1a65cce6313f64fe5c4321dfe6773f0df",
+                "startMs": 0,
+                "endMs": 4000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009d",
+                "text": "I have to finish the onboarding slides before the sprint demo.",
+                "sha256": "c47d595e362f5f324e555a56ab7b0303d49da330e9049e278b36f0ae7cdf6183",
+                "startMs": 4000,
+                "endMs": 8000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009e",
+                "text": "What if we tried pairing on the hard bugs every Thursday.",
+                "sha256": "a84a23ccdf61e8390959443237cf7f5cd640c98684254d9789674b26f394110b",
+                "startMs": 8000,
+                "endMs": 12000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009f",
+                "text": "Pick up groceries and the dry cleaning on the way home.",
+                "sha256": "f3cf6065e010ca5813ff7324087d3cbab0f981e4e6c38af11632dd7d8c595073",
+                "startMs": 12000,
+                "endMs": 16000
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000004",
+            "kind": "voice",
+            "createdAt": "2026-10-10T19:40:00.000Z",
+            "recordingId": "rec_00000000000000000000000004",
+            "transcriptRevision": 2,
+            "durationMs": 12000,
+            "units": [
+              {
+                "unitId": "seg_000000000000000000000000cg",
+                "text": "Long walk with Arjun in the park this evening.",
+                "sha256": "73224c97618f19b0fd9a2e5687263a3656d77087d8001be46ef090c5e4cb75a4",
+                "startMs": 0,
+                "endMs": 4000
+              },
+              {
+                "unitId": "seg_000000000000000000000008s9",
+                "text": "We should plan the Goa trip for December.",
+                "sha256": "25de6e3b151bdf0f797f8686c42f5055f59ad32cf63e75be85835cc3d188aa6c",
+                "startMs": 4000,
+                "endMs": 7500
+              },
+              {
+                "unitId": "seg_000000000000000000000000cj",
+                "text": "Need to renew the car insurance this week.",
+                "sha256": "7cce164a9ef424ca9e19e9066a897d1251007e628b72bd6cb8648ea43bbfed25",
+                "startMs": 7500,
+                "endMs": 11500
+              }
+            ]
+          }
+        ]
+      },
+      "note": "one character more, different key",
+      "expect": {
+        "requestKey": "org_rten75gq64fsc4hzn6sgny334r"
+      }
+    },
+    {
+      "name": "time-zone-changed",
+      "input": {
+        "contract": "journal.organize@1",
+        "requestKey": "org_8p5jpt41awce1ygzs1qy99ffr4",
+        "locale": "en-IN",
+        "timeZone": "UTC",
+        "kinds": [
+          "summary",
+          "sections",
+          "tasks",
+          "ideas",
+          "people",
+          "projects"
+        ],
+        "entries": [
+          {
+            "entryId": "ent_00000000000000000000000001",
+            "kind": "written",
+            "createdAt": "2026-10-09T08:30:00.000Z",
+            "units": [
+              {
+                "unitId": "w0",
+                "text": "Quarterly report review with the client went well.",
+                "sha256": "5b9754c87dd1bf3613505625b025c98838c6ec21381ebce3e1bbc193f839d2e8",
+                "offset": 0
+              },
+              {
+                "unitId": "w1",
+                "text": "I need to send the revised budget to Priya by Friday.",
+                "sha256": "3459c34194c2fcf4bbff707784f08b10d1a40c5b50a2028ed5fdb1b2a5ec03ef",
+                "offset": 52
+              },
+              {
+                "unitId": "w2",
+                "text": "After work I want to call Mom about the birthday dinner.",
+                "sha256": "c8280e94a2c120578976c2e2387006aece89ae85ee7734ee01c92828e7284e3d",
+                "offset": 107
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000002",
+            "kind": "written",
+            "createdAt": "2026-10-09T20:15:00.000Z",
+            "units": [
+              {
+                "unitId": "w0",
+                "text": "Idea: a weekend reading club for the neighbourhood.",
+                "sha256": "4d74c5112e125dd131673a53d88c7354b385fd1bc50a96692d1c98853171e94f",
+                "offset": 0
+              },
+              {
+                "unitId": "w1",
+                "text": "Remember to book the dentist appointment.",
+                "sha256": "6c2735cb5f59ad8eef4f70c0977c5ced08ee964d6d2503295179e1c5a76ba779",
+                "offset": 53
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000003",
+            "kind": "voice",
+            "createdAt": "2026-10-10T07:05:00.000Z",
+            "recordingId": "rec_00000000000000000000000003",
+            "transcriptRevision": 1,
+            "durationMs": 16500,
+            "units": [
+              {
+                "unitId": "seg_0000000000000000000000009c",
+                "text": "Morning stand-up with the design team about Project Atlas.",
+                "sha256": "bc94d8f65a65b80ce6fe52428b999ab1a65cce6313f64fe5c4321dfe6773f0df",
+                "startMs": 0,
+                "endMs": 4000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009d",
+                "text": "I have to finish the onboarding slides before the sprint demo.",
+                "sha256": "c47d595e362f5f324e555a56ab7b0303d49da330e9049e278b36f0ae7cdf6183",
+                "startMs": 4000,
+                "endMs": 8000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009e",
+                "text": "What if we tried pairing on the hard bugs every Thursday.",
+                "sha256": "a84a23ccdf61e8390959443237cf7f5cd640c98684254d9789674b26f394110b",
+                "startMs": 8000,
+                "endMs": 12000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009f",
+                "text": "Pick up groceries and the dry cleaning on the way home.",
+                "sha256": "f3cf6065e010ca5813ff7324087d3cbab0f981e4e6c38af11632dd7d8c595073",
+                "startMs": 12000,
+                "endMs": 16000
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000004",
+            "kind": "voice",
+            "createdAt": "2026-10-10T19:40:00.000Z",
+            "recordingId": "rec_00000000000000000000000004",
+            "transcriptRevision": 2,
+            "durationMs": 12000,
+            "units": [
+              {
+                "unitId": "seg_000000000000000000000000cg",
+                "text": "Long walk with Arjun in the park this evening.",
+                "sha256": "73224c97618f19b0fd9a2e5687263a3656d77087d8001be46ef090c5e4cb75a4",
+                "startMs": 0,
+                "endMs": 4000
+              },
+              {
+                "unitId": "seg_000000000000000000000008s9",
+                "text": "We should plan the Goa trip for December.",
+                "sha256": "25de6e3b151bdf0f797f8686c42f5055f59ad32cf63e75be85835cc3d188aa6c",
+                "startMs": 4000,
+                "endMs": 7500
+              },
+              {
+                "unitId": "seg_000000000000000000000000cj",
+                "text": "Need to renew the car insurance this week.",
+                "sha256": "7cce164a9ef424ca9e19e9066a897d1251007e628b72bd6cb8648ea43bbfed25",
+                "startMs": 7500,
+                "endMs": 11500
+              }
+            ]
+          }
+        ]
+      },
+      "note": "context change, different key",
+      "expect": {
+        "requestKey": "org_bmz0g01h1tknr7w7cxt17pxnen"
+      }
+    },
+    {
+      "name": "entry-removed",
+      "input": {
+        "contract": "journal.organize@1",
+        "requestKey": "org_8p5jpt41awce1ygzs1qy99ffr4",
+        "locale": "en-IN",
+        "timeZone": "Asia/Kolkata",
+        "kinds": [
+          "summary",
+          "sections",
+          "tasks",
+          "ideas",
+          "people",
+          "projects"
+        ],
+        "entries": [
+          {
+            "entryId": "ent_00000000000000000000000001",
+            "kind": "written",
+            "createdAt": "2026-10-09T08:30:00.000Z",
+            "units": [
+              {
+                "unitId": "w0",
+                "text": "Quarterly report review with the client went well.",
+                "sha256": "5b9754c87dd1bf3613505625b025c98838c6ec21381ebce3e1bbc193f839d2e8",
+                "offset": 0
+              },
+              {
+                "unitId": "w1",
+                "text": "I need to send the revised budget to Priya by Friday.",
+                "sha256": "3459c34194c2fcf4bbff707784f08b10d1a40c5b50a2028ed5fdb1b2a5ec03ef",
+                "offset": 52
+              },
+              {
+                "unitId": "w2",
+                "text": "After work I want to call Mom about the birthday dinner.",
+                "sha256": "c8280e94a2c120578976c2e2387006aece89ae85ee7734ee01c92828e7284e3d",
+                "offset": 107
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000002",
+            "kind": "written",
+            "createdAt": "2026-10-09T20:15:00.000Z",
+            "units": [
+              {
+                "unitId": "w0",
+                "text": "Idea: a weekend reading club for the neighbourhood.",
+                "sha256": "4d74c5112e125dd131673a53d88c7354b385fd1bc50a96692d1c98853171e94f",
+                "offset": 0
+              },
+              {
+                "unitId": "w1",
+                "text": "Remember to book the dentist appointment.",
+                "sha256": "6c2735cb5f59ad8eef4f70c0977c5ced08ee964d6d2503295179e1c5a76ba779",
+                "offset": 53
+              }
+            ]
+          },
+          {
+            "entryId": "ent_00000000000000000000000003",
+            "kind": "voice",
+            "createdAt": "2026-10-10T07:05:00.000Z",
+            "recordingId": "rec_00000000000000000000000003",
+            "transcriptRevision": 1,
+            "durationMs": 16500,
+            "units": [
+              {
+                "unitId": "seg_0000000000000000000000009c",
+                "text": "Morning stand-up with the design team about Project Atlas.",
+                "sha256": "bc94d8f65a65b80ce6fe52428b999ab1a65cce6313f64fe5c4321dfe6773f0df",
+                "startMs": 0,
+                "endMs": 4000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009d",
+                "text": "I have to finish the onboarding slides before the sprint demo.",
+                "sha256": "c47d595e362f5f324e555a56ab7b0303d49da330e9049e278b36f0ae7cdf6183",
+                "startMs": 4000,
+                "endMs": 8000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009e",
+                "text": "What if we tried pairing on the hard bugs every Thursday.",
+                "sha256": "a84a23ccdf61e8390959443237cf7f5cd640c98684254d9789674b26f394110b",
+                "startMs": 8000,
+                "endMs": 12000
+              },
+              {
+                "unitId": "seg_0000000000000000000000009f",
+                "text": "Pick up groceries and the dry cleaning on the way home.",
+                "sha256": "f3cf6065e010ca5813ff7324087d3cbab0f981e4e6c38af11632dd7d8c595073",
+                "startMs": 12000,
+                "endMs": 16000
+              }
+            ]
+          }
+        ]
+      },
+      "note": "smaller selection, different key",
+      "expect": {
+        "requestKey": "org_nqzs52kdyvn3r3p6ms112zcdr4"
+      }
+    }
+  ]
+}

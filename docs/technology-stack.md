@@ -51,8 +51,8 @@ Android/iOS and Hybrid AI package matrix.
 | Screens / safe area | 4.28.0 / 5.10.1 | New-Architecture Android compilation |
 | TypeScript | template-compatible 6.0.x | Strict no-emit check |
 | Jest / RN Testing Library | 29.6.x / 14.1.0 | Separate unit, smoke, integration, and performance projects |
-| Hybrid AI React Native | `hybrid-ai-react-native-0.1.0-m5.tgz` (SDK `e0fc3c5`), SHA-256 `4761ea3b…8b74` | Metro release bundle, R8 release APK, API 35 device suite ([AJ-3](validation/AJ3-android.md)) |
-| Hybrid AI Android AAR | `hybrid-ai-android-release.aar` (SDK `e0fc3c5`), SHA-256 `ed8ee30c…3579`, via `android/hybrid-ai-android` wrapper | Build-time SHA-256 check; `arm64-v8a` and `x86_64` only |
+| Hybrid AI React Native | `hybrid-ai-react-native-0.1.0-m5.tgz` (SDK `c4b302e`, accepted and merged into SDK `main` by `855edaf`; previously `e0fc3c5`), SHA-256 `a11cba67…e2a` | Metro release bundle, R8 release APK, API 35 device suite ([AJ-3](validation/AJ3-android.md)) |
+| Hybrid AI Android AAR | `hybrid-ai-android-release.aar` (SDK `c4b302e`, accepted and merged into SDK `main` by `855edaf`; previously `e0fc3c5`), SHA-256 `8751a5a7…b1a`, via `android/hybrid-ai-android` wrapper | Build-time SHA-256 check; `arm64-v8a` and `x86_64` only |
 | Argon2id | P-H-C reference libargon2 `20190702` (`62358ba2`, archive SHA-256 `daf972a8…442c`), native (ADR-017) | Planned for AJ-1; parameters pending a low-end device benchmark |
 | Encrypted database | `net.zetetic:sqlcipher-android:4.19.1` + `androidx.sqlite:sqlite:2.7.0` (ADR-017) | AJ-1 |
 | PIN and AJB1 KDF | P-H-C reference libargon2 `20190702` (`62358ba2`), archive SHA-256 `daf972a8…442c`, built by `android/vault-crypto` (ADR-017) | Vault JVM tests; the device benchmark is Open |

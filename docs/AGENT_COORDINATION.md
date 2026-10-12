@@ -6,10 +6,12 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 ## Current snapshot
 
 - **Phase:** AJ-1 (Android, emulator evidence) and the AJ-3 node workflow are on
-  `main`; neither milestone is accepted. AJ-2 has not started.
+  `main`; neither milestone is accepted. **AJ-2 is accepted for the
+  Android-first profile (owner, 2026-10-12)** and merged into `main`
+  ([AJ-2 progress §11](validation/AJ2-progress.md#11-android-first-aj-2-acceptance-2026-10-12)).
 - **Branch:** `main`.
-- **Last agent:** Claude Code `hybridai-81` (AJ-1 merge into `main`).
-- **Last updated:** 2026-10-11.
+- **Last agent:** Claude Code `hybridai-81` (AJ-2.2 on `aj2/organize`).
+- **Last updated:** 2026-10-12.
 - **AJ-3 (updated 2026-10-10 19:40 by `hybridai-7b`).** The Android node
   workflow passes 20 of 20 device steps on the AJ-1 fix build `72ee323`, in
   a fresh run. The milestone is not accepted:
@@ -29,7 +31,14 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
     evidence and is **merged into `main`** (`a759db8`, 2026-10-11), with the
     F3 and status-recovery fixes after it (`57f316c`, `f294c87`); not
     accepted (physical-device, live-timing, and iOS gates deferred).
-  - AJ-2 has not started.
+  - AJ-2.0, AJ-2.1, and AJ-2.2 are accepted for the Android-first profile
+    and merged into `main` (§11). The record of what was implemented
+    ([AJ-2 progress](validation/AJ2-progress.md)): the frozen
+    `journal.organize@1` contract, `node-companion/`, and the app
+    integration through the public SDK. AJ-2.2 (due dates, history,
+    staleness, task states, and the Organized and Tasks UI) is implemented
+    and validated on emulators
+    ([AJ-2 progress §9](validation/AJ2-progress.md#9-aj-22-organized-and-tasks-2026-10-12)).
 
 ## Parallel-work claims (updated 2026-10-10 00:25 IST)
 
@@ -128,6 +137,166 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
   - **Emulator:** `emulator-5554` is shut down after the run;
     `.aj-exclusive-run` is released.
   - **Next:** AJ-2 has not started; it waits for the owner.
+- **AJ-2 track: Claude Code session `hybridai-81`.** Started 2026-10-11;
+  last updated 2026-10-11.
+  - **Where:** worktree `../audio-journal-aj2`, branch `aj2/organize`, from
+    `main` `c5fb510`. Not merged, not pushed, not released.
+  - **Commits:** `58d1587`, `9c6d3d4` (contract), `8e3695a` (schemas,
+    vectors, verifier), `d0e5fe2` (companion), `0b064f8` (app through the
+    public SDK), `c33a2f1` (companion pairing fix), `491dfd9` (organize
+    performance suite, device harnesses), then the evidence and docs
+    commit.
+  - **Done:**
+    - AJ-2.0: the contract (ADR-019, `docs/journal-organize.md`).
+    - AJ-2.1:
+      - `node-companion/` with the TLS 1.3 and TLS 1.2 + EMS profile;
+      - the minimum app integration (consent, streaming, cancel,
+        validation, atomic storage, migration 3);
+      - the minimal UI.
+    - The organize performance suite.
+    - Evidence: [AJ-2 progress](validation/AJ2-progress.md) and the
+      [organize performance suite](validation/AJ2-organize-performance.md).
+  - **Validation:**
+    - JS baseline: unit 287, smoke 3, integration 142, performance 6.
+    - Companion 36/36; JVM 61/61; release build.
+    - Device (API 35 emulator): functional suite 9/9; performance suite
+      complete (development baseline).
+    - API 26 and 28 TLS proof with the real app: TLS 1.2 ECDHE-ECDSA
+      AES-GCM with EMS, 7/7 handshakes each, organized and stored.
+  - **Remaining (not started):**
+    - the Organized and Tasks UI (O-1 to O-3);
+    - O-7 (entries too long for one request);
+    - physical-device performance matrix and iOS (AJ-4).
+  - **SDK findings for the owner:** SDK-AJ-4 (undocumented framing and
+    status) and SDK-AJ-5 (a cancel during a pending event read never
+    reaches the node), in `docs/validation/hybrid-ai-sdk-issues.md`.
+    SDK-AJ-1 and SDK-AJ-2 stand, with the app-side compatibility
+    workaround.
+  - **Emulators:** `aj-api35-4g` (5554) was used and stopped. The new AVDs
+    `aj-api26` and `aj-api28` (5560, 5562) are stopped after their runs.
+    The SDK session's `hybrid-ai-api26`/`hybrid-ai-api28` were not touched.
+  - **Open questions:** `docs/journal-organize.md` §12 (O-1 to O-7).
+  - **Owner decision, 2026-10-11:** AJ-2.0 and AJ-2.1 are accepted as
+    completed development checkpoints. This is not AJ-2 acceptance, and
+    there is no merge.
+  - **Amendments before AJ-2.2: done** (`b4aea98`, `ad430fc`, `cc763bd`,
+    and the evidence commit). See
+    [AJ-2 progress §8](validation/AJ2-progress.md#8-owner-amendments-before-aj-22-2026-10-11):
+    1. the performance results are labelled the deterministic `aj.rules`
+       baseline;
+    2. amendment A1 makes partial results explicit (ADR-019, schemas,
+       vectors, validators, companion, UI, UX, performance rerun);
+    3. SDK-AJ-5 is recorded as the blocker for cancellation acceptance,
+       with the handoff and re-test in `hybrid-ai-sdk-issues.md`;
+    4. the real voice-entry journey passed 7/7 on the `e2e` build;
+    5. the wording on rehearsed persistence is corrected.
+  - **Validation (amended build):**
+    - JS: unit 289, smoke 3, integration 144, performance 6.
+    - Companion 40/40; vectors `--check` and the verifier pass with 0
+      failures; JVM 61/61.
+    - Release and `e2e` builds pass.
+    - Device (API 35 emulator): functional 9/9 (`ad430fc`), voice journey
+      7/7 (`cc763bd`), and the performance rerun complete.
+  - **Blocked:** final AJ-2 cancellation acceptance, on SDK-AJ-5 (an SDK
+    fix and a re-test). The SDK repository was not changed. The handoff is
+    the SDK-AJ-5 section; no peer session is identified as the SDK owner.
+  - **Owner decision, 2026-10-12:** O-1, O-2, and O-3 are approved with
+    amendments. AJ-2.2 is in progress on `aj2/organize` (no merge, push,
+    release, or acceptance claim):
+    - O-1: due dates, as contract amendment A2, with an independent
+      re-derivation in the app validator;
+    - O-2: history and computed staleness;
+    - O-3: task states and conservative carry-over.
+
+    It covers the Organized and Tasks UI, then the cumulative suites.
+    **Touches:**
+    - the contract and ADR-019, `schemas/journal/v1/`,
+      `tools/journal-organize/`;
+    - `node-companion/` (engine and validator);
+    - `src/features/organize/`, storage migration 4, `src/app/navigation/`;
+    - `e2e/aj2/`, and the UX, LLD, and validation documents.
+  - **AJ-2.2 handoff (2026-10-12):** implemented and validated on emulators;
+    not merged, pushed, released, or accepted.
+    - **Commits:** `c0edd93` (A2, ADR-020), `10ced20` (migration 4,
+      carry-over, staleness), `d865385` (Organized, History, and Tasks
+      views), and the evidence commit.
+    - **Permanent docs:** contract §3.3 and A2, ADR-019, ADR-020, UX §7,
+      LLD §7.3, HLD, UML, roadmap §4,
+      [AJ-2 progress §9](validation/AJ2-progress.md#9-aj-22-organized-and-tasks-2026-10-12),
+      and SDK-AJ-5 in `hybrid-ai-sdk-issues.md`.
+    - **Validation:** `npm run test:baseline` (unit 308, smoke 3,
+      integration 153, performance 6); companion 42/42; vectors `--check`
+      and the verifier with 0 failures (68 due-date cases); JVM 61/61;
+      release and `e2e` builds. Device (API 35 emulator, sequential under
+      the lock): Organized and Tasks 11/11, functional 9/9, voice journey
+      7/7, the performance rerun complete (`perf-api35-run3`), and the AJ-3
+      regression S00–S19 20/20 (fresh run, `aj3-regression-d865385`).
+      Evidence: `aj1-artifacts/evidence/aj2-device/`.
+    - **Harness fixes:** the AJ-3 harness scrolls to the diagnostics request
+      card, which AJ-2.1's benchmark card pushed below the fold; the voice
+      helpers moved to `e2e/aj2/lib/voice.mjs`.
+    - **Blocked:** final cancellation acceptance, on SDK-AJ-5. The
+      re-test (`--expect-node-cancel`) is prepared but cannot pass until a
+      fixed packaged SDK is installed. Companion `DELETE` evidence proves
+      the companion only. It still reproduces on `d865385` (O03).
+    - **Remaining:** owner review of AJ-2.2; the SDK-AJ-5 fix and re-test;
+      O-4 to O-6 and O-7 chunking (deferred); physical-device and iOS
+      gates.
+  - **Emulators:** stopped; `.aj-exclusive-run` is released.
+  - **SDK-AJ-5 package integration and AJ-2 closing baseline (2026-10-12,
+    Claude Code; complete; not merged, pushed, released, or accepted).**
+    - **Pin.** SDK packages from `c4b302e` (SDK branch
+      `fix/sdk-aj-5-node-cancel`, accepted and merged into SDK `main` by `855edaf`;
+      ADR-015 amendment). AAR
+      `8751a5a7…b1a`, RN tarball `a11cba67…e2a`, both verified. No
+      `e0fc3c5` remains in the build inputs; the APKs embed the accepted package's
+      `libhybrid_ai_core.so`.
+    - **Commits:**
+      - `aabc8b1`: the pin;
+      - `2903a7c`: the strict closing checks;
+      - the follow-up harness and evidence commits.
+    - **Validation**
+      ([AJ-2 progress §10](validation/AJ2-progress.md#10-sdk-aj-5-packages-and-the-aj-2-closing-baseline-2026-10-12)):
+      - JS baseline: unit 308, smoke 3, integration 153, performance 6;
+      - JVM 61/61; release and `e2e` builds;
+      - SDK-AJ-5 closing test 2/2 and strict cancel block 5/5;
+      - functional 9/9, voice 7/7, Organized/Tasks 11/11;
+      - the full performance matrix complete;
+      - fresh AJ-3 S00–S19 20/20;
+      - API 26 and 28 TLS 1.2 smokes pass;
+      - the privacy scan: 0 findings in 54 logs, plus the API 26 and 28
+        device logs from repeat smokes (`privacy-api26-28/`: streamed
+        logcat with start and end markers; 0 findings in 4 logs).
+
+      The closing baseline passed technically. AJ-2 was then accepted for
+      the Android-first profile and merged (see the outcome below).
+    - **Evidence hygiene (2026-10-12):** see AJ-2 progress §10.
+      - The privacy scanner was extended and self-tested.
+      - The final scan over `aj2-device` and `aj2-sdkaj5` found 0 findings
+        in 131 device, companion, and boot logs. One finding is in a
+        superseded harness console summary.
+      - O06 was rerun with the committed harness (`b7b7d0c`) against the
+        accepted APK: refused, reason shown, 0 jobs sent.
+
+      Evidence is in `aj1-artifacts/evidence/aj2-sdkaj5/`. Release APK
+      `22c0f35d…e015`.
+    - **SDK-AJ-5** is closed in the AJ path by consumer evidence, and the
+      pre-job-ID limitation is kept.
+    - **Outcome (2026-10-12):**
+      - The SDK owner accepted SDK-AJ-5 and merged it into SDK `main`
+        (`855edaf`; `main` at `59b2cd8`; package source `c4b302e`; hashes
+        unchanged).
+      - The owner accepted AJ-2 for the Android-first profile (AJ-2.0 to
+        AJ-2.2, the deterministic `aj.rules` baseline, SDK-AJ-5 closed).
+      - The historical `voice-api35-run3` console finding is classified as a
+        non-blocking test-harness finding.
+      - Harness failure messages now withhold screen text, pinned by
+        `harnessFailureMessages.test.ts`.
+      - Deferred and unpassed: physical Android, iOS, O-4 to O-6, and O-7
+        chunking.
+    - **Environment note.** Timing evidence needs AC power. On battery the
+      host ran at about 1.05 GHz and a timing test failed.
+    - **Emulators:** stopped; `.aj-exclusive-run` is released.
 - **Exclusive runs.** Benchmarks, emulator suites, Gradle/CMake builds, and
   Jest baselines never overlap. Create
   `/home/igdclt0603/Desktop/Ash/.aj-exclusive-run` (owner, purpose, start)

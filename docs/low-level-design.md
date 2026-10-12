@@ -115,7 +115,10 @@ interface DerivationRepository {
 }
 ```
 
-Repository calls accept domain data, not UI or SDK event objects.
+Repository calls accept domain data, not UI or SDK event objects. The
+implemented derivation tables and `DerivationRepository` for
+`journal.organize@1` are in §7.2; they supersede the sketch above where they
+differ.
 
 ## 5. Recording service
 
@@ -409,8 +412,10 @@ safe. Error copy comes from `errorPresentation.ts`, which covers every code in
 the packaged SDK's `ERROR_CODES` table and every `NODE_REASONS` value.
 
 The adapter maps them to the installed Hybrid AI version and records that version
-in validation evidence. Journal-specific JSON schemas will live under a future
-`schemas/journal/v1/` directory after the contract ADR is approved.
+in validation evidence. The journal-specific contract is frozen in
+`journal-organize.md` (ADR-019), with its schemas and vectors in
+`schemas/journal/v1/`; for `journal.organize@1` it supersedes the
+`OrganizeInput` and validator sketch below wherever they differ.
 
 An `OrganizeInput` contains selected finalized transcript text, stable entry and
 segment references, locale/time-zone context, and user-selected output kinds.
@@ -423,6 +428,154 @@ The result validator enforces:
 - every voice-derived task has at least one exact, playable audio range;
 - no invented local IDs or mutation instructions;
 - one atomic persisted derivation revision only after terminal validation.
+
+### 7.2 Implemented `journal.organize@1` integration (AJ-2.1, ADR-019)
+
+The app calls the capability only through `HybridAiGateway.run` with
+`execution: 'node'`, `timeoutMs: 60000`, and `capability`
+`journal.organize` `1.0.0`. The gateway now passes the public SDK event data
+through: `progress` carries `stage` and `fraction`, `partial` carries
+`delta`. Both are untrusted, and consumers validate them before use.
+
+**Modules** (`src/features/organize/`):
+
+| Module | Role |
+|---|---|
+| `domain/contract.ts` | Pinned schemas, the §8.1 budget, canonical JSON, `inputViolation` (§6.1) and `resultViolation` (§6), `partialOk`. Hermes-safe: no `isWellFormed`, a guarded `normalize`. |
+| `domain/request.ts` | `buildOrganizeRequest`: whole entries in contract order; voice units from the current transcript (newest full pass, correction heads, `ready` recordings only); written units from `writtenUnits` (§2 paragraph and long-paragraph rules, exact offsets); `deviceContext` (locale and time zone reduced to the contract patterns, else `und` and `UTC`); `requestKeyOf` (§9). |
+| `application/OrganizeController.ts` | `prepare` (build, then `existing` when the key is already stored, else `consent`), `confirm` (one SDK run), `cancel`, `reset`, `dispose`. |
+| `application/OrganizeContext.tsx` | Mounted inside the open journal, so a lock unmounts it and cancels a run. |
+| `ports/DerivationRepository.ts`, `platform/storage/SqliteDerivationRepository.ts` | One transaction per result; `findByRequestKey`, `latestForEntry`, `requestKeySecret`; from AJ-2.2, `newestPerScope`, `history`, and `setTaskState` (§7.3). |
+| `ui/OrganizePanel.tsx` | The minimum surface on entry detail: consent, progress with counts, cancel, outcome, and the latest result's summary and tasks as plain text. |
+
+**Request refusals.** The app never truncates or rewrites content. It
+refuses the whole request, sends nothing, and says why, for these reasons:
+
+- `NOTHING_TO_ORGANIZE`;
+- `TOO_MANY_ENTRIES` (over 20);
+- `TOO_MANY_UNITS` (over 400);
+- `TOO_LARGE` (over 61,108 bytes);
+- `UNSENDABLE_TEXT`: written text with a character §6 forbids, such as CR,
+  other controls, or bidi overrides;
+- any §6.1 sub-code (a defect).
+
+Selected entries with no finalized text are left out and listed as
+`not_ready`, `no_transcript`, `empty_transcript`, or `no_text`.
+
+**Run outcomes.** Each run ends in exactly one outcome:
+
+- `stored` or `duplicate`, with the derivation;
+- `invalid`: `INVALID_RESULT` with its §6 sub-code;
+- `failed`: an SDK code, `EXECUTION_FAILED` when the stream ends without a
+  terminal or completes on a target other than the node, or
+  `STORAGE_FAILED`;
+- `cancelled`.
+
+Events after the terminal are ignored. Nothing is stored unless the result
+passes §6.
+
+**Status hooks.** The controller reports each finished run to
+`PrivateNodeContext.reportNodeRun`. A link-code failure triggers one
+reconciling connect. A node completion, including an invalid one, is
+contact: it dispatches `NODE_RESULT`, which applies `afterNodeResult`, and
+schedules the catch-up connect (§7.1). The request is never retried.
+
+**Storage (migration 3, `aj2_derivations`).** All tables are `STRICT`, and
+CHECKs mirror the contract bounds.
+
+- `derivations`:
+  - `request_key` is unique;
+  - `scope_key` holds the sorted entry IDs;
+  - `revision` is unique per scope;
+  - `payload` holds the canonical result, at most 61,387 bytes;
+  - the row also keeps the engine ID and version and `input_sha256`.
+- `derivation_entries`: the scope.
+- `derived_tasks`: ordinal, text, area, and `state`, which is
+  open, done, or dismissed.
+- `source_references`:
+  - `item_kind`, `item_ordinal` and `ref_ordinal` identify the citation;
+  - it names the entry and unit, with the unit's digest;
+  - character offsets are always present;
+  - for voice references only, `segment_id` (the cited correction head) and
+    the audio range are present.
+- `organize_secret`: one 32-byte request-key secret per journal, kept out of
+  `app_settings` and never carried by AJB1 backups. A restore starts with
+  empty derivation tables (`journal-organize.md` §12, O-5).
+
+**Completeness (amendment A1).** `resultViolation` checks
+`RESULT_COMPLETENESS` after `RESULT_KINDS`. A partial result is stored like
+any other; its `completeness` and `omitted` counts live in the canonical
+payload. `omissionNotice` (`domain/presentation.ts`) gives the disclosure
+that the panel and the completion notice show.
+
+**Sources.** `OrganizePanel` links the summary and each task to their first
+source. The journal stack pushes `Entry` with `{entryId, source}`. In
+response, `EntryDetailScreen` shows:
+
+- the cited excerpt;
+- for voice, the cited range, played through `PlaybackService.play` with
+  `{startMs, endMs}`;
+- the cited transcript line, highlighted.
+
+**Device-suite build.** The `e2e` build type (release-like, JS bundled,
+debug-signed) compiles `src/e2e/.../TestAudioInput.kt`. It feeds the next
+capture from a WAV pushed to `<external files>/test-audio/input.wav`, at
+real-time pace and then silence. Release and debug compile a stub that
+returns null, so production captures always use the microphone.
+
+Triggers make derivations, scopes, and references immutable and undeletable.
+Only a task's `state` and `state_changed_at` may change. The IDs use the
+prefixes `drv_`, `tsk_`, and `src_`. Platform digests (`sha256Hex`,
+`hmacSha256Hex`) and the secret's randomness come from the native store
+module.
+
+### 7.3 Organized and Tasks views (AJ-2.2, ADR-019 A2, ADR-020)
+
+**Due dates (amendment A2).** `domain/dueDates.ts` re-derives every task
+due date (`journal-organize.md` §3.3) from three things: the cited phrase,
+the entry's `createdAt`, and the request `timeZone`. `localDate` uses
+`Intl.DateTimeFormat#formatToParts`. `resultViolation` rejects any date it
+cannot reproduce (`RESULT_DUE`, before `RESULT_DUPLICATE`). The companion
+(`node-companion/src/dates.mjs`) and the Python verifier implement the same
+grammar independently, and the 68 literal vectors in
+`schemas/journal/v1/vectors/due-dates.json` bind all three.
+
+**Modules** (`src/features/organize/`):
+
+| Module | Role |
+|---|---|
+| `domain/scope.ts` | `scopeKeyOf`: the selection's entry IDs, deduplicated, sorted by UTF-16 code units, and joined with commas. `buildOrganizeRequest` dedupes the selection, so a reordered or repeated selection reaches the same scope and revision sequence. |
+| `domain/staleness.ts` | Computed, never stored. A voice reference is stale when its `unitId` is no longer a current transcript line; a written one is stale when its re-split unit's digest differs. A missing or unready entry makes every reference to it stale. A task counts its due source too. Item keys: `summary`, `work:i`, `personal:i`, `task:i`, `idea:i`, `person:i`, `project:i`. |
+| `domain/carryOver.ts` | `matchCarryOver(previous, next, supersedes)`: the ADR-020 rule (equal normalized text, same first-source entry, a source pair in the same immutable unit or a correction lineage with overlapping ranges, exactly one candidate each way, rank order). |
+| `domain/tasks.ts` | `taskGroup` (overdue, today, upcoming, undated, done, dismissed against today's local ISO date), `formatCalendarDate`, `dueLabel`. Due dates are calendar dates and never shift with the device's zone. |
+| `application/useOrganized.ts` | `useNewestDerivations`, `useScopeHistory`, and `useScopeStates` (cited entries as they are now, and each derivation's staleness). All reload on the journal `revision`. |
+| `ui/DerivationCard.tsx` | One result: scope, first entry date, revision, partial notice, summary, and items with stale marks and source links; Reorganize on the stale banner; History from revision 2. |
+| `ui/OrganizedScreen.tsx` | `OrganizedScreen` (newest per scope, an inline run for the scope being reorganized) and `OrganizedHistoryScreen`. |
+| `ui/TasksScreen.tsx` | Due-date groups and the Done, Dismiss, and Restore transitions through `setTaskState`. |
+| `ui/organizeShared.tsx` | Consent sheet, run status, labels, and `SourceLink` (with the entry's moment when known), shared with `OrganizePanel`. |
+| `app/navigation/OrganizedNavigators.tsx` | Organized (home, History, Entry) and Tasks (home, Entry) stacks; a source pushes `Entry` with `{entryId, source}`. |
+
+**Storage (migration 4, `aj2_task_due_and_lineage`).**
+
+- `derived_tasks.due_date` is the validated ISO date, or null. A CHECK holds
+  its shape.
+- `derived_tasks.predecessor_task_id` references the carried-from task, or is
+  null. It is indexed.
+- A trigger makes both columns immutable. A task's `state` and
+  `state_changed_at` are still its only mutable fields.
+
+**Carry-over.** On storing revision *n* of a scope, the same transaction
+reads revision *n − 1*, its task rows, and the scope's
+`transcript_segments.supersedes_segment_id` lineage. It then applies
+`matchCarryOver`. A carried task copies the predecessor's `state` and
+`state_changed_at` and records `predecessor_task_id`; every other task
+starts `open`. Earlier revisions and their task rows never change.
+
+**Edited sources.** When `EntryDetailScreen` opens a voice source whose
+segment is no longer current, it loads the recording's transcript records.
+It shows the line as cited (`cited-text`), labelled as edited or transcribed
+again (`cited-edited`), and then the current line over the same audio
+(`cited-now`). Playback still uses the cited range.
 
 ## 8. App lock and key lifecycle
 
@@ -557,7 +710,7 @@ evidence is in `validation/AJ1-progress.md`.
 | `STORAGE_EXHAUSTED` | Stop safely, preserve valid prefix if possible, prevent AI work. |
 | `TRANSCRIPTION_UNAVAILABLE` | Keep recording; offer retry later. |
 | `NODE_UNAVAILABLE` | Keep source; allow later organization retry. |
-| `AI_RESULT_INVALID` | Persist no derivation; retain source and diagnostics code only. |
+| `INVALID_RESULT` | Persist no derivation; retain source and diagnostics code only (`journal-organize.md` §6). |
 | `MIGRATION_FAILED` | Do not mutate/delete data; enter recoverable error state. |
 
 ## 11. Diagnostics and privacy

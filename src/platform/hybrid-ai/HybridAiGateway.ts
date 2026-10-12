@@ -115,7 +115,10 @@ export interface CapabilityRequest {
 }
 
 export type CapabilityUpdate =
-  | { type: 'accepted' | 'progress' | 'partial' }
+  | { type: 'accepted' }
+  /** Untrusted node data; consumers validate it before showing anything. */
+  | { type: 'progress'; stage?: string; fraction?: number }
+  | { type: 'partial'; delta?: unknown }
   | {
       type: 'completed';
       output: unknown;

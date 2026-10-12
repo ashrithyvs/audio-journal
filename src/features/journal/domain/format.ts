@@ -35,3 +35,13 @@ export function formatTimeOfDay(timestamp: number): string {
     minute: '2-digit',
   });
 }
+
+/** An entry's moment in a source label, e.g. "Oct 8, 9:14 PM" (UX §7). */
+export function formatEntryMoment(timestamp: number): string {
+  return new Date(timestamp).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}

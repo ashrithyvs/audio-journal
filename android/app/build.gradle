@@ -105,6 +105,17 @@ android {
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
+        // Device suites only (the AJ-2 voice-entry journey): release-like,
+        // with the JS bundled, plus the test audio input in src/e2e. Never
+        // distributed; release and debug compile a stub instead.
+        e2e {
+            initWith release
+            matchingFallbacks = ['release']
+            signingConfig signingConfigs.debug
+            // As for release: the React Native plugin sets this only for the
+            // build types it knows.
+            manifestPlaceholders = [usesCleartextTraffic: "false"]
+        }
     }
 }
 

@@ -1,0 +1,614 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://audio-journal.invalid/schemas/journal/v1/organize-output.schema.json",
+  "title": "journal.organize@1 result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "requestKey",
+    "inputSha256",
+    "engine",
+    "completeness"
+  ],
+  "properties": {
+    "contract": {
+      "const": "journal.organize@1"
+    },
+    "requestKey": {
+      "type": "string",
+      "pattern": "^org_[0-9a-hjkmnp-tv-z]{26}$"
+    },
+    "inputSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]{0,31}$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$"
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text",
+        "sources"
+      ],
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 600
+        },
+        "rule": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]{0,47}$"
+        },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "entryId",
+              "unitId",
+              "unitSha256",
+              "charStart",
+              "charEnd"
+            ],
+            "properties": {
+              "entryId": {
+                "type": "string",
+                "pattern": "^ent_[0-9a-hjkmnp-tv-z]{26}$"
+              },
+              "unitId": {
+                "type": "string",
+                "pattern": "^(seg_[0-9a-hjkmnp-tv-z]{26}|w[0-9]{1,3})$"
+              },
+              "unitSha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "charStart": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 3999
+              },
+              "charEnd": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4000
+              },
+              "audioStartMs": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 3599999
+              },
+              "audioEndMs": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 3600000
+              }
+            }
+          }
+        }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "area",
+          "items"
+        ],
+        "properties": {
+          "area": {
+            "enum": [
+              "work",
+              "personal"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 50,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "text",
+                "sources"
+              ],
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 400
+                },
+                "rule": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9.-]{0,47}$"
+                },
+                "sources": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 8,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "entryId",
+                      "unitId",
+                      "unitSha256",
+                      "charStart",
+                      "charEnd"
+                    ],
+                    "properties": {
+                      "entryId": {
+                        "type": "string",
+                        "pattern": "^ent_[0-9a-hjkmnp-tv-z]{26}$"
+                      },
+                      "unitId": {
+                        "type": "string",
+                        "pattern": "^(seg_[0-9a-hjkmnp-tv-z]{26}|w[0-9]{1,3})$"
+                      },
+                      "unitSha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      "charStart": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 3999
+                      },
+                      "charEnd": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 4000
+                      },
+                      "audioStartMs": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 3599999
+                      },
+                      "audioEndMs": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 3600000
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "text",
+          "area",
+          "sources"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400
+          },
+          "area": {
+            "enum": [
+              "work",
+              "personal",
+              "unsorted"
+            ]
+          },
+          "rule": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9.-]{0,47}$"
+          },
+          "sources": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "entryId",
+                "unitId",
+                "unitSha256",
+                "charStart",
+                "charEnd"
+              ],
+              "properties": {
+                "entryId": {
+                  "type": "string",
+                  "pattern": "^ent_[0-9a-hjkmnp-tv-z]{26}$"
+                },
+                "unitId": {
+                  "type": "string",
+                  "pattern": "^(seg_[0-9a-hjkmnp-tv-z]{26}|w[0-9]{1,3})$"
+                },
+                "unitSha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "charStart": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3999
+                },
+                "charEnd": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4000
+                },
+                "audioStartMs": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3599999
+                },
+                "audioEndMs": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 3600000
+                }
+              }
+            }
+          },
+          "due": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "date",
+              "rule",
+              "source"
+            ],
+            "properties": {
+              "date": {
+                "type": "string",
+                "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+              },
+              "rule": {
+                "enum": [
+                  "due.today",
+                  "due.tomorrow",
+                  "due.weekday",
+                  "due.named-date"
+                ]
+              },
+              "source": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "entryId",
+                  "unitId",
+                  "unitSha256",
+                  "charStart",
+                  "charEnd"
+                ],
+                "properties": {
+                  "entryId": {
+                    "type": "string",
+                    "pattern": "^ent_[0-9a-hjkmnp-tv-z]{26}$"
+                  },
+                  "unitId": {
+                    "type": "string",
+                    "pattern": "^(seg_[0-9a-hjkmnp-tv-z]{26}|w[0-9]{1,3})$"
+                  },
+                  "unitSha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "charStart": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3999
+                  },
+                  "charEnd": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4000
+                  },
+                  "audioStartMs": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3599999
+                  },
+                  "audioEndMs": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3600000
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ideas": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "text",
+          "sources"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 400
+          },
+          "rule": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9.-]{0,47}$"
+          },
+          "sources": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "entryId",
+                "unitId",
+                "unitSha256",
+                "charStart",
+                "charEnd"
+              ],
+              "properties": {
+                "entryId": {
+                  "type": "string",
+                  "pattern": "^ent_[0-9a-hjkmnp-tv-z]{26}$"
+                },
+                "unitId": {
+                  "type": "string",
+                  "pattern": "^(seg_[0-9a-hjkmnp-tv-z]{26}|w[0-9]{1,3})$"
+                },
+                "unitSha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "charStart": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3999
+                },
+                "charEnd": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4000
+                },
+                "audioStartMs": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3599999
+                },
+                "audioEndMs": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 3600000
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "people": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "sources"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "rule": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9.-]{0,47}$"
+          },
+          "sources": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "entryId",
+                "unitId",
+                "unitSha256",
+                "charStart",
+                "charEnd"
+              ],
+              "properties": {
+                "entryId": {
+                  "type": "string",
+                  "pattern": "^ent_[0-9a-hjkmnp-tv-z]{26}$"
+                },
+                "unitId": {
+                  "type": "string",
+                  "pattern": "^(seg_[0-9a-hjkmnp-tv-z]{26}|w[0-9]{1,3})$"
+                },
+                "unitSha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "charStart": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3999
+                },
+                "charEnd": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4000
+                },
+                "audioStartMs": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3599999
+                },
+                "audioEndMs": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 3600000
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "projects": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "sources"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "rule": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9.-]{0,47}$"
+          },
+          "sources": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "entryId",
+                "unitId",
+                "unitSha256",
+                "charStart",
+                "charEnd"
+              ],
+              "properties": {
+                "entryId": {
+                  "type": "string",
+                  "pattern": "^ent_[0-9a-hjkmnp-tv-z]{26}$"
+                },
+                "unitId": {
+                  "type": "string",
+                  "pattern": "^(seg_[0-9a-hjkmnp-tv-z]{26}|w[0-9]{1,3})$"
+                },
+                "unitSha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "charStart": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3999
+                },
+                "charEnd": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4000
+                },
+                "audioStartMs": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3599999
+                },
+                "audioEndMs": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 3600000
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "completeness": {
+      "enum": [
+        "complete",
+        "partial"
+      ]
+    },
+    "omitted": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "sections": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "tasks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "ideas": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "people": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "projects": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        }
+      }
+    }
+  }
+}

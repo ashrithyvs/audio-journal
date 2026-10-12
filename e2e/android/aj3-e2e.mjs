@@ -271,7 +271,11 @@ async function openDiagnostics() {
   if (d.find(d.dump(), { id: 'diag-timings' })) return;
   await openSettingsHome();
   await d.tap({ id: 'open-diagnostics' });
-  await d.waitFor({ id: 'diag-request-card' });
+  // AJ-2 adds the Organize benchmark card above the request card, which can
+  // put the request card below the fold: find it, then return to the top,
+  // where the SDK state and policy rows are read without scrolling.
+  await d.findScrolling({ id: 'diag-request-card' });
+  await d.scrollToTop();
 }
 
 async function connectionLabel() {

@@ -101,8 +101,8 @@ implemented AJ-3 workflow?
 S00–S19 on the merged build (see
 [AJ-1 progress](validation/AJ1-progress.md#merge-into-main-2026-10-11)).
 AJ-1 is provisionally complete on emulator evidence, not accepted: the
-physical-device, live-timing, and iOS gates stay deferred. AJ-2 has not
-started.
+physical-device, live-timing, and iOS gates stay deferred. AJ-2.0 and AJ-2.1
+are implemented on branch `aj2/organize` (see §4).
 
 ## 4. AJ-2 — Application-owned organization
 
@@ -117,6 +117,44 @@ started.
 
 Exit: organization uses only public SDK APIs; valid results remain traceable and
 all failure paths leave source entries unchanged.
+
+**Status (2026-10-12): accepted for the Android-first profile and merged
+into `main`** ([AJ-2 progress §11](validation/AJ2-progress.md#11-android-first-aj-2-acceptance-2026-10-12)).
+The acceptance covers AJ-2.0 to AJ-2.2 on the deterministic `aj.rules`
+baseline, and SDK-AJ-5 is closed on SDK `c4b302e` (merged as `855edaf`).
+Physical Android, iOS, O-4 to O-6, and O-7 chunking stay deferred and
+unpassed.
+
+History of the milestone:
+
+- Done:
+  - AJ-2.0: the contract, schemas, vectors, and independent verifier
+    (ADR-019);
+  - AJ-2.1: `node-companion/`, the deterministic engine, and the minimum app
+    integration through the public SDK, with consent, streaming, cancel,
+    validation, and atomic storage.
+- Evidence: [AJ-2 progress](validation/AJ2-progress.md).
+- AJ-2.0 and AJ-2.1 are accepted by the owner as development checkpoints
+  (2026-10-11); AJ-2 itself is not accepted.
+- Amendments before AJ-2.2 are done:
+  - explicit partial results (ADR-019 A1);
+  - cited-source navigation;
+  - a real voice-entry device journey;
+  - the performance wording and labels.
+- Blocked, then closed on 2026-10-12: final cancellation acceptance, on
+  SDK-AJ-5 (an SDK fix and a re-test).
+- Required for completion: the
+  [organize performance suite](validation/AJ2-organize-performance.md) for
+  `journal.organize@1` through the public SDK.
+- AJ-2.2 is implemented on the branch, after the owner approved O-1 to O-3
+  with amendments (2026-10-12):
+  - explicit English due dates (ADR-019 A2), with 68 literal vectors;
+  - per-selection history, computed staleness, conservative task-state
+    carry-over, and task transitions (ADR-020);
+  - the Organized, History, and Tasks views, with source navigation, stale
+    marks, partial notices, due-date groups, and Done, Dismiss, and Restore.
+  Its device and cumulative suites are recorded in
+  [AJ-2 progress](validation/AJ2-progress.md).
 
 ## 5. AJ-3 — Secure Private AI Node workflow
 
@@ -135,6 +173,11 @@ the local journal without developer tools or content loss.
   cancellation races, low storage, memory pressure, key invalidation, and migration.
 - Run dependency/privacy review and plaintext-at-rest/log/backup inspection.
 - Produce tester guide, fixture media, supported-device matrix, and baselines.
+- Rerun the [organize performance suite](validation/AJ2-organize-performance.md)
+  cumulatively. It covers `journal.organize@1` through the public SDK, cold
+  and warm, from 30 s to 60 min transcripts and at the exact boundaries.
+  Repeat its accepted matrix on physical Android hardware. It stays separate
+  from the transcription benchmarks and the SDK capability load lab.
 
 Exit: Android and iOS journeys pass on the frozen matrix, with results attached
 to the Hybrid AI SDK release evidence where required.
@@ -167,8 +210,9 @@ to the Hybrid AI SDK release evidence where required.
 - [x] Transcription engine boundary decided: app-owned, on-device (ADR-016).
 - [ ] Live-transcription window/overlap/cadence frozen from device measurements
       (live UX approved, ADR-017).
-- [x] `journal.organize@1` ownership and runtime decided (ADR-018); schemas frozen
-      with the AJ-2 change.
+- [x] `journal.organize@1` ownership and runtime decided (ADR-018); contract,
+      schemas, and vectors frozen in AJ-2.0 (ADR-019, `journal-organize.md`),
+      with open questions O-1 to O-7 listed there.
 - [x] Android minimum API 26 reconciled with the SDK; compile API 36 is required
       by React Native 0.87 while target API remains 35.
 - [ ] iOS minimum version reconciled and built on macOS/Xcode.

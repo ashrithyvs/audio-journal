@@ -25,7 +25,7 @@ import {
   type RunAudit,
 } from './HybridAiGateway';
 
-/** Pinned packaged SDK (M5.5 `e0fc3c5`); a unit test checks the installed package. */
+/** Pinned packaged SDK (`0.1.0-m5`, built from accepted SDK commit `c4b302e`); a unit test checks the installed package. */
 export const SDK_PACKAGE_VERSION = '0.1.0-m5';
 
 function failureOf(error: unknown, fallbackCode: string): HybridAiFailure {
@@ -334,6 +334,14 @@ export class PackagedHybridAiGateway implements HybridAiGateway {
         } else if (event.type === 'cancelled') {
           audit.terminalEvents += 1;
           deliver({ type: 'cancelled' });
+        } else if (event.type === 'progress') {
+          deliver({
+            type: 'progress',
+            stage: event.data.stage,
+            fraction: event.data.fraction,
+          });
+        } else if (event.type === 'partial') {
+          deliver({ type: 'partial', delta: event.data.delta });
         } else {
           deliver({ type: event.type });
         }

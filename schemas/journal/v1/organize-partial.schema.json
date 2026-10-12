@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://audio-journal.invalid/schemas/journal/v1/organize-partial.schema.json",
+  "title": "journal.organize@1 partial delta",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "counts"
+  ],
+  "properties": {
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "summary": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "sections": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "tasks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 50
+        },
+        "ideas": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 50
+        },
+        "people": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 50
+        },
+        "projects": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 50
+        }
+      }
+    }
+  }
+}

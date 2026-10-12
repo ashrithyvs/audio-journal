@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-// AJ-1 domain, port, and storage code stays platform-free: no React Native,
-// no Node built-ins, no Hybrid AI, and no reach into other feature internals.
+// AJ-1 and AJ-2 domain, port, and storage code stays platform-free: no React
+// Native, no Node built-ins, no Hybrid AI, and no reach into other feature
+// internals. The organize domain also reads its pinned contract schemas.
 
 const root = path.join(__dirname, '..');
 const layers = [
@@ -10,6 +11,8 @@ const layers = [
   'src/features/journal/ports',
   'src/features/journal/application',
   'src/features/backup/domain',
+  'src/features/organize/domain',
+  'src/features/organize/ports',
   'src/platform/storage',
 ];
 const storageFree = layers.filter(layer => layer !== 'src/platform/storage');
@@ -54,7 +57,7 @@ it('imports only relative modules inside the allowed layers', () => {
         expect([file, target]).toEqual([
           file,
           expect.stringMatching(
-            /^src\/(features\/journal\/(domain|ports|application)|features\/backup\/domain|platform\/storage)\//,
+            /^(src\/(features\/journal\/(domain|ports|application)|features\/backup\/domain|features\/organize\/(domain|ports)|platform\/storage)|schemas\/journal\/v1)\//,
           ),
         ]);
       }

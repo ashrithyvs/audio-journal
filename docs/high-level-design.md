@@ -137,6 +137,12 @@ forget, policy, and diagnostics. See ADR-015 and LLD §7.1.
 5. App validates the terminal result and writes a derivation revision plus
    provenance links in one transaction.
 6. Failure/cancellation writes no partial derived artifact and changes no source.
+7. A later organize of the same selection (any order) adds a revision. Older
+   revisions stay in history. A task keeps its done or dismissed state only
+   when the new task provably comes from the same source (ADR-020).
+8. The Organized and Tasks views compute whether each item's source changed
+   since organizing. They mark it rather than hide it, and offer an explicit
+   Reorganize.
 
 ### Local unlock
 

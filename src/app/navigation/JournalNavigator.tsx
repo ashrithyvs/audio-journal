@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { DiaryScreen } from '../../features/journal/ui/DiaryScreen';
 import { EntryDetailScreen } from '../../features/journal/ui/EntryDetailScreen';
+import type { SourceRef } from '../../features/organize/domain/contract';
 import { RecordingScreen } from '../../features/journal/ui/RecordingScreen';
 import { WriteEntryScreen } from '../../features/journal/ui/WriteEntryScreen';
 import { colors } from '../../theme/colors';
@@ -11,7 +12,8 @@ export type JournalStackParamList = {
   DiaryHome: undefined;
   Write: undefined;
   Record: undefined;
-  Entry: { entryId: string };
+  /** `source`: a cited source to show, opened from an organized item. */
+  Entry: { entryId: string; source?: SourceRef };
 };
 
 const Stack = createNativeStackNavigator<JournalStackParamList>();
@@ -54,7 +56,15 @@ export function JournalNavigator() {
         )}
       </Stack.Screen>
       <Stack.Screen name="Entry" options={{ title: 'Entry' }}>
-        {({ route }) => <EntryDetailScreen entryId={route.params.entryId} />}
+        {({ route, navigation }) => (
+          <EntryDetailScreen
+            entryId={route.params.entryId}
+            source={route.params.source}
+            onOpenSource={source =>
+              navigation.push('Entry', { entryId: source.entryId, source })
+            }
+          />
+        )}
       </Stack.Screen>
     </Stack.Navigator>
   );

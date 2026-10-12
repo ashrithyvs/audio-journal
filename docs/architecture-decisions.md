@@ -201,8 +201,9 @@ package link.
 **Decision:**
 
 - **Pinned artifacts.** The app depends on the packed
-  `hybrid-ai-react-native-0.1.0-m5.tgz` built from SDK M5.5 `e0fc3c5` (G5-A
-  `07a8bf7`). The package's `:hybrid-ai-android` Gradle project is satisfied
+  `hybrid-ai-react-native-0.1.0-m5.tgz`. It was built from SDK M5.5 `e0fc3c5`
+  (G5-A `07a8bf7`) until the 2026-10-12 amendment below moved the pin to the
+  accepted SDK-AJ-5 packages from `c4b302e`. The package's `:hybrid-ai-android` Gradle project is satisfied
   by `android/hybrid-ai-android`, a wrapper over the packaged release AAR from
   the same commit. The build fails if the AAR's SHA-256 differs from
   `hybridAi.aarSha256`. Neither file is copied into this repository, and no
@@ -248,6 +249,31 @@ package link.
   intentionally blocks screenshots. A standalone fixture APK advertises test
   services through Android's public `NsdManager` for discovery and spoofing
   scenarios. No SDK code is imported.
+
+**Amendment (2026-10-12): SDK-AJ-5 package pin.** The pinned artifacts move
+to the packages built from SDK commit `c4b302e`, in
+`../hybrid-ai-packages/c4b302e/`:
+
+| Package | SHA-256 |
+|---|---|
+| RN tarball | `a11cba67036d6e38662e6485c75d891dfc0110ebc41cd05aa7ea8f870c14ee2a` |
+| AAR | `8751a5a7623a2c6ea5a75216afd410d9483410da3c9f96f4c4527c852da86b1a` |
+
+- **Source.** `c4b302e` is on the SDK branch `fix/sdk-aj-5-node-cancel`: the
+  fix for SDK-AJ-5, a cancellation that never reached the node. The version
+  string stays `0.1.0-m5`, and the public API is unchanged.
+- **What changed in the packages:**
+  - In the AAR, only `libhybrid_ai_core.so` differs, for both ABIs. The
+    other 17 of 19 files, including the model assets and manifests, are
+    byte-identical to `e0fc3c5`.
+  - In the tarball, the runtime sources are identical. It only drops stray
+    Gradle cache files and updates an instrumented test.
+- **SDK acceptance.** The SDK owner accepted the fix and merged it into SDK
+  `main`: merge commit `855edaf`, SDK `main` at `59b2cd8`. The accepted
+  package source is `c4b302e`, with the hashes above. The merge did not
+  change the packages, so the pin and the evidence stand.
+- **History.** Evidence recorded earlier against `e0fc3c5` stays attributed
+  to that package.
 
 ## ADR-016: Application-owned transcription; SDK receives text
 
@@ -567,6 +593,150 @@ for v0.1 and keeps ADR-010/011 intact.
   inside the request scope) before persisting it as a new derivation
   revision. Invalid results are discarded with `INVALID_RESULT`.
 
+## ADR-019: `journal.organize@1` contract frozen
+
+**Status:** Frozen for implementation (AJ-2.0, 2026-10-11), except the
+questions listed as Open in `journal-organize.md` §12.
+
+**Context:** ADR-018 decided ownership and runtime and required the request,
+result, and event schemas, provenance rules, and vectors to be frozen before
+implementation. Earlier documents disagreed on execution targets, the error
+code, character ranges, and which items must cite sources.
+
+**Decision:** `docs/journal-organize.md` is the normative contract, with the
+schemas and vectors in `schemas/journal/v1/`. In summary:
+
+- **Capability:** `journal.organize` `1.0.0`, streaming, executed only on
+  the paired node (`execution: 'node'`), with a 60 s deadline and no
+  fallback. Every message carrying journal content is at most 61,440 bytes
+  with its envelope: inputs up to 61,108 bytes and results up to 61,387.
+- **Input:** 1–20 whole entries. Voice entries send the current transcript
+  (newest full pass, correction heads) with segment IDs and timings; written
+  entries send paragraph units with their offsets. Every unit carries a
+  SHA-256 of its text. Audio, paths, keys, and unrelated entries are never
+  sent; IDs are the opaque local IDs.
+- **Result:** summary, Work and Personal sections, tasks, ideas, people, and
+  projects, as requested. Every item cites 1–8 source references with exact
+  UTF-16 character ranges and, for voice, an audio range inside the cited
+  segment. The result echoes `requestKey` and the input digest.
+  `requestKey` is an opaque HMAC of the canonical request under an app-local
+  key: reused only for an identical request, never revealing content.
+- **Validation:** a fixed rule order (`journal-organize.md` §6) with
+  diagnostic sub-codes; any violation discards the result as
+  `INVALID_RESULT`. Partials carry counts only and are never persisted.
+- **Persistence:** one transaction writes an immutable derivation revision,
+  its scope, tasks, and references; `requestKey` is unique, so a delivery
+  can never be stored twice. Sources are never written.
+- **Companion:** an independent ADR-021/ADR-022 node in `node-companion/`
+  (Node.js 22), built only from the SDK's published protocol, schemas, and
+  vectors. It keeps the frozen Android support profile: TLS 1.3, and on
+  API 26–28 the restricted TLS 1.2 profile (ECDHE-ECDSA AEAD suites with
+  Extended Master Secret, refused without EMS). Certificates and ASN.1 come
+  from a pinned, established dependency, never hand-written DER; primitives
+  come from Node's OpenSSL. Job content stays in memory only, within the
+  protocol's retention.
+
+**Amendment A1 (2026-10-11, owner decision on O-7):** lossy output is
+explicit.
+
+- A result that leaves out items found by the engine, because of the
+  50-item bound or the 61,387-byte output budget, carries
+  `completeness: "partial"` and per-kind `omitted` counts.
+- The omitted items are always the lowest-ranked of their list.
+- The app stores the marker and discloses it in every view of the result.
+- Validation adds `RESULT_COMPLETENESS` after `RESULT_KINDS`.
+- Input over 61,108 bytes is still a typed refusal, never truncated.
+- Multi-request chunk-and-merge is not part of v1 unless separately
+  approved.
+
+The amendment came before any release, so the capability version stays
+`1.0.0`. The schemas, vectors, validators, companion, and UI requirements
+changed together (contract §3.2, §6, §11 decision 13).
+
+**Amendment A2 (2026-10-12, owner decision on O-1):** tasks may carry a due
+date, from explicit English phrases only.
+
+- The accepted phrases are today, tomorrow, an unqualified weekday, and an
+  English named calendar date. A weekday means the first such day on or
+  after the entry's local creation date. A day and month without a year
+  means the first such date on or after it; an explicit year is used as
+  written.
+- Qualified, numeric, time, and other ambiguous phrases are rejected.
+- The date is an ISO calendar date with no time or offset, and it cites its
+  exact phrase.
+- The app validator independently parses the cited phrase and re-derives
+  the date from the entry's `createdAt` and the request's `timeZone`. A date
+  it cannot reproduce rejects the result with `RESULT_DUE` (contract §3.3).
+
+**Consequences:** the LLD `local | auto` wording, `AI_RESULT_INVALID`, and
+single `segmentId` references are superseded for this capability (§11 of the
+contract). Open questions O-1 to O-7 (due dates, stale-source display,
+editing, retention, AJB1 v2, diagnostics on the companion, and organizing
+entries above the input cap) block only the work they name. O-1 to O-3 are
+resolved: O-1 by amendment A2, O-2 and O-3 by ADR-020. F5 and request-path revocation remain SDK defects
+(SDK-AJ-1, SDK-AJ-2); the app keeps its compatibility workaround.
+
+## ADR-020: Organized history, computed staleness, and task carry-over
+
+**Status:** Accepted (owner decision on O-2 and O-3, 2026-10-12).
+
+**Context:** derivations are immutable revisions (ADR-019, contract §7).
+The Organized and Tasks views (AJ-2.2) need to answer three questions:
+
+- which revision to show, and how the history is grouped;
+- what happens when a cited source changes after organizing;
+- whether a task's done or dismissed state survives a reorganize.
+
+**Decision:**
+
+- **Canonical selection identity.** A derivation's scope is its set of
+  entry IDs: deduplicated, sorted by UTF-16 code units, and joined with
+  `,` (`scope_key`). A reordered or repeated selection is the same scope,
+  so history and revision numbers never split.
+- **History.** Each scope shows its newest revision. Older revisions stay
+  readable from history, and none is changed or deleted.
+- **Staleness is computed, never stored.**
+  - A voice reference is stale when its cited segment is no longer in the
+    entry's current transcript. That happens after a correction (the chain
+    has a newer head) or a re-transcription (a newer full pass).
+  - A written reference is stale when the unit at that `unitId`, re-split
+    from the entry's current text by the contract §2 rules, no longer has
+    the cited digest.
+  - A reference to an entry that is no longer ready is stale.
+  - An item is stale when any of its references, its due-date source
+    included, is stale.
+
+  A stale item shows "Source changed since organized". Its source link still
+  opens the originally cited text, labelled as edited since. Reorganize is
+  offered and always asks for consent; nothing reorganizes automatically,
+  and no item is hidden because it is stale.
+- **Derived text is not editable in v1.** This covers summary, section,
+  task, idea, person, and project text.
+- **Task states.** A task is `open`, `done`, or `dismissed`, and restore
+  returns it to `open`. Each change records `state_changed_at`.
+- **Conservative carry-over.** When a new revision of a scope is saved,
+  each of its tasks may take the state of a task in the scope's previous
+  revision, but only when all of these hold:
+  - the normalized task texts are equal (contract §6);
+  - the tasks' first sources cite the same entry;
+  - some source of each task is related, either through the same immutable
+    unit (the same `unitId` and `unitSha256`) or through an explicit
+    transcript correction lineage (the new segment descends from the old
+    one by `supersedes_segment_id`), and the two cited character ranges
+    overlap;
+  - the match is one-to-one: each task of the pair has exactly one
+    candidate in the other revision. Ambiguous duplicates do not carry.
+
+  Pairs are taken in stable rank order. The new task records its
+  `predecessor_task_id`. New, unmatched, and ambiguous tasks start `open`.
+  Nothing carries across unrelated entries, a re-transcription (a new pass
+  has no lineage), or a written-text change that cannot be proven related.
+  Historical task states are never changed.
+
+**Consequences:** migration 4 adds `due_date` and `predecessor_task_id` to
+`derived_tasks`, both immutable once written. The Organized and Tasks UI
+follow UX §7. The contract is unchanged by this ADR.
+
 ## Open decisions before implementation
 
 1. Argon2id cost parameters (from a lowest-supported-device benchmark). Key
@@ -575,7 +745,9 @@ for v0.1 and keeps ADR-010/011 intact.
    interruptions, duration, and storage pressure are decided by ADR-017.
 3. Live-transcription window length, overlap, and cadence, set from device
    measurements. The live UX is decided by ADR-017 and the engine by ADR-016.
-4. `journal.organize@1`: decided by ADR-018 (schemas in `schemas/journal/v1/`).
+4. `journal.organize@1`: decided by ADR-018 and frozen by ADR-019
+   (`journal-organize.md`, `schemas/journal/v1/`); its own open questions are
+   in that document's §12.
 5. ~~The AJB1 binary layout and vectors~~: **frozen for implementation**
    on 2026-10-10 (backup-and-restore.md §9, with its freeze evidence).
    Still open: Argon2id parameters (item 1), iOS cross-platform evidence

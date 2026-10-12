@@ -8,6 +8,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { useAppLock } from '../features/app-lock/application/AppLockContext';
 import { JournalProvider } from '../features/journal/application/JournalContext';
+import { OrganizeProvider } from '../features/organize/application/OrganizeContext';
 import { colors } from '../theme/colors';
 import type { JournalOpenContext, OpenedJournal } from './openJournal';
 
@@ -72,7 +73,15 @@ export function JournalGate({
     );
   }
   return (
-    <JournalProvider services={opened.services}>{children}</JournalProvider>
+    <JournalProvider services={opened.services}>
+      {opened.organize ? (
+        <OrganizeProvider services={opened.organize}>
+          {children}
+        </OrganizeProvider>
+      ) : (
+        children
+      )}
+    </JournalProvider>
   );
 }
 
