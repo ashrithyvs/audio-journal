@@ -5,8 +5,8 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 
 ## Current snapshot
 
-- **Phase:** AJ-4-P, the Product Reality Check, is in progress on
-  `aj4/hardening` (the AJ-4-E plan is deferred)
+- **Phase:** AJ-4-P, the Product Reality Check, is complete on
+  `aj4/hardening` and awaiting the owner's review (the AJ-4-E plan is deferred)
   ([AJ-4 progress](validation/AJ4-progress.md)). The owner's records of
   2026-10-12:
   - AJ-1 and AJ-3 are accepted for the Android-emulator development profile;
@@ -17,16 +17,29 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 - **Branch:** `aj4/hardening` (worktree `../audio-journal-aj4`) from `main`
   `59339e9`. AJ-2 was merged as `692ac0b`.
 - **Last agent:** Claude Code `hybridai-81` (AJ-4-E on `aj4/hardening`).
-- **Claim (2026-10-12, Claude Code): AJ-4-P (Product Reality Check) on
-  `aj4/hardening`.** The owner narrowed the scope from AJ-4-E; the AJ-4-E
-  inventory (`7052b78`) is deferred to production readiness (roadmap §6.0).
-  - AJ-4-P covers the prototype APK, one end-to-end journey, prototype
-    performance for 30 s to 10 min journals, a 15–20 minute stability
-    check, tester and companion instructions, and the report.
-  - It touches `e2e/aj4/`, the docs, and the companion README. App code
-    changes only if a blocker in the main journey needs a fix.
-  - The SDK repository stays read-only.
-  - No merge, push, release, or canonical AJ-4 claim.
+- **AJ-4-P handoff (2026-10-12, Claude Code; `aj4/hardening`; not merged,
+  pushed, or released; stopped for owner review).** The report is
+  [AJ-4-P product reality](validation/AJ4P-product-reality.md).
+  - **Prototype:** release APK `7df7e740…` (`arm64-v8a` and `x86_64`;
+    `c4b302e` SDK core verified; debug-signed) and `e2e` APK `81f7b358…`,
+    in `aj1-artifacts/evidence/aj4p/apk-a3b25a5/`.
+  - **Results (API 35 emulator; development measurements):**
+    - product journey 12/12;
+    - cold launch 478 ms, warm 81 ms;
+    - capture start 38 ms, playback start 48 ms;
+    - stop → final transcript: 30 s about 17 s, 1 min about 30 s, 3 min
+      63 s, 5 min 101–117 s, 10 min 190–205 s (RTF about 0.31–0.51);
+    - organization completes in 31–60 ms p50 (55–142 ms on screen), with
+      30/60 min refused as typed;
+    - 18-minute stability: 49 operations, 0 failures, 0 crashes, and
+      memory on a plateau;
+    - host baseline: unit 313, smoke 3, integration 153, performance 6.
+  - **Fix:** `a3b25a5`, the live transcript is bounded so Finish stays on
+    screen (UX §5).
+  - **Remaining:** the owner's physical-phone trial (report §11). The
+    AJ-4-E inventory is deferred. Canonical AJ-4 stays open.
+  - **Environment:** the emulator is stopped, and `.aj-exclusive-run` is
+    released.
 - **Last updated:** 2026-10-12.
 - **AJ-3 (updated 2026-10-10 19:40 by `hybridai-7b`).** The Android node
   workflow passes 20 of 20 device steps on the AJ-1 fix build `72ee323`, in

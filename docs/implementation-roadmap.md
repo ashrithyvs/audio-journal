@@ -191,6 +191,11 @@ to the Hybrid AI SDK release evidence where required.
 
 ### 6.0 AJ-4-P: Product Reality Check (current milestone)
 
+**Status (2026-10-12):** prototype ready for the owner's review and
+physical-phone trial
+([AJ-4-P report](validation/AJ4P-product-reality.md)). It is not canonical
+AJ-4.
+
 On 2026-10-12 the owner narrowed the immediate milestone to **AJ-4-P**. It is
 not canonical AJ-4 acceptance, and it is not production hardening. Its
 deliverables are:

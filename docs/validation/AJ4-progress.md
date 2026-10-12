@@ -8,8 +8,9 @@
 (§1–§8, `7052b78`) is kept as the **production-hardening inventory, deferred
 until the production-readiness phase**. AJ-4-E is not being run now. The
 AJ-4-P results are in
-[AJ-4-P product reality check](AJ4P-product-reality.md). Canonical AJ-4 and
-release acceptance stay open.
+[AJ-4-P product reality check](AJ4P-product-reality.md). The prototype is
+ready for the owner's exploratory physical-phone trial, pending the owner's
+review. Canonical AJ-4 and release acceptance stay open.
 
 ## 1. Authorization and scope
 
