@@ -5,6 +5,12 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 
 ## Current snapshot
 
+- **Future context direction (2026-10-12, owner/Codex):** node-initiated
+  requests for more journal context/device capabilities are recorded as
+  post-AJ-RI only. They require a separate typed, bounded, consented SDK
+  protocol plus AJ UX/security decision; AJ remains data authority. Node
+  quality claims use actual hardware and never assume frontier capability. No
+  AJ-RI gate or implementation changed; no claim remains active.
 - **GRI-0 accepted (2026-10-12, owner/Codex):** an independent read-only agent
   reviewed SDK baseline `7e5373d` and AJ baseline `ec1c3fd`, found four
   blockers and four follow-ups, then cleared every item after remediation in

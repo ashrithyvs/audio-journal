@@ -824,6 +824,19 @@ ADR-024 and its RI-0–RI-6 roadmap.
     direct path and an observed relayed path are exercised. Tailnet membership
     does not replace Hybrid AI pairing, mTLS, node-key pins, consent, or result
     validation, and mDNS is not required across the tailnet.
+11. **Future, not AJ-RI scope:** a node capability may eventually ask the app
+    for additional typed journal context or a device capability during a job.
+    AJ remains the data authority and may deny every request. Each item must be
+    allowlisted, schema/size/round bounded, explicitly related to the selected
+    source scope, consent/policy checked, and persisted with provenance. The
+    node receives no general journal query, database/filesystem access, audio,
+    recording key, vault key, microphone activation, or arbitrary app action.
+    This requires a separately accepted SDK protocol/ADR and AJ UX/security
+    decision before implementation.
+12. Private-node models are evaluated as resource-bounded models on the actual
+    node hardware. AJ makes no assumption that their reasoning or accuracy
+    matches Claude, Codex, or another hosted frontier service. Additional
+    context may improve grounding but does not waive the accuracy gates.
 
 **Consequences:** the direct app speech engine and its native build integration
 must migrate behind SDK `audio.transcribe@1`. The current organization UI,

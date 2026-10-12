@@ -420,6 +420,15 @@ paths. Those are external network-client concerns. The app continues to use
 the SDK's pairing, mTLS, pinned node identity, capability API, cancellation,
 and status/recovery behavior exactly as it does on the LAN.
 
+AJ-RI implements no node-to-device context request. A future SDK event/message
+may surface a typed request correlated to the active parent job. Before AJ
+responds, a future adapter must verify an application allowlist, current user
+consent/policy, unlocked/foreground eligibility, selected-entry scope, schema,
+purpose, byte and round limits, deadline, and required provenance. Denial or
+unavailability is a normal typed response. General repository queries,
+arbitrary paths, recording/vault keys, raw audio, microphone control, nested
+capability calls, and arbitrary actions remain forbidden.
+
 The adapter maps them to the installed Hybrid AI version and records that version
 in validation evidence. The journal-specific contract is frozen in
 `journal-organize.md` (ADR-019), with its schemas and vectors in

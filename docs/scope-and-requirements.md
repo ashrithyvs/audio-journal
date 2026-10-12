@@ -65,6 +65,9 @@ material into useful views and tasks through Hybrid AI.
   and `aj.rules` as a production organization engine.
 - Embedded Tailscale libraries, Tailscale control-plane APIs, or treating
   tailnet membership as application/node authentication.
+- Node-initiated requests for additional journal data or device capabilities.
+  This is a future consented, typed, bounded protocol; AJ-RI sends only the
+  user's initially selected input.
 - Prototype performance/accuracy recordings longer than 180 seconds; long
   journal chunking and extended soaks are future development work.
 - A self-describing incomplete backup archive. In v0.1 an export that skips

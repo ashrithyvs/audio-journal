@@ -124,6 +124,17 @@ forget, policy, and diagnostics. See ADR-015 and LLD §7.1.
 - Authenticates, versions, checksums, previews, stages, and atomically activates restore.
 - Excludes app-lock/biometric keys and Private AI Node pairing credentials.
 
+### Future node context requests
+
+AJ-RI sends one user-selected, bounded organization input and does not service
+node callbacks for more journal data. A later design may allow the SDK to
+surface a typed request for additional context. AJ would independently enforce
+selection scope, consent, lock state, schema, byte/round limits, provenance,
+and denial. It would never expose general repository access, arbitrary search,
+recording/vault keys, arbitrary file paths, microphone control, or arbitrary
+actions. This future flow requires its own UX/security decision and SDK
+protocol version.
+
 ## 5. Primary flows
 
 ### Recording and live transcript

@@ -163,6 +163,15 @@ with no actionable task.
 
 Long-journal chunking and quality are future development tasks.
 
+Node-initiated requests for more journal context or device capabilities are
+also future work. AJ-RI supplies the complete user-selected request once. A
+future reverse exchange must be separately versioned and consented, keep AJ as
+the data authority, enforce strict scope/size/round/provenance limits, and
+remain deniable. It cannot grant the node general journal, file, audio, key,
+microphone, or action access. Its purpose is better grounding for
+resource-bounded private-node models, not an assumption of frontier-model
+capability.
+
 ## 5. Acceptance truth
 
 Existing AJ-1, AJ-2, AJ-3, and AJ-4-P evidence remains valid for encrypted

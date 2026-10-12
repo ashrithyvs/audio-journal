@@ -277,6 +277,10 @@ extended soaks, `auto`, iOS, and physical-device production certification stay
 deferred. Passing `GRI-6-A` authorizes broader exploratory phone testing but
 does not close canonical AJ-4.
 
+Node-initiated requests for additional journal context or device capabilities
+are post-AJ-RI future work and require separate SDK protocol plus AJ
+UX/security decisions. They are not an implied AJ-RI deliverable.
+
 ## 7. Required validation dimensions
 
 - **Unit:** domain invariants, reducers/view models, state machines, validators,
