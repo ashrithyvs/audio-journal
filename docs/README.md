@@ -13,6 +13,11 @@ AJ-0 scaffold behavior may be described as implemented only when backed by
 storage, biometrics, journal persistence, recording, and AI journeys remain
 targets rather than implemented behavior.
 
+Audio Journal targets both Android and iOS. Android-first describes the current
+validation order, not the supported-product boundary. iOS remains in scope and
+must pass cumulative `GRI-6-I` and the SDK's deferred iOS profiles before any
+cross-platform mobile or v0.1 release claim.
+
 ## Canonical documents
 
 - [Architecture decisions](architecture-decisions.md) — frozen decisions and open ADRs.

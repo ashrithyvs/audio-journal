@@ -1,6 +1,7 @@
 # Audio Journal Real-Inference Migration
 
-**Status:** Frozen Android-first prototype handoff (2026-10-12).
+**Status:** Frozen Android-first validation handoff for an Android+iOS product
+(2026-10-13).
 **SDK work package:**
 [`hybridAi/docs/real-inference-roadmap.md`](../../hybridAi/docs/real-inference-roadmap.md).
 **Controlling AJ decision:** ADR-021.
@@ -146,6 +147,29 @@ authorizes broader exploratory phone testing but is not canonical AJ-4,
 physical-device certification, production readiness, iOS acceptance, or
 release approval.
 
+### AJ-RI-I — Cumulative iOS real-inference gate
+
+Android-first describes execution order, not an Android-only application.
+During AJ-RI-2–AJ-RI-6, React Native iOS, native adapters, public SDK usage,
+domain behavior, consent, validation, persistence, and error handling stay
+aligned wherever mechanically possible. Paths not compiled and run are marked
+**unverified**, never passed by inference from Android.
+
+After `GRI-6-A`, the SDK's cumulative `GRI-6-I` gate runs Audio Journal through
+packaged iOS artifacts and covers real SDK-owned local transcription, real
+`journal.organize@1` in explicit Local and Private Node modes, pairing/mTLS,
+configured LAN/Tailscale endpoint use, cancellation/deadlines, lifecycle and
+network recovery, lock/persistence, provenance, Organized/Tasks, source
+navigation, privacy, accuracy, bounded load, and performance. Simulator runs
+may prove integration, but supported physical iPhone evidence is required for
+microphone, model performance, memory/thermal behavior, secure storage, and
+real-network claims. Tailscale remains an independently installed stock iOS
+client, not an AJ or SDK dependency.
+
+`GRI-6-A` authorizes the Android prototype only. Cross-platform mobile support
+and v0.1 release require `GRI-6-I`, SDK `G0-I`–`G5-I`, affected Android/host
+regressions, and canonical release acceptance.
+
 ## 4. Audio and performance limits
 
 The prototype accuracy/performance matrix uses real 30-second, 60-second, and
@@ -198,7 +222,8 @@ document, the SDK ADR-024/roadmap, and the affected HLD/LLD. Then report:
 - active file claims and exclusive-run lock;
 - exact AJ layer and SDK public surface being consumed;
 - tests required for the current AJ-RI stage; and
-- physical-device/iOS/long-audio items still deferred.
+- physical-device/iOS/long-audio items still deferred, with iOS explicitly
+  remaining a supported target governed by `GRI-6-I`.
 
 Do not infer acceptance from chat history or an APK alone.
 

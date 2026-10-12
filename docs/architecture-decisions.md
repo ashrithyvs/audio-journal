@@ -815,8 +815,10 @@ ADR-024 and its RI-0–RI-6 roadmap.
    versus node results.
 8. Existing AJ-1–AJ-4-P reports remain valid for what they measured. They are
    not real-model organization acceptance and do not close the RI gates.
-9. `auto`, iOS, physical-device production budgets, arbitrary model choice,
-   raw-audio node processing, and knowledge graphs are deferred.
+9. `auto`, iOS execution evidence, physical-device production budgets,
+   arbitrary model choice, raw-audio node processing, and knowledge graphs are
+   deferred from the Android progression gate. iOS remains a supported mobile
+   target rather than leaving product scope.
 10. Before the first prototype gate closes, Android-to-Linux Private AI Node
     use is validated on the available Ubuntu host through independently
     installed Tailscale clients. Audio Journal supplies the SDK a configured
@@ -840,6 +842,16 @@ ADR-024 and its RI-0–RI-6 roadmap.
     node hardware. AJ makes no assumption that their reasoning or accuracy
     matches Claude, Codex, or another hosted frontier service. Additional
     context may improve grounding but does not waive the accuracy gates.
+13. Audio Journal and its packaged SDK integration support Android and iOS.
+    Android is validated first only because the current environment lacks
+    macOS/Xcode/iOS hardware. AJ-RI changes must preserve React Native iOS and
+    native adapter parity wherever mechanically possible and label uncompiled
+    paths **unverified**. After `GRI-6-A`, cumulative `GRI-6-I` validates real
+    local transcription, explicit local/node organization, security,
+    lifecycle, privacy, accuracy, load, performance, and AJ journeys on named
+    iOS profiles. A physical iPhone is required for device-specific claims;
+    Simulator evidence alone is insufficient. Cross-platform mobile support
+    and v0.1 release require `GRI-6-I` plus the SDK's `G0-I`–`G5-I` gates.
 
 **Consequences:** the direct app speech engine and its native build integration
 must migrate behind SDK `audio.transcribe@1`. The current organization UI,
@@ -848,3 +860,4 @@ navigation are retained and exercised against real SDK results. Passing
 `GRI-6-A` includes the narrowly scoped physical-phone Tailscale connectivity
 proof and authorizes broader exploratory Android phone use; it does not imply
 physical-device certification, canonical AJ-4, or release acceptance.
+It also does not imply iOS acceptance; that is closed only by `GRI-6-I`.

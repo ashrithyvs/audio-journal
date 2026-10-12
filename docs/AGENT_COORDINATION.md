@@ -5,6 +5,12 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 
 ## Current snapshot
 
+- **Mobile platform clarification (2026-10-13, owner/Codex):** Audio Journal
+  and its Hybrid AI SDK integration target both Android and iOS. Android/API 35
+  is the currently executable first development profile, not the product
+  boundary. AJ-RI must preserve iOS app/API parity, label it unverified until
+  run, and pass cumulative `GRI-6-I` on macOS/Xcode and supported iOS devices
+  before cross-platform mobile support or v0.1 release is claimed.
 - **Node platform correction (2026-10-13, owner/Codex):** AJ uses the same SDK
   node API for Linux, Windows, and macOS. Ubuntu is only the first Linux
   validation distribution; Windows/macOS require native SDK-owned node gates
@@ -50,8 +56,9 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
   - AJ-2 is accepted for the Android-first profile.
 
   None of these is canonical, production, or cross-platform acceptance.
-  Physical Android production certification and iOS stay deferred; only the
-  bounded Tailscale phone-connectivity proof is inside `GRI-6-A`.
+  Physical Android production certification and iOS execution stay deferred;
+  iOS remains a supported target governed by `GRI-6-I`. Only the bounded
+  Tailscale phone-connectivity proof is inside `GRI-6-A`.
 - **Branch:** `main`; accepted AJ-RI design baseline through `56ca1bc`.
   AJ-4-P was merged as `ff669a7`; AJ-2 was merged as `692ac0b`.
 - **Last agent:** Codex (GRI-0 review remediation and acceptance; no

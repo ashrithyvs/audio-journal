@@ -279,6 +279,15 @@ extended soaks, `auto`, iOS, and physical-device production certification stay
 deferred. Passing `GRI-6-A` authorizes broader exploratory phone testing but
 does not close canonical AJ-4.
 
+Android-first is only the current validation order. Audio Journal continues to
+target Android and iOS. After `GRI-6-A`, cumulative `GRI-6-I` validates the
+packaged iOS app and SDK with real local transcription, explicit local/node
+organization, security, lifecycle/recovery, accuracy, privacy, bounded-load,
+performance, and the AJ journeys on macOS/Xcode plus named Simulator and
+physical-iPhone profiles. Simulator results do not replace device-specific
+evidence. Cross-platform mobile or v0.1 release claims require this iOS gate
+and SDK G0-I–G5-I; Android evidence is never treated as an inferred iOS pass.
+
 Node-initiated requests for additional journal context or device capabilities
 are post-AJ-RI future work and require separate SDK protocol plus AJ
 UX/security decisions. They are not an implied AJ-RI deliverable.

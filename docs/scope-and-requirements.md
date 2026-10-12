@@ -27,6 +27,9 @@ material into useful views and tasks through Hybrid AI.
 ## 3. In scope
 
 - React Native mobile app for Android and iOS using the New Architecture.
+  Android is the first/current validation profile only; iOS remains a supported
+  product target and must pass its cumulative gate before cross-platform or
+  release claims.
 - Voice recording, pause/resume, safe finalization, playback, and written entries.
 - Timestamped live/provisional and finalized transcript segments.
 - Local entry timeline, search over local metadata/text, and entry detail.

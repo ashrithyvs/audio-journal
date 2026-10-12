@@ -16,6 +16,11 @@ persistence, credential, biometric, audio, and device-E2E packages remain Open.
 | Audio files | App-private filesystem, referenced from SQLite | Frozen boundary |
 | Recording | App-owned `RecordingService` with native-capable implementation | Frozen boundary |
 | AI | Version-pinned packaged Hybrid AI React Native API | Frozen |
+
+The mobile application supports Android and iOS. Android is currently the
+executable development profile; this does not narrow the frozen application
+scope. Native iOS dependencies, packaging, and runtime behavior remain
+unverified until the macOS/Xcode `GRI-6-I` catch-up gate.
 | Contracts | Versioned JSON Schema for application-owned capabilities | Frozen |
 | Secrets | Platform Keychain/Keystore-backed adapter | Frozen boundary |
 | Biometrics | Platform biometric prompt; result only, no raw data | Frozen behavior |

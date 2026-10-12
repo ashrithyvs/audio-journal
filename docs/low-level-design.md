@@ -1,5 +1,10 @@
 # Low-Level Design
 
+**Mobile platform scope:** this design targets Android and iOS. Android is the
+current first validated profile; iOS adapters and packaged SDK behavior remain
+required, are labelled unverified until macOS/Xcode execution, and close only
+through cumulative `GRI-6-I` plus the SDK's deferred iOS gates.
+
 **Status:** Target contract. Open decisions are not implementation authorization.
 
 ## 1. Layer boundaries

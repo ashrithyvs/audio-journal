@@ -4,6 +4,11 @@
 implementation is recorded in validation reports; SDK-owned real inference is
 the mandatory target in `real-inference-migration.md`.
 
+The application architecture targets Android and iOS. Current Android-first
+validation reflects available tooling, not an Android-only boundary. Platform
+adapters differ where required, while domain, security, SDK capability, and UX
+contracts remain aligned and iOS stays unverified until `GRI-6-I`.
+
 ## 1. Architecture principles
 
 1. Journal first, AI second.
