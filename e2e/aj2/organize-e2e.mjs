@@ -410,7 +410,15 @@ try {
       const jobsBefore = await jobs();
       const over = await organize();
       expect(over.result === 'refused', `over-cap outcome ${over.result}`);
-      expect(/too long to send/.test(d.snapshot()), 'refusal does not say why');
+      // The reason renders under the refusal; wait and scroll for it rather
+      // than reading one snapshot (a slow device may not have drawn it yet).
+      const reason = await d
+        .findScrolling(
+          { textMatches: /too long to send/ },
+          { timeoutMs: 15_000 },
+        )
+        .catch(() => undefined);
+      expect(reason, 'refusal does not say why');
       expect((await jobs()) === jobsBefore, 'an over-cap request was sent');
       note('O06', 'refused over the cap');
       await done();
