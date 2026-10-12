@@ -105,8 +105,10 @@ plus the Private AI Node feature: discovery, pairing, status, reconnect,
 forget, policy, and diagnostics. See ADR-015 and LLD §7.1.
 
 - Converts app domain requests into public SDK capability calls.
-- Sends bounded encrypted-source audio to SDK `audio.transcribe@1` locally and
-  receives timestamped events; it never integrates the speech model/runtime.
+- Opens a bounded decrypted PCM/source reader backed by AJ-encrypted AJR1
+  storage for SDK `audio.transcribe@1` local execution and receives timestamped
+  events. No recording key or storage path crosses the adapter, and AJ never
+  integrates the speech model/runtime.
 - Sends finalized transcript/written text plus provenance to
   `journal.organize@1` using explicit local or node.
 - Treats a Tailscale MagicDNS name or IP as an ordinary configured node

@@ -5,6 +5,9 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 
 ## Current snapshot
 
+- **Active claim (2026-10-12, Codex):** remediate the independent `GRI-0`
+  documentation review findings shared with the SDK repository, then re-run
+  review. Documentation only.
 - **AJ-RI documentation handoff (2026-10-12, Codex):** ADR-021 and the
   resumable [real-inference migration](real-inference-migration.md) are written
   and reconciled through scope, use cases, HLD, LLD, UML, organization

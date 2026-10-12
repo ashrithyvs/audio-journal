@@ -105,16 +105,19 @@ must never stop, discard, or corrupt source audio.
 
 ## ADR-009: Live transcription
 
-**Status:** Frozen UX. The engine boundary is decided by ADR-016.
+**Status:** Frozen UX. The current engine boundary is decided by ADR-021;
+ADR-016 is the historical pre-RI implementation.
 
 **Decision:** Timestamped transcript segments appear while the user speaks.
 Provisional text may be revised until a segment is finalized. Recording remains
 the source of truth. If live STT is unavailable, recording continues and the app
 offers retry/transcribe-later behavior.
 
-**Open:** audio-frame chunking for live (streaming) transcription and
-post-recording reconciliation. Transcription is app-owned per ADR-016; it is
-not a Hybrid AI capability.
+**Historical pre-RI note:** audio-frame chunking and post-recording
+reconciliation were originally assigned to the app-owned ADR-016 engine.
+ADR-021 now governs: AJ supplies a bounded decrypted PCM/source reader backed
+by encrypted AJR1 storage to SDK-owned local `audio.transcribe@1`; it transfers
+no recording key or file path to the SDK and never sends audio to the node.
 
 ## ADR-010: Hybrid AI public boundary
 
@@ -122,9 +125,11 @@ not a Hybrid AI capability.
 
 **Decision:** Consume a versioned packaged Hybrid AI SDK artifact only through
 public TypeScript/TurboModule APIs. Do not copy SDK source or import private
-headers. The SDK owns capability execution, target selection, streaming, and
-Private AI Node connectivity. This app owns capture, persistence, UI, journal
-and task domains, provenance, lock state, and user-visible recovery.
+headers. The SDK owns capability execution, validation, admission, streaming,
+and Private AI Node connectivity. Under ADR-021 the app/user supplies explicit
+`local` or `node`; SDK target selection applies only to future `auto`. This app
+owns capture, persistence, UI, journal and task domains, provenance, lock
+state, and user-visible recovery.
 
 `journal.organize@1` and other journal-specific contracts are owned by this app
 and its Private AI Node integration, not by SDK core.
@@ -611,10 +616,17 @@ code, character ranges, and which items must cite sources.
 **Decision:** `docs/journal-organize.md` is the normative contract, with the
 schemas and vectors in `schemas/journal/v1/`. In summary:
 
-- **Capability:** `journal.organize` `1.0.0`, streaming, executed only on
-  the paired node (`execution: 'node'`), with a 60 s deadline and no
-  fallback. Every message carrying journal content is at most 61,440 bytes
-  with its envelope: inputs up to 61,108 bytes and results up to 61,387.
+The following execution and companion bullets describe the historical AJ-2
+baseline. ADR-021 supersedes them for the RI target: execution is explicit
+`local | node`, and the generic SDK-owned Ubuntu Private AI Node replaces the
+standalone companion. Schema, provenance, validation, persistence, and TLS
+requirements remain authoritative.
+
+- **Historical AJ-2 capability deployment:** `journal.organize` `1.0.0`,
+  streaming, executed only on the paired node (`execution: 'node'`), with a
+  60 s deadline and no fallback. Every message carrying journal content is at
+  most 61,440 bytes with its envelope: inputs up to 61,108 bytes and results
+  up to 61,387.
 - **Input:** 1–20 whole entries. Voice entries send the current transcript
   (newest full pass, correction heads) with segment IDs and timings; written
   entries send paragraph units with their offsets. Every unit carries a
@@ -632,9 +644,9 @@ schemas and vectors in `schemas/journal/v1/`. In summary:
 - **Persistence:** one transaction writes an immutable derivation revision,
   its scope, tasks, and references; `requestKey` is unique, so a delivery
   can never be stored twice. Sources are never written.
-- **Companion:** an independent ADR-021/ADR-022 node in `node-companion/`
-  (Node.js 22), built only from the SDK's published protocol, schemas, and
-  vectors. It keeps the frozen Android support profile: TLS 1.3, and on
+- **Historical AJ-2 companion:** an independent ADR-021/ADR-022 node in
+  `node-companion/` (Node.js 22), built only from the SDK's published protocol,
+  schemas, and vectors. It keeps the frozen Android support profile: TLS 1.3, and on
   API 26–28 the restricted TLS 1.2 profile (ECDHE-ECDSA AEAD suites with
   Extended Master Secret, refused without EMS). Certificates and ASN.1 come
   from a pinned, established dependency, never hand-written DER; primitives
@@ -749,10 +761,11 @@ follow UX §7. The contract is unchanged by this ADR.
 2. Background recording (a foreground service). Android capture, format,
    interruptions, duration, and storage pressure are decided by ADR-017.
 3. Live-transcription window length, overlap, and cadence, set from device
-   measurements. The live UX is decided by ADR-017 and the engine by ADR-016.
-4. `journal.organize@1`: decided by ADR-018 and frozen by ADR-019
-   (`journal-organize.md`, `schemas/journal/v1/`); its own open questions are
-   in that document's §12.
+   measurements. The live UX is decided by ADR-017 and the current SDK-owned
+   engine boundary by ADR-021.
+4. `journal.organize@1`: its runtime ownership/targets are decided by ADR-021;
+   its domain contract is frozen by ADR-019 (`journal-organize.md`,
+   `schemas/journal/v1/`) with remaining questions in that document's §12.
 5. ~~The AJB1 binary layout and vectors~~: **frozen for implementation**
    on 2026-10-10 (backup-and-restore.md §9, with its freeze evidence).
    Still open: Argon2id parameters (item 1), iOS cross-platform evidence
@@ -816,5 +829,6 @@ ADR-024 and its RI-0–RI-6 roadmap.
 must migrate behind SDK `audio.transcribe@1`. The current organization UI,
 schemas, provenance validation, storage, history, tasks, pairing UX, and source
 navigation are retained and exercised against real SDK results. Passing
-`GRI-6-A` authorizes an exploratory Android phone trial; it does not imply
-canonical AJ-4 or release acceptance.
+`GRI-6-A` includes the narrowly scoped physical-phone Tailscale connectivity
+proof and authorizes broader exploratory Android phone use; it does not imply
+physical-device certification, canonical AJ-4, or release acceptance.

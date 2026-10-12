@@ -270,10 +270,12 @@ ADR-024 and `hybridAi/docs/real-inference-roadmap.md`.
 - AJ-RI-6: installable Android emulator/CPU-node prototype, tester guide, and
   Android-to-Ubuntu Tailscale direct/relayed connectivity proof.
 
-The gate uses real 30-, 60-, and 180-second voice recordings. It excludes
-long-audio performance, extended soaks, `auto`, iOS, and physical-device
-production certification. Passing `GRI-6-A` authorizes exploratory phone
-testing but does not close canonical AJ-4.
+The functional/performance gate uses the API 35 emulator, CPU node, and real
+30-, 60-, and 180-second voice recordings. One physical Android phone is used
+only for Tailscale direct/relayed reachability. Long-audio performance,
+extended soaks, `auto`, iOS, and physical-device production certification stay
+deferred. Passing `GRI-6-A` authorizes broader exploratory phone testing but
+does not close canonical AJ-4.
 
 ## 7. Required validation dimensions
 

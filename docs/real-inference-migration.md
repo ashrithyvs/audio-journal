@@ -134,8 +134,16 @@ Ubuntu, the configured MagicDNS/IP endpoint, tailnet access control, and how
 the retained evidence distinguishes direct from relayed connectivity. The same
 SDK pairing/mTLS identity remains in force in both cases.
 
-Exit: `GRI-6-A` passes. This authorizes exploratory phone testing but is not
-canonical AJ-4, production readiness, iOS acceptance, or release approval.
+One physical Android phone is required only for the direct and relayed
+Tailscale reachability journeys. All physical-device performance, thermal,
+battery, low-memory, compatibility, and production-support certification stays
+deferred. The API 35 emulator remains the functional/performance development
+profile.
+
+Exit: `GRI-6-A` passes, including the bounded phone connectivity proof. This
+authorizes broader exploratory phone testing but is not canonical AJ-4,
+physical-device certification, production readiness, iOS acceptance, or
+release approval.
 
 ## 4. Audio and performance limits
 
