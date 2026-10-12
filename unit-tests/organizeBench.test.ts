@@ -245,5 +245,6 @@ it('cancels after the first progress and measures the latency', async () => {
   const sample = await running;
   expect(gateway.cancelled).toHaveLength(1);
   expect(sample.outcome).toBe('cancelled');
+  expect(sample.terminalEvents).toBe(1);
   expect(typeof sample.cancelLatencyMs).toBe('number');
 });

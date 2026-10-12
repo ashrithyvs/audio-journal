@@ -431,6 +431,11 @@ test('a cancelled job keeps no result: no output, no replay, and a retry recompu
     logs.filter(e => e.event === 'job-ended').map(e => e.state),
     ['cancelled'],
   );
+  // The cancellation is logged as a count, never with an identifier.
+  assert.deepEqual(
+    logs.filter(e => e.event === 'job-cancel-request'),
+    [{ event: 'job-cancel-request' }],
+  );
 
   // The identical request again (same requestKey, new idempotency key).
   const retry = await device.request('POST', '/v1/jobs', job(fixtures.mixed));

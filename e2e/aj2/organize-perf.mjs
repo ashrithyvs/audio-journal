@@ -52,6 +52,8 @@ const { values: args } = parseArgs({
     },
     warm: { type: 'string', default: '20' },
     only: { type: 'string', default: '' },
+    // SDK-AJ-5 fixed: every cancelled run must also end cancelled at the node.
+    'expect-node-cancel': { type: 'boolean', default: false },
   },
 });
 if (!process.env.ANDROID_SERIAL) {
@@ -94,6 +96,14 @@ function jobLog() {
     .split('\n')
     .filter(line => line.includes('"job-ended"'))
     .map(line => JSON.parse(line));
+}
+
+/** Device cancellations (DELETE /v1/jobs/{id}) the companion received. */
+function cancelRequests() {
+  return node.log
+    .join('')
+    .split('\n')
+    .filter(line => line.includes('"job-cancel-request"')).length;
 }
 
 function appPid() {
@@ -337,10 +347,40 @@ try {
   if (wanted('cancel')) {
     await restartNode({ stageDelayMs: 2_000 });
     await openBench();
-    await block('cancel', 5, {
+    const cancelsBefore = cancelRequests();
+    const replaysBefore = (await node.stats()).replays;
+    const result = await block('cancel', 5, {
       label: 'cancel',
       notes: 'node stages slowed to 2 s; cancel 300 ms after first progress',
     });
+    // SDK-AJ-5: the app side (one terminal per run, counted by the gateway)
+    // and the node side of every cancelled run.
+    result.nodeCancel = {
+      appOutcomes: result.samples.map(s => s.outcome),
+      appTerminalEvents: result.samples.map(s => s.terminalEvents),
+      cancelRequests: cancelRequests() - cancelsBefore,
+      nodeJobStates: result.nodeJobs.map(j => j.state),
+      replaysRetained: (await node.stats()).replays - replaysBefore,
+    };
+    fs.writeFileSync(
+      path.join(args.out, 'blocks.json'),
+      `${JSON.stringify(blocks, null, 2)}\n`,
+    );
+    process.stdout.write(
+      `cancel node side: ${JSON.stringify(result.nodeCancel)}\n`,
+    );
+    if (args['expect-node-cancel']) {
+      const c = result.nodeCancel;
+      const ok =
+        c.appOutcomes.length === 5 &&
+        c.appOutcomes.every(o => o === 'cancelled') &&
+        c.appTerminalEvents.every(t => t === 1) &&
+        c.cancelRequests === 5 &&
+        c.nodeJobStates.length === 5 &&
+        c.nodeJobStates.every(s => s === 'cancelled') &&
+        c.replaysRetained === 0;
+      if (!ok) throw new Error(`cancellation not closed: ${JSON.stringify(c)}`);
+    }
   }
   if (wanted('timeout')) {
     await restartNode({ stageDelayMs: 25_000 });

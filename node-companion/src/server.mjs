@@ -239,8 +239,12 @@ export async function startCompanion(
       const job = JOB_PATH.exec(path);
       if (job && req.method === 'GET')
         return send(res, 200, jobs.status(record.pairingId, job[1]));
-      if (job && req.method === 'DELETE')
+      if (job && req.method === 'DELETE') {
+        // Counts only (contract §10): evidence that a device's cancellation
+        // reached the companion (SDK-AJ-5 closing tests).
+        log({ event: 'job-cancel-request' });
         return send(res, 200, jobs.cancel(record.pairingId, job[1]));
+      }
       return error(res, 404, 'NODE_UNAVAILABLE', 'No such resource');
     } catch (e) {
       if (e instanceof WireError || e instanceof PairingError)

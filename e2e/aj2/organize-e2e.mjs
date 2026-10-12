@@ -131,6 +131,14 @@ function jobLog() {
     .map(line => JSON.parse(line));
 }
 
+/** Device cancellations (DELETE /v1/jobs/{id}) the companion received. */
+function cancelRequests() {
+  return node.log
+    .join('')
+    .split('\n')
+    .filter(line => line.includes('"job-cancel-request"')).length;
+}
+
 /** One paragraph of distinct plain sentences, about `length` characters. */
 function longParagraph(length, word) {
   const sentences = [];
@@ -237,6 +245,8 @@ try {
     });
     let cancelledAt;
     const jobsBefore = await jobs();
+    const replaysBefore = (await node.stats()).replays;
+    const cancelsBefore = cancelRequests();
     const run = await organize({
       onRunning: async () => {
         // Cancel once the node holds the job, so the node side is observable.
@@ -268,12 +278,24 @@ try {
     const detail = {
       nodeJobState: ended?.state ?? 'running',
       nodeJobEndedAfterCancelMs: Date.now() - cancelledAt,
+      // The companion logs each device DELETE; a completed job would add a
+      // replayable result.
+      cancelRequests: cancelRequests() - cancelsBefore,
+      replaysRetained: (await node.stats()).replays - replaysBefore,
       knownSdkDefect: ended?.state === 'cancelled' ? undefined : 'SDK-AJ-5',
     };
     if (!args['expect-node-cancel']) return detail;
     expect(
+      detail.cancelRequests === 1,
+      `the companion received ${detail.cancelRequests} cancellations, not 1`,
+    );
+    expect(
       ended?.state === 'cancelled' && detail.nodeJobEndedAfterCancelMs < 15_000,
       `the node job ended ${detail.nodeJobState}, not cancelled promptly`,
+    );
+    expect(
+      detail.replaysRetained === 0,
+      'the cancelled job left a retained result',
     );
     // The identical request again: the node must compute it afresh, with no
     // completed result surfacing from the cancelled job.

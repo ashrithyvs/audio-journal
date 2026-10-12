@@ -80,6 +80,11 @@ export interface BenchSample {
   deadlineOverrunMs?: number;
   events: number;
   partials: number;
+  /**
+   * Terminal events the SDK delivered for this run, counted by the gateway
+   * (exactly 1 when the public stream keeps its one-terminal contract).
+   */
+  terminalEvents?: number;
 }
 
 export interface BenchDependencies {
@@ -281,7 +286,7 @@ export async function runSample(
   let cancelAt: number | undefined;
   const started = now();
   const since = () => now() - started;
-  await deps.gateway.run(
+  const audit = await deps.gateway.run(
     {
       capability: CAPABILITY.id,
       version: CAPABILITY.version,
@@ -320,6 +325,7 @@ export async function runSample(
     },
   );
   sample.terminalMs ??= since();
+  sample.terminalEvents = audit.terminalEvents;
 
   if (terminal?.type === 'cancelled') {
     sample.outcome = 'cancelled';
