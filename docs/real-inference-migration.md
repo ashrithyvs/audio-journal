@@ -240,6 +240,13 @@ document, the SDK ADR-024/roadmap, and the affected HLD/LLD. Then report:
 
 Do not infer acceptance from chat history or an APK alone.
 
+When AJ evidence suggests an SDK/node defect, use the read-only diagnostic and
+handoff workflow in
+[product boundaries](product-boundaries.md#cross-repository-diagnosis-and-sdk-handoff).
+Do not fix the SDK from the AJ task. Continue non-overlapping AJ work when safe;
+only the affected gate waits for an accepted, versioned SDK package and its
+consumer reruns.
+
 Implementation questions use the SDK's
 [cross-agent decision bridge](../../hybridAi/docs/agent-decision-bridge.md).
 It prevents blocking Claude UI prompts only after each session is instructed to

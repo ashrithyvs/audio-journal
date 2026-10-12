@@ -26,6 +26,14 @@ which the SDK owner accepted and merged into SDK `main` (`855edaf`; `main` at
   repository was changed.
 - The pinned package is not patched or waived.
 
+This is now the canonical AJ-side register for `SDK-FINDING-###` handoffs.
+New entries must include the AJ and SDK/package hashes, environment and model
+profile, expected/observed behavior, minimal public-API reproducer, an
+AJ/harness/device/network/node/model/SDK isolation record, scrubbed evidence,
+RCA with confidence and source citations, proposed SDK fix and regression
+tests, and the AJ suites required after a replacement package. Read-only SDK
+inspection is allowed; SDK edits and acceptance are not owned here.
+
 The AJ-side workarounds and fixes are tracked in the
 [AJ-3 report](AJ3-android.md) and in the decision inbox.
 
@@ -335,4 +343,3 @@ terminal-event count per run.
 
 The same `e0fc3c5` steps (O03, and the cancel block in performance runs
 1–3) had recorded 0 of 5 cancelled at the node.
-

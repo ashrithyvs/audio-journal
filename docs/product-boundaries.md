@@ -48,3 +48,28 @@ deployment instructions, and acceptance evidence respectively.
 SDK, node, and AJ versions/releases remain independent. Compatibility is
 carried by public SDK, protocol, schema, capability-package, and model-profile
 versions.
+
+## Cross-repository diagnosis and SDK handoff
+
+This boundary does not prevent diagnosis. If an AJ functional, accuracy, load,
+or performance test indicates that the packaged SDK or Private AI Node may be
+responsible, the AJ agent may inspect the **exact pinned** `hybridAi` source,
+documents, tests, and commit history read-only. It may reproduce through the
+public API, isolate the likely owner, write an evidence-backed root-cause
+analysis, and propose a fix and regression tests.
+
+The AJ agent must not edit or commit in `hybridAi`, patch the consumed package,
+import private SDK/node code, silently alter an SDK contract, or present a
+proposal as an accepted fix. Before classifying an SDK defect it separates AJ
+application, test harness, device/OS, network, node, model/profile, and SDK
+causes as far as the available evidence permits.
+
+Record each issue in
+[`validation/hybrid-ai-sdk-issues.md`](validation/hybrid-ai-sdk-issues.md) and
+the decision bridge as `SDK-FINDING-###`, including the AJ and SDK/package
+hashes, environment/model profile, expected and observed behavior, minimal
+public-API reproducer, isolation evidence, privacy-scrubbed reports, RCA and
+confidence, cited source locations, proposed fix, SDK regression tests, and AJ
+reruns. If authorized, a separate SDK-owned task implements and validates the
+fix and produces a versioned package. AJ then updates pins/hashes and reruns
+the affected journey and required baseline before consumer acceptance.

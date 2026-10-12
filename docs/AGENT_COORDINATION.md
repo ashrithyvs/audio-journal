@@ -5,6 +5,13 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 
 ## Current snapshot
 
+- **Cross-repository diagnostics accepted (2026-10-13, owner/Codex):** AJ
+  agents may inspect the exact pinned SDK/node source read-only when AJ
+  functional, accuracy, load, or performance evidence suggests an SDK-owned
+  defect. They record a reproducible `SDK-FINDING-###`, RCA/confidence,
+  proposed fix/tests, and required consumer reruns without editing SDK code or
+  packages. An accepted fix transfers to a separate SDK-owned task and returns
+  as a versioned package for AJ pinning and regression. Documentation only.
 - **Private AI Node ownership/stack clarification (2026-10-13, Codex):** AJ's
   technology stack is explicitly application-only. The cross-platform desktop
   node stack belongs to the SDK repository; accepted SDK ADR-025 defines a
