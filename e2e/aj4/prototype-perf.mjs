@@ -219,11 +219,25 @@ try {
         await liveWaitFor({ id: 'recording-pause' }, { timeoutMs: 30_000 });
         await d.sleep(D * 1000 + 2_000);
         const stopped = Date.now();
-        await liveTap({ id: 'recording-finish' });
-        await liveWaitFor(
-          { id: 'recording-open-entry' },
-          { timeoutMs: 60_000 },
-        );
+        // The live transcript can shift the layout between the ~1 s live
+        // dump and the tap; re-tap Finish if the stop screen does not show,
+        // and record every retry.
+        let finishRetries = 0;
+        for (;;) {
+          await liveTap({ id: 'recording-finish' }).catch(() => undefined);
+          const shown = await liveWaitFor(
+            { id: 'recording-open-entry' },
+            { timeoutMs: 15_000 },
+          ).then(
+            () => true,
+            () => false,
+          );
+          if (shown) break;
+          finishRetries += 1;
+          if (finishRetries > 3) {
+            throw new Error('Finish did not stop the recording');
+          }
+        }
         const captured = seconds(liveTextOf({ id: 'recording-timer' }));
         await liveTap({ id: 'recording-open-entry' });
         await liveWaitFor({ id: 'entry-recording' }, { timeoutMs: 60_000 });
@@ -248,6 +262,7 @@ try {
           speechSeconds: D,
           rep: r + 1,
           capturedSeconds: captured,
+          finishRetries,
           outcome,
           stopToFinalMs,
           rtf: Number((stopToFinalMs / 1000 / captured).toFixed(3)),

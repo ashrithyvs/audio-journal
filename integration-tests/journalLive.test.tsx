@@ -35,6 +35,22 @@ it('shows live text, stores it, and replaces it with the final pass', async () =
   expect(view.getByTestId('live-transcript-text')).toHaveTextContent(
     'Dear diary, today',
   );
+  // A long recording shows only its latest words, so the controls below
+  // never move (UX §5); the full text is kept.
+  const words = Array.from({ length: 60 }, (_, i) => `word${i}`).join(' ');
+  await act(async () => harness.recorder.capture(8_000));
+  await act(async () =>
+    live.emit({
+      startMs: 4_000,
+      endMs: 12_000,
+      segments: [{ t0Ms: 4_000, t1Ms: 11_500, text: words }],
+    }),
+  );
+  const shown = String(view.getByTestId('live-transcript-text').props.children);
+  expect(shown.length).toBeLessThanOrEqual(201);
+  expect(shown.startsWith('…')).toBe(true);
+  expect(shown.endsWith('word59')).toBe(true);
+  expect(view.getByTestId('recording-finish')).toBeTruthy();
 
   await fireEvent.press(view.getByTestId('recording-finish'));
   await settle();
@@ -49,6 +65,7 @@ it('shows live text, stores it, and replaces it with the final pass', async () =
       state: 'provisional',
       text: 'Dear diary, today',
     }),
+    expect.objectContaining({ state: 'provisional', text: words }),
   ]);
 
   await act(async () =>

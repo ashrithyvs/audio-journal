@@ -45,3 +45,21 @@ export function formatEntryMoment(timestamp: number): string {
     minute: '2-digit',
   });
 }
+
+/** The most recent live text the recording screen shows (UX §5). */
+export const LIVE_TAIL_CHARS = 200;
+
+/**
+ * The end of a growing live transcript, at most `max` characters, cut at a
+ * word boundary with a leading ellipsis. Bounding the box keeps Pause and
+ * Finish in place however long the recording runs; the full transcript is
+ * in the entry after Finish.
+ */
+export function liveTail(text: string, max: number = LIVE_TAIL_CHARS): string {
+  if (text.length <= max) {
+    return text;
+  }
+  const tail = text.slice(text.length - max);
+  const space = tail.indexOf(' ');
+  return `…${space >= 0 && space < max - 1 ? tail.slice(space + 1) : tail}`;
+}

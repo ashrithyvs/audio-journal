@@ -148,13 +148,28 @@ try {
       await d.tap({ id: 'diary-record' });
       await liveWaitFor({ id: 'recording-pause' }, { timeoutMs: 30_000 });
       await d.sleep(13_000);
-      await liveTap({ id: 'recording-finish' });
-      await liveWaitFor({ id: 'recording-open-entry' }, { timeoutMs: 30_000 });
+      // Re-tap Finish if the stop screen does not show (layout can shift
+      // between the live dump and the tap); retries are recorded.
+      let finishRetries = 0;
+      for (;;) {
+        await liveTap({ id: 'recording-finish' }).catch(() => undefined);
+        const shown = await liveWaitFor(
+          { id: 'recording-open-entry' },
+          { timeoutMs: 15_000 },
+        ).then(
+          () => true,
+          () => false,
+        );
+        if (shown) break;
+        finishRetries += 1;
+        if (finishRetries > 3)
+          throw new Error('Finish did not stop the recording');
+      }
       await liveTap({ id: 'recording-open-entry' });
       await liveWaitFor({ id: 'entry-recording' }, { timeoutMs: 30_000 });
       const outcome = await waitForFinalPass();
       if (outcome === 'failed') throw new Error('final pass failed');
-      return { outcome };
+      return { outcome, finishRetries };
     });
     await op(cycle, 'organize', async () => {
       const run = await organize();

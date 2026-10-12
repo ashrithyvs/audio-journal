@@ -95,6 +95,12 @@ and tomorrow I need to finish...
 ```
 
 Show elapsed time, input level, provisional transcript, pause/resume, and finish.
+
+The provisional transcript shows only the **latest words**, about 200
+characters cut at a word boundary after a leading "…". This keeps Pause and
+Finish in place however long the recording runs. The full text is kept and
+appears in the entry. (AJ-4-P, 2026-10-12: on the emulator, an unbounded box
+had pushed Finish below the fold after about a minute of speech.)
 Do not show task badges, mood labels, categories, “AI is thinking,” model names,
 or node-routing decisions while the user is speaking.
 
