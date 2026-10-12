@@ -241,6 +241,41 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
       O-4 to O-6 and O-7 chunking (deferred); physical-device and iOS
       gates.
   - **Emulators:** stopped; `.aj-exclusive-run` is released.
+  - **SDK-AJ-5 candidate integration and AJ-2 closing baseline (2026-10-12,
+    Claude Code; complete; not merged, pushed, released, or accepted).**
+    - **Pin.** SDK packages from `c4b302e` (SDK branch
+      `fix/sdk-aj-5-node-cancel`, unmerged; ADR-015 amendment). AAR
+      `8751a5a7…b1a`, RN tarball `a11cba67…e2a`, both verified. No
+      `e0fc3c5` remains in the build inputs; the APKs embed the candidate's
+      `libhybrid_ai_core.so`.
+    - **Commits:**
+      - `aabc8b1`: the pin;
+      - `2903a7c`: the strict closing checks;
+      - the follow-up harness and evidence commits.
+    - **Validation**
+      ([AJ-2 progress §10](validation/AJ2-progress.md#10-sdk-aj-5-candidate-and-the-aj-2-closing-baseline-2026-10-12)):
+      - JS baseline: unit 308, smoke 3, integration 153, performance 6;
+      - JVM 61/61; release and `e2e` builds;
+      - SDK-AJ-5 closing test 2/2 and strict cancel block 5/5;
+      - functional 9/9, voice 7/7, Organized/Tasks 11/11;
+      - the full performance matrix complete;
+      - fresh AJ-3 S00–S19 20/20;
+      - API 26 and 28 TLS 1.2 smokes pass;
+      - the privacy scan: 0 findings in 54 logs.
+
+      Evidence is in `aj1-artifacts/evidence/aj2-sdkaj5/`. Release APK
+      `22c0f35d…e015`.
+    - **SDK-AJ-5** is closed in the AJ path by consumer evidence, and the
+      pre-job-ID limitation is kept.
+    - **Remaining:**
+      - the SDK branch's acceptance and merge before AJ-2 merges into
+        `main`; if the merged packages differ, re-pin and rerun;
+      - independent review and the owner's AJ-2 decision;
+      - physical-device runs, iOS, O-4 to O-6, and O-7 chunking stay
+        deferred.
+    - **Environment note.** Timing evidence needs AC power. On battery the
+      host ran at about 1.05 GHz and a timing test failed.
+    - **Emulators:** stopped; `.aj-exclusive-run` is released.
 - **Exclusive runs.** Benchmarks, emulator suites, Gradle/CMake builds, and
   Jest baselines never overlap. Create
   `/home/igdclt0603/Desktop/Ash/.aj-exclusive-run` (owner, purpose, start)

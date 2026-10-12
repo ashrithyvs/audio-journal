@@ -14,6 +14,10 @@ edited, and no external issue was filed.
   built from `e0fc3c5`.
 - Reference node at `07a8bf7`.
 
+SDK-AJ-1 to SDK-AJ-5 were found on those packages. From 2026-10-12 the app
+pins the SDK-AJ-5 candidate built from SDK `c4b302e` (ADR-015 amendment).
+That candidate is how SDK-AJ-5 was closed below.
+
 **How these were found:**
 
 - Audio Journal uses only the SDK's public API.
@@ -207,10 +211,22 @@ ADR-021 or the node schemas.
 
 ## SDK-AJ-5: a cancel during a pending event read is not sent to the node
 
-**Status:** open. **It blocks final AJ-2 cancellation acceptance** (owner
-decision, 2026-10-11). AJ-2 UI work continues meanwhile. This section is
-the handoff to the SDK owner: root cause, reproduction, and the re-test
-that closes it. The SDK repository was not changed.
+**Status: closed in the Audio Journal path by consumer evidence
+(2026-10-12)**, on the SDK candidate built from `c4b302e` (SDK branch
+`fix/sdk-aj-5-node-cancel`):
+
+- AAR `8751a5a7623a2c6ea5a75216afd410d9483410da3c9f96f4c4527c852da86b1a`;
+- RN tarball `a11cba67036d6e38662e6485c75d891dfc0110ebc41cd05aa7ea8f870c14ee2a`.
+
+See **Closing evidence** below. The closure holds for these packages. The SDK
+branch has not been merged yet; if its accepted merge produces different
+packages, this re-test runs again on them.
+
+The SDK's documented limitation stays: a cancel that arrives before the
+job-creation response, while the job ID is still unknown, cannot be
+forwarded. The node then finishes or expires that job, and the app still
+stores nothing. Below is the original handoff (root cause, reproduction,
+and re-test), kept as written on 2026-10-11.
 
 **Affected:** the same SDK version and artifacts as SDK-AJ-1, with any node.
 
@@ -292,3 +308,31 @@ not close this SDK defect.
 SDK): O03 in `aj2-device/functional-aj22-api35/`. The app showed Cancelled
 and stored nothing; the node's job ended `completed`, 45.8 s after the
 cancel.
+
+### SDK-AJ-5 closing evidence (2026-10-12)
+
+**Setup:**
+
+- App `aj2/organize` at `2903a7c`.
+- Release APK `22c0f35d422399cd9eb6595dd9b4274031ce9928263b718cf5b08a0f8506e015`.
+  It embeds the candidate's `libhybrid_ai_core.so` for both ABIs: `x86_64`
+  `dbc94964…`, `arm64-v8a` `783e25e4…`. Each is byte-identical to the
+  `c4b302e` AAR and differs from `e0fc3c5`.
+- Emulator `aj-api35-4g`.
+- Evidence in `aj1-artifacts/evidence/aj2-sdkaj5/`.
+
+The companion now logs each device DELETE as a count-only
+`job-cancel-request`. The developer benchmark records the gateway's
+terminal-event count per run.
+
+| Check | Run | Result |
+|---|---|---|
+| Closing test `organize-e2e.mjs --only O00,O03 --expect-node-cancel` | `closing-o03/` | Pass. The app showed Cancelled once, and nothing was shown or stored. The companion received exactly 1 cancellation. The node job ended `cancelled` within 11.8 s of the tap (the harness bound includes UI waits); the companion logged the DELETE and the `cancelled` end 1 ms apart. `replays` was unchanged: no result retained. The identical retry was recomputed (`engineMs` 9, `completed`) and stored as `stored`, not `existing`, so the cancelled run had stored nothing |
+| Performance cancel block `organize-perf.mjs --only cancel --expect-node-cancel` | `closing-perf-cancel/` | 5/5 `cancelled` in the app with exactly 1 terminal event each. 5 DELETEs, 5 node jobs `cancelled`, 0 retained |
+| The same block inside the full matrix | `perf/` | The same: 5/5 at both ends. Cancel → terminal 106 / 112 ms p50/p95, against 94 / 98 ms before the fix (the DELETE round trip) |
+| Full functional suite `--expect-node-cancel` | `functional-run2/` | 9/9. O03 held to the same strict checks (1 cancellation, `cancelled`, 0 retained, the retry recomputed and stored) |
+| Fresh AJ-3 S00–S19 on the same APK | `aj3/` | 20/20 (no regression) |
+
+The same `e0fc3c5` steps (O03, and the cancel block in performance runs
+1–3) had recorded 0 of 5 cancelled at the node.
+

@@ -420,3 +420,85 @@ cancellation acceptance:
 **Not done here:** physical-device and iOS runs (deferred gates); O-4 to
 O-6 and the chunking part of O-7 (deferred by the owner).
 
+## 10. SDK-AJ-5 candidate and the AJ-2 closing baseline (2026-10-12)
+
+The app now pins the SDK-AJ-5 candidate built from SDK `c4b302e`, on the
+unmerged SDK branch `fix/sdk-aj-5-node-cancel` (ADR-015 amendment):
+
+- RN tarball `a11cba67036d6e38662e6485c75d891dfc0110ebc41cd05aa7ea8f870c14ee2a`;
+- AAR `8751a5a7623a2c6ea5a75216afd410d9483410da3c9f96f4c4527c852da86b1a`.
+
+Both hashes were verified against the SDK handoff before use. The AJ-2
+closing baseline then ran on the API 35 emulator `aj-api35-4g`, with
+second-slot runs on `aj-api35-4g-b`, `aj-api26`, and `aj-api28`. Evidence is
+in `aj1-artifacts/evidence/aj2-sdkaj5/`, outside the repository.
+
+**No reference to the previous artifact remains in the build inputs.**
+
+- `package.json`, `package-lock.json` (`resolved` and `integrity`),
+  `android/gradle.properties` (AAR path and SHA-256), and the pin test name
+  only `c4b302e`.
+- The installed package is byte-identical to the tarball (13 files).
+- **APK proof.** Both APKs contain the candidate's `libhybrid_ai_core.so` for
+  both ABIs, byte-identical to the `c4b302e` AAR and different from
+  `e0fc3c5`:
+
+  | APK | SHA-256 |
+  |---|---|
+  | release | `22c0f35d422399cd9eb6595dd9b4274031ce9928263b718cf5b08a0f8506e015` |
+  | `e2e` | `5ca03fc10e5f65a57fd79ae99bf290df862ca8ee5889b5b53503068ed7576c72` |
+
+- **What changed in the packages.** In the AAR, only `libhybrid_ai_core.so`
+  changed (17 of 19 files are identical). The tarball's runtime sources are
+  unchanged.
+- **History.** `e0fc3c5` is still named only in records of runs that used it:
+  AJ-1, AJ-3, the AJ-2.1 runs, the speech and load baseline, and the SDK
+  findings' "Affected" lines. Those records stay attributed to it.
+
+**Closing-baseline changes (test and evidence only):**
+
+- **Companion.** The companion logs each device DELETE as a count-only
+  `job-cancel-request`.
+- **Developer benchmark.** The benchmark records the gateway's terminal-event
+  count per run.
+- **Strict closing checks.** `--expect-node-cancel` in `organize-e2e.mjs`
+  (O03) and `organize-perf.mjs` (the cancel block) now requires:
+  - one cancellation at the companion;
+  - the node job ends `cancelled`;
+  - no retained result;
+  - one terminal per run;
+  - a recomputed, stored retry.
+- **O06.** O06 waits and scrolls for the refusal reason instead of reading
+  one snapshot.
+- **Privacy scan.** `e2e/aj2/privacy-scan.mjs` scans every log of a run.
+
+| # | Suite | Result | Evidence |
+|---|---|---|---|
+| 1 | JS baseline (`npm run test:baseline`): format, typecheck, zero-warning lint, unit, smoke, integration, performance | **Pass** on AC power: unit 308, smoke 3, integration 153, performance 6. An earlier attempt on battery failed the timing test `privateNodeRecovery`, which also failed on the unmodified `5d9ce93` on battery | `js-baseline.log` |
+| 2 | Android JVM tests; release and `e2e` builds | 61/61; both build | `apk/` |
+| 3 | SDK-AJ-5 closing test, `organize-e2e.mjs --only O00,O03 --expect-node-cancel` | **2/2**. One `Cancelled` in the app; nothing shown or stored. The companion received 1 cancellation, and the node job ended `cancelled` (DELETE and end logged 1 ms apart; within 11.8 s of the tap, harness bound). `replays` unchanged. The identical retry was recomputed (`engineMs` 9) and `stored` | `closing-o03/` |
+| 4 | Performance cancel block, `--only cancel --expect-node-cancel` | 5/5 cancelled in the app, 1 terminal each; 5 DELETEs; 5 node jobs `cancelled`; 0 retained | `closing-perf-cancel/` |
+| 5 | Full functional suite, `organize-e2e.mjs --expect-node-cancel` | **9/9** (run 2, `aj-api35-4g-b`). O03 strict as in row 3 (10.4 s bound). O06: a 60,045-byte request and an exact 61,440-byte completed message. O07: p50 4,614 ms. O08: logs clean, and every handshake on the profile. Run 1 (`aj-api35-4g`) was 8/9: O06's refusal-text check ran while the host was on battery (about 1.05 GHz) and read the screen before the reason was drawn. The outcome was correctly `refused`, and O06 passed alone on AC (`functional-o06-rerun/`) | `functional-run2/`, `functional/` |
+| 6 | Real voice-entry journey | **7/7** | `voice/` |
+| 7 | Organized, History, and Tasks journey | **11/11** | `organized/` |
+| 8 | Full performance matrix, deterministic `aj.rules` baseline, `--expect-node-cancel` | Complete. 126/126 measured runs validated and rehearsed (42 explicitly partial); 20/20 typed refusals and rejections; cancel 5/5 at both ends; 3/3 deadlines. See [performance §5](AJ2-organize-performance.md#5-results) | `perf/` |
+| 9 | Fresh AJ-3 S00–S19 (`e2e/android/aj3-e2e.mjs --expect-persistent-pin`, SDK reference node at `984412f`, read only) | **20/20**, attempt 1, not resumed, 15:55–16:38 IST, release APK `22c0f35d…`. S19: logs clean | `aj3/` |
+| 10 | API 26 and API 28 paired organize smoke (`tls-profile.mjs`) | Both paired, organized, and `stored`. 7/7 handshakes each, all TLS 1.2 `TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256` with EMS, all accepted and on the profile | `tls-api26/`, `tls-api28/` |
+| 11 | Privacy and log scan over the complete run (`e2e/aj2/privacy-scan.mjs`) | **0 findings** in 54 logs (39.5 MB): 19 journal phrases from every suite, the test PIN, pairing payloads, and private keys. The scan covers the continuous API 35 logcat (until AJ-3 restarted `adbd` at 16:18), AJ-3's own logcat, every suite's device log, and every companion log. A planted control log was caught. The API 26 and 28 smokes kept companion logs only | `privacy-scan.json` |
+
+**Result.** Every item on the AJ-2 Android-first closing list passed on
+emulators. SDK-AJ-5 is closed in the real Audio Journal path
+([SDK findings](hybrid-ai-sdk-issues.md#sdk-aj-5-closing-evidence-2026-10-12)).
+The branch is ready for independent review and an Android-first AJ-2
+acceptance decision. AJ-2 is **not accepted**. It is not merged, pushed, or
+released. What remains before a merge into `main`:
+
+1. The SDK branch `fix/sdk-aj-5-node-cancel` must receive its acceptance and
+   merge commit. If the merged packages differ from `c4b302e`, the pin moves
+   and the affected suites are re-run.
+2. Independent review, then the owner's acceptance decision.
+3. These stay deferred and are not passed:
+   - physical-device runs and the physical-device performance matrix (AJ-4);
+   - iOS;
+   - O-4 to O-6, and the chunking part of O-7.
+
