@@ -7,13 +7,25 @@ production-hardened. See the
 [product reality check](../validation/AJ4P-product-reality.md) for what was
 measured and what is known not to work.
 
+**Status:** an Android emulator-validated prototype checkpoint, accepted by
+the owner on 2026-10-12. It is **not** canonical AJ-4, production
+acceptance, or a release.
+
+- Every figure is an **emulator development measurement**.
+- **Physical Android and iOS are untested.**
+- Organization uses the **deterministic `aj.rules` engine, not a model**.
+- **Canonical AJ-4 and production hardening remain open.**
+
 ## 1. What you need
 
 - An Android phone running Android 8.0 (API 26) or later, `arm64-v8a`. Most
   phones from 2017 onwards qualify. An x86_64 Android emulator also works.
-- The prototype APK, `app-release.apk`, from the evidence folder
-  `aj1-artifacts/evidence/aj4p/apk/`. Check its SHA-256 against
-  `SHA256SUMS` in the same folder before you install it.
+- The accepted prototype APK, `app-release.apk`, from the evidence folder
+  `aj1-artifacts/evidence/aj4p/apk-a3b25a5/`. Before installing, check
+  that its SHA-256 is
+  `7df7e740fedf4f8dd734330e30e051d2100fc647e45bedc64674283d39d93efa`
+  (also listed in `SHA256SUMS` in the same folder). The folder
+  `aj4p/apk/` holds the superseded pre-fix build; do not install it.
 - For organization, a computer on the same Wi-Fi network running the
   Audio Journal node companion (§4), with Node.js 22.11 or later.
 
