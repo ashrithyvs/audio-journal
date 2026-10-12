@@ -113,7 +113,7 @@ every package to an exact version with its npm `sha512` integrity hash;
 ## Tests
 
 ```sh
-npm test                                   # 35 tests
+npm test                                   # 42 tests
 node scripts/engine-golden.mjs --check     # pinned engine outputs
 node scripts/load.mjs --fixture max        # development load run
 ```

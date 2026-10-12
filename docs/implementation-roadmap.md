@@ -100,8 +100,10 @@ implemented AJ-3 workflow?
 `main` (`a759db8`), followed by the F3 and status-recovery fixes and a fresh
 S00–S19 on the merged build (see
 [AJ-1 progress](validation/AJ1-progress.md#merge-into-main-2026-10-11)).
-AJ-1 is provisionally complete on emulator evidence, not accepted: the
-physical-device, live-timing, and iOS gates stay deferred. AJ-2.0 and AJ-2.1
+AJ-1 was provisionally complete on emulator evidence. **On 2026-10-12 it was
+accepted for the Android-emulator development profile**
+([AJ-1 progress](validation/AJ1-progress.md)). The physical-device Argon2id,
+real-microphone, performance, thermal/battery, and iOS gates stay open. AJ-2.0 and AJ-2.1
 are implemented on branch `aj2/organize` (see §4).
 
 ## 4. AJ-2 — Application-owned organization
@@ -166,6 +168,11 @@ History of the milestone:
 Exit: a tester can pair, organize, reconnect, forget the node, and continue using
 the local journal without developer tools or content loss.
 
+**Status (2026-10-12): accepted for the Android-emulator development
+profile** ([AJ-3 Android](validation/AJ3-android.md)), on repeated fresh
+S00–S19 runs at 20/20, including the final AJ-2 build with the SDK
+packages. The physical-network, physical-device, and iOS gates stay open.
+
 ## 6. AJ-4 — Hardening and release acceptance
 
 - Exercise `local`, `node`, and `auto` modes and privacy-safe developer diagnostics.
@@ -181,6 +188,68 @@ the local journal without developer tools or content loss.
 
 Exit: Android and iOS journeys pass on the frozen matrix, with results attached
 to the Hybrid AI SDK release evidence where required.
+
+### 6.0 AJ-4-P: Product Reality Check (current milestone)
+
+**Status (2026-10-12):** prototype ready for the owner's review and
+physical-phone trial
+([AJ-4-P report](validation/AJ4P-product-reality.md)). It is not canonical
+AJ-4.
+
+On 2026-10-12 the owner narrowed the immediate milestone to **AJ-4-P**. It is
+not canonical AJ-4 acceptance, and it is not production hardening. Its
+deliverables are:
+
+- an installable Android prototype from the accepted `main`, with
+  `arm64-v8a` for a physical phone and `x86_64` for the emulator;
+- one end-to-end product journey on API 35;
+- prototype performance for 30 s to 10 min journals (transcription and
+  organization), labelled as emulator development measurements;
+- a short 15–20 minute stability check;
+- tester and node-companion instructions;
+- a concise product-reality report answering whether the prototype is ready
+  for the owner's exploratory physical-phone trial.
+
+AJ-4-E below (§6.1) and its gap inventory are **deferred to the
+production-readiness phase**. That includes:
+
+- device-level crash injection during every operation;
+- phone-call interruption;
+- hostile node and backup injection;
+- extended soak and reconnect loops;
+- deep API 26/28 coverage;
+- screenshot, recents, and clipboard certification;
+- airplane-mode, low-storage, and migration-failure matrices.
+
+Physical-device, real-microphone, biometric, thermal, and battery testing,
+iOS (G0-I to G5-I), O-4 to O-7, and production signing and store readiness
+are deferred as well.
+
+### 6.1 AJ-4-E: Android emulator-validated development profile (deferred)
+
+The owner authorized this profile on 2026-10-12. It is a gate on the way to
+AJ-4, **not canonical AJ-4 and not release acceptance**. Canonical AJ-4 still
+depends on the deferred physical Android and iOS profiles, which are deferred,
+not waived.
+
+- **Objective.** A feature-complete, installable Android build that a tester
+  can use with the packaged Hybrid AI SDK and the separate node companion.
+  It is validated on emulators, and emulator development baselines are kept
+  apart from future physical-device results.
+- **Baselines:**
+  - Audio Journal `main` at `59339e9`;
+  - SDK `main` at `59b2cd8` (merge `855edaf`);
+  - packaged SDK built from `c4b302e`, with AAR `8751a5a7…b1a` and RN
+    tarball `a11cba67…e2a`.
+- **Stages:**
+  - AJ-4.0: scope and gap freeze;
+  - AJ-4.1: hardening;
+  - AJ-4.2: cumulative validation;
+  - AJ-4.3: acceptance preparation, then the owner's review.
+- **Gate.** The journeys, validation matrix, deliverables, and the defect
+  classes that cannot be accepted are frozen in
+  [AJ-4 progress](validation/AJ4-progress.md). Documented minor UI defects
+  or emulator-specific variance may be accepted.
 
 ## 7. Required validation dimensions
 

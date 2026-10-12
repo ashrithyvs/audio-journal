@@ -8,7 +8,7 @@ import {
   useJournal,
   useLiveTranscript,
 } from '../application/JournalContext';
-import { formatDuration } from '../domain/format';
+import { formatDuration, liveTail } from '../domain/format';
 import {
   isTerminal,
   type RecordingSessionState,
@@ -252,7 +252,7 @@ function LiveText({ recordingId }: { recordingId: string }) {
           style={journalStyles.body}
           testID="live-transcript-text"
         >
-          {lines.map(line => line.text).join(' ')}
+          {liveTail(lines.map(line => line.text).join(' '))}
         </Text>
       ) : (
         <Text style={journalStyles.muted}>

@@ -32,8 +32,10 @@ targets rather than implemented behavior.
 - [Agent coordination](AGENT_COORDINATION.md) — temporary shared operational memory.
 - [AJ-0 validation](validation/AJ0-progress.md) — current build/test evidence and blockers.
 - [`journal.organize@1` contract](journal-organize.md) — the frozen AJ-2 organization contract (ADR-019): input, result, provenance, validation order, events, persistence, and open questions.
-- [AJ-1 progress](validation/AJ1-progress.md) — AJ-1 evidence: the Android implementation is provisionally complete on emulator evidence and merged into `main`; not accepted (physical-device and iOS gates deferred).
-- [AJ-2 progress](validation/AJ2-progress.md) — AJ-2.0 and AJ-2.1 evidence: the `journal.organize@1` contract, the node companion, and the app integration through the public SDK, validated on the host and the Android emulator; not accepted (Organized/Tasks UI, open questions, physical-device and iOS gates).
+- [AJ-1 progress](validation/AJ1-progress.md) — AJ-1 evidence: accepted for the Android-emulator development profile (2026-10-12); physical-device Argon2id, real-microphone, performance, thermal/battery, and iOS gates open.
+- [AJ-2 progress](validation/AJ2-progress.md) — AJ-2.0 to AJ-2.2 evidence: the `journal.organize@1` contract, the node companion, the public-SDK integration, and the Organized and Tasks UI; accepted for the Android-first profile (2026-10-12) on the deterministic `aj.rules` baseline; physical-device, iOS, O-4 to O-6, and O-7 chunking deferred.
+- [AJ-3 Android](validation/AJ3-android.md) — the secure Private AI Node workflow (S00–S19): accepted for the Android-emulator development profile (2026-10-12); physical-network, physical-device, and iOS gates open.
+- [AJ-4 progress](validation/AJ4-progress.md) — AJ-4-E, the Android emulator-validated development profile: scope, journeys, validation matrix, gap freeze, and results. Not canonical AJ-4.
 - [AJ-2 organize performance suite](validation/AJ2-organize-performance.md) — `journal.organize@1` performance through the public SDK: fixtures from 30 s to 60 min, cold and warm, boundaries, cancellation, and deadline; development baselines, rerun cumulatively in AJ-4.
 
 ## Change rule

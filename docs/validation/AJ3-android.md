@@ -1,5 +1,24 @@
 # AJ-3 Android Validation: Secure Private AI Node Workflow
 
+**Acceptance (owner, 2026-10-12): AJ-3 is accepted for the Android-emulator
+development profile.**
+
+- **Basis:** repeated fresh, non-resumed S00–S19 runs at 20/20. They ran on
+  `72ee323`, `6f2b36b`, `a759db8`, `f294c87`, the AJ-2.2 build `d865385`
+  (`aj2-device/aj3-regression-d865385/`), and the final AJ-2 build with the
+  SDK-AJ-5 packages, release APK `22c0f35d…` (`aj2-sdkaj5/aj3/`, SDK package
+  `c4b302e`). AJ-2, accepted for the Android-first profile, supplies the
+  roadmap exit's organize step.
+- **Not canonical, production, or cross-platform acceptance.** These gates
+  stay **open**:
+  - physical-network and physical-device runs, such as Wi-Fi/cellular
+    switching and a real LAN instead of `adb reverse`;
+  - StrongBox/TEE behavior;
+  - iOS.
+
+The rest of this report keeps its history. Its "not accepted" statements
+were true when written.
+
 **Status: AJ-1 is merged into `main`, and the AJ-3 node workflow passes on
 Android on the merged `main` (`f294c87`), including a tap-free S13 (§8.5).
 The AJ-3 milestone is not accepted yet.**

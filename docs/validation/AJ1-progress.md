@@ -1,8 +1,34 @@
 # AJ-1 Progress Validation
 
-**Date:** 2026-10-11
-**Status:** AJ-1's Android implementation is **provisionally complete on
-emulator evidence** and is **merged into `main`**. AJ-1 is **not accepted**:
+**Date:** 2026-10-11, acceptance recorded 2026-10-12
+
+**Acceptance (owner, 2026-10-12): AJ-1 is accepted for the
+Android-emulator development profile.**
+
+- **Basis:** its completed, cumulative emulator evidence:
+  - the encrypted local journal (vault, persistent PIN, relock, biometric
+    simulation);
+  - recording, with pause/resume, interruption, and torn-tail recovery
+    (AJR1);
+  - encrypted playback, and the on-device final-pass transcription with
+    correction (ADR-016);
+  - AJB1 backup export and empty-vault restore;
+  - the merge-gate and post-merge AJ-3 regressions.
+- **Not canonical, production, or cross-platform acceptance.** These gates
+  stay **open**:
+  - the physical-device Argon2id parameters, memory, and latency, and the
+    AJB1 production profile;
+  - real-microphone capture, and live-transcription timing (Open
+    decision 3);
+  - physical-device performance, thermal, and battery;
+  - iOS.
+
+The rest of this report keeps its history. Its "not accepted" statements
+were true when written.
+
+**Status (2026-10-11):** AJ-1's Android implementation is **provisionally
+complete on emulator evidence** and is **merged into `main`**. AJ-1 is **not
+accepted**:
 
 - the physical-device gates (Argon2id parameters, memory and latency, the
   AJB1 production profile) are deferred, not passed;
