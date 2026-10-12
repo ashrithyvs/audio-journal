@@ -9,7 +9,7 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
   `main`; neither milestone is accepted. **AJ-2 is accepted for the
   Android-first profile (owner, 2026-10-12)** and merged into `main`
   ([AJ-2 progress §11](validation/AJ2-progress.md#11-android-first-aj-2-acceptance-2026-10-12)).
-- **Branch:** `main`.
+- **Branch:** `main` (AJ-2 merged as `692ac0b`).
 - **Last agent:** Claude Code `hybridai-81` (AJ-2.2 on `aj2/organize`).
 - **Last updated:** 2026-10-12.
 - **AJ-3 (updated 2026-10-10 19:40 by `hybridai-7b`).** The Android node
@@ -294,6 +294,23 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
         `harnessFailureMessages.test.ts`.
       - Deferred and unpassed: physical Android, iOS, O-4 to O-6, and O-7
         chunking.
+    - **Merged into `main` (2026-10-12):** merge commit `692ac0b`
+      (non-fast-forward; history kept). The merged tree is identical to the
+      accepted branch tip `67f74fa`, and there were no conflicts.
+    - **Post-merge smoke on `main`:**
+      - `npm ci`, then `npm run test:baseline`: unit 310, smoke 3,
+        integration 153, performance 6;
+      - JVM 61/61, and `assembleRelease` passes;
+      - the release APK `ae8378a4…` embeds the accepted `c4b302e`
+        `libhybrid_ai_core.so` for both ABIs (byte-identical to the AAR; not
+        `e0fc3c5`). The APK hash differs from the evidence APK `22c0f35d…`
+        because release builds are not byte-reproducible; the native core
+        is identical;
+      - the package and AAR pins and the lockfile integrity are unchanged,
+        and `SHA256SUMS` verifies.
+
+      Nothing was pushed or released. Emulators are stopped, and
+      `.aj-exclusive-run` is released.
     - **Environment note.** Timing evidence needs AC power. On battery the
       host ran at about 1.05 GHz and a timing test failed.
     - **Emulators:** stopped; `.aj-exclusive-run` is released.
