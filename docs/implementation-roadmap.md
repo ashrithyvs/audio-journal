@@ -189,7 +189,38 @@ packages. The physical-network, physical-device, and iOS gates stay open.
 Exit: Android and iOS journeys pass on the frozen matrix, with results attached
 to the Hybrid AI SDK release evidence where required.
 
-### 6.1 AJ-4-E: Android emulator-validated development profile
+### 6.0 AJ-4-P: Product Reality Check (current milestone)
+
+On 2026-10-12 the owner narrowed the immediate milestone to **AJ-4-P**. It is
+not canonical AJ-4 acceptance, and it is not production hardening. Its
+deliverables are:
+
+- an installable Android prototype from the accepted `main`, with
+  `arm64-v8a` for a physical phone and `x86_64` for the emulator;
+- one end-to-end product journey on API 35;
+- prototype performance for 30 s to 10 min journals (transcription and
+  organization), labelled as emulator development measurements;
+- a short 15–20 minute stability check;
+- tester and node-companion instructions;
+- a concise product-reality report answering whether the prototype is ready
+  for the owner's exploratory physical-phone trial.
+
+AJ-4-E below (§6.1) and its gap inventory are **deferred to the
+production-readiness phase**. That includes:
+
+- device-level crash injection during every operation;
+- phone-call interruption;
+- hostile node and backup injection;
+- extended soak and reconnect loops;
+- deep API 26/28 coverage;
+- screenshot, recents, and clipboard certification;
+- airplane-mode, low-storage, and migration-failure matrices.
+
+Physical-device, real-microphone, biometric, thermal, and battery testing,
+iOS (G0-I to G5-I), O-4 to O-7, and production signing and store readiness
+are deferred as well.
+
+### 6.1 AJ-4-E: Android emulator-validated development profile (deferred)
 
 The owner authorized this profile on 2026-10-12. It is a gate on the way to
 AJ-4, **not canonical AJ-4 and not release acceptance**. Canonical AJ-4 still

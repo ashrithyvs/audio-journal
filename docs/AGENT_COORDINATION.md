@@ -5,8 +5,8 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 
 ## Current snapshot
 
-- **Phase:** AJ-4-E, the Android emulator-validated AJ-4 development
-  profile, is in progress on `aj4/hardening`
+- **Phase:** AJ-4-P, the Product Reality Check, is in progress on
+  `aj4/hardening` (the AJ-4-E plan is deferred)
   ([AJ-4 progress](validation/AJ4-progress.md)). The owner's records of
   2026-10-12:
   - AJ-1 and AJ-3 are accepted for the Android-emulator development profile;
@@ -17,11 +17,14 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 - **Branch:** `aj4/hardening` (worktree `../audio-journal-aj4`) from `main`
   `59339e9`. AJ-2 was merged as `692ac0b`.
 - **Last agent:** Claude Code `hybridai-81` (AJ-4-E on `aj4/hardening`).
-- **Claim (2026-10-12, Claude Code): AJ-4-E on `aj4/hardening`.** The
-  stages are AJ-4.0 (scope and gap freeze), AJ-4.1 (hardening), AJ-4.2
-  (cumulative validation), and AJ-4.3 (acceptance preparation).
-  - Touches the docs (roadmap, validation, tester guide), tests and
-    harnesses, and the app hardening that the gap freeze identifies.
+- **Claim (2026-10-12, Claude Code): AJ-4-P (Product Reality Check) on
+  `aj4/hardening`.** The owner narrowed the scope from AJ-4-E; the AJ-4-E
+  inventory (`7052b78`) is deferred to production readiness (roadmap §6.0).
+  - AJ-4-P covers the prototype APK, one end-to-end journey, prototype
+    performance for 30 s to 10 min journals, a 15–20 minute stability
+    check, tester and companion instructions, and the report.
+  - It touches `e2e/aj4/`, the docs, and the companion README. App code
+    changes only if a blocker in the main journey needs a fix.
   - The SDK repository stays read-only.
   - No merge, push, release, or canonical AJ-4 claim.
 - **Last updated:** 2026-10-12.

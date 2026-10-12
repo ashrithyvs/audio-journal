@@ -3,8 +3,13 @@
 **Branch:** `aj4/hardening` (worktree `../audio-journal-aj4`), from `main`
 `59339e9`. It is not merged, pushed, or released.
 
-**Status:** AJ-4.0, the scope and gap freeze, is in progress. AJ-4-E is not
-accepted. Canonical AJ-4 and release acceptance stay open.
+**Status (2026-10-12):** the owner narrowed the immediate milestone to
+**AJ-4-P, the Product Reality Check** (roadmap §6.0). The AJ-4-E plan below
+(§1–§8, `7052b78`) is kept as the **production-hardening inventory, deferred
+until the production-readiness phase**. AJ-4-E is not being run now. The
+AJ-4-P results are in
+[AJ-4-P product reality check](AJ4P-product-reality.md). Canonical AJ-4 and
+release acceptance stay open.
 
 ## 1. Authorization and scope
 
@@ -153,6 +158,29 @@ baselines are kept apart from future physical-device results.
 - A physical Android test plan, ready to run when hardware arrives.
 - An iOS catch-up plan, aligned with the SDK's deferred G0-I to G5-I.
 
-## 8. Gap freeze (AJ-4.0)
+## 8. Gap inventory (AJ-4.0), deferred to production readiness
 
-Pending: the inventory of existing coverage against §4 and §5.
+The inventory of 2026-10-12 found most journeys covered by existing emulator
+suites. AJ-1 to AJ-3 and the AJ-2 closing baseline are in their reports.
+These gaps remain. **They are deferred until the production-readiness phase,
+not implemented now** (owner, 2026-10-12):
+
+1. An `arm64-v8a` release build with APK content verification.
+   **Exception:** AJ-4-P verifies its prototype APK's ABIs and SDK core.
+2. Device-level process kill during capture (torn tail), transcription,
+   organization, and backup or restore. These are covered on the host and
+   JVM only.
+3. An extended soak, reconnect loops, and on-device database and storage
+   growth with bounded memory.
+4. Capture-start, playback, and storage-growth metrics, and variance for
+   launch and speech. **Exception:** AJ-4-P measures the subset it needs.
+5. A phone-call or audio-focus interruption on a device.
+6. On-device inspection that recordings are not plaintext at rest, a
+   `FLAG_SECURE` assertion, a recents snapshot check, and a clipboard policy.
+7. Hostile or malformed companion results and a hostile backup file,
+   injected on a device.
+8. API 26/28 functional depth beyond the TLS, pairing, and organize smoke.
+9. Device checks of the partial-result warning, retry after failure,
+   airplane-mode offline use, and revision churn.
+10. A tester guide and the stale companion test count. **Exception:**
+    AJ-4-P delivers a short tester guide and fixes the count.
