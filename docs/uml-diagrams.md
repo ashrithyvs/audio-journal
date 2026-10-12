@@ -11,12 +11,31 @@ flowchart LR
     SDK --> Node[Paired Private AI Node]
 ```
 
+The node is the external SDK-owned native `private-ai-node` product on Linux,
+Windows, or macOS. Its service, networking, TLS, model host, operator CLI, and
+platform adapters are intentionally outside the AJ component boundary and are
+diagrammed in `hybridAi/docs/uml-diagrams.md` §4a–4b.
+
+```mermaid
+flowchart LR
+    AJRepo[Audio Journal repository]
+    App[AJ Android/iOS application]
+    Bundle[Declarative capability data bundle]
+    SDKPkg[Packaged Hybrid AI SDK]
+    Node[Already-built generic Private AI Node]
+
+    AJRepo --> App
+    SDKPkg -->|public API only| App
+    AJRepo --> Bundle
+    Bundle -->|validated data install; no recompile| Node
+```
+
 ## 2. Component diagram
 
 ```mermaid
 flowchart TB
     Screens[React Native screens]
-    Features[Feature controllers / Zustand transient state]
+    Features[Feature controllers / React contexts / transient UI state]
     Domain[Domain services]
     JournalRepo[Journal repository]
     TranscriptRepo[Transcript repository]

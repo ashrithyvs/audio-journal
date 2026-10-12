@@ -26,6 +26,8 @@ cross-platform mobile or v0.1 release claim.
 - [High-level design](high-level-design.md) — system context, containers, and major flows.
 - [Low-level design](low-level-design.md) — domain model, state machines, interfaces, persistence, and error behavior.
 - [Technology stack](technology-stack.md) — frozen foundations, candidate libraries, and selection gates.
+- [SDK and Private AI Node technology stack](../../hybridAi/docs/technology-stack.md) — externally owned mobile SDK and Linux/Windows/macOS node implementation stack.
+- [Audio Journal product boundary](product-boundaries.md) — enforced separation from SDK internals and the Private AI Node server/application.
 - [UX design](ux-design.md) — screens, interaction rules, and privacy-preserving user flows.
 - [Visual design](visual-design.md) — proposed visual language, navigation, components, and screen composition.
 - [Interactive UI/UX review](design/audio-journal-ui-prototype.html) — standalone browser prototype preserved in this repository.

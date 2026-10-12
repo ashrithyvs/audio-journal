@@ -5,6 +5,22 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 
 ## Current snapshot
 
+- **Private AI Node ownership/stack clarification (2026-10-13, Codex):** AJ's
+  technology stack is explicitly application-only. The cross-platform desktop
+  node stack belongs to the SDK repository; accepted SDK ADR-025 defines a
+  native C++20/CMake service + CLI with Boost.Asio/Beast, OpenSSL 3,
+  `llama.cpp`, and OS adapters. AJ docs link to it and retain no server
+  framework or desktop-OS branch. The AJ technology document is also reconciled
+  with implemented Android reality (native SQLCipher/vault/biometrics/audio,
+  repository device harness, React contexts/controllers) instead of stale
+  Expo/Zustand/Detox candidates. No app/source, package, build, test, or gate
+  changed.
+- **Three-product boundary accepted (2026-10-13, owner/Codex):** SDK ADR-026
+  and AJ `product-boundaries.md` forbid SDK/node private source or desktop
+  server code in AJ. AJ consumes public packages and supplies only a bounded
+  declarative capability bundle to the already-built generic node. App-owned
+  Whisper and `node-companion` leave product builds at AJ-RI-2/AJ-RI-4, with
+  automated artifact/import/symbol checks. Documentation only.
 - **Mobile platform clarification (2026-10-13, owner/Codex):** Audio Journal
   and its Hybrid AI SDK integration target both Android and iOS. Android/API 35
   is the currently executable first development profile, not the product

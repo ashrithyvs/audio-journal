@@ -76,6 +76,11 @@ does not target Expo Go. React Navigation is the target navigation layer.
 Zustand may hold transient UI/session/recorder/playback/AI state, but durable
 journal data never uses an in-memory state store as its database.
 
+**Implementation note (2026-10-13):** the current app uses React contexts,
+feature controllers, and component state; Zustand is not a dependency. ADR-006
+permits but does not require it. Adding a store library later requires a normal
+dependency decision and must not move durable journal state out of SQLCipher.
+
 ## ADR-007: Structured data and recording storage
 
 **Status:** Target; encryption mechanics Open.
@@ -805,7 +810,10 @@ ADR-024 and its RI-0–RI-6 roadmap.
 5. The SDK repository supplies the generic Private AI Node transport, security,
    queue, and model host. `node-companion` is retired as an independent host;
    AJ schemas, prompts, vectors, and evaluation data remain here and are
-   deployed as capability data/configuration.
+   deployed as capability data/configuration. Accepted SDK ADR-025 defines a
+   native C++20/CMake service plus operator CLI using Boost.Asio/Beast,
+   OpenSSL 3, and `llama.cpp`, with Linux/Windows/macOS adapters. AJ owns none
+   of that desktop stack.
 6. `aj.rules` remains a deterministic contract oracle for isolated tests only.
    It is removed from production execution and cannot satisfy AI functional,
    accuracy, load, or performance acceptance.
@@ -852,6 +860,13 @@ ADR-024 and its RI-0–RI-6 roadmap.
     iOS profiles. A physical iPhone is required for device-specific claims;
     Simulator evidence alone is insufficient. Cross-platform mobile support
     and v0.1 release require `GRI-6-I` plus the SDK's `G0-I`–`G5-I` gates.
+14. SDK ADR-026 is binding on AJ: the SDK, Private AI Node, and Audio Journal
+    are separate versioned/shipped products. AJ consumes only public packaged
+    SDK artifacts. Its capability contract may be deployed to the generic node
+    only as a bounded, hash-verified data bundle containing no executable AJ
+    code, user data, private corpus, keys, database access, or model runtime.
+    Boundary checks exclude private SDK/node imports, direct runtimes, desktop
+    server code, and the historical companion from RI product artifacts.
 
 **Consequences:** the direct app speech engine and its native build integration
 must migrate behind SDK `audio.transcribe@1`. The current organization UI,

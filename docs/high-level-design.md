@@ -36,13 +36,20 @@ flowchart LR
 
 There is no account service, public cloud AI endpoint, application relay, or hosted journal
 database in v0.1. The node is optional; core journal behavior remains local.
+The node is the generic SDK-owned native service described in the SDK
+technology stack; AJ contains no node-server framework, TLS/model host, service
+lifecycle, or desktop-OS implementation.
+The only AJ-to-node build-time artifact is a versioned capability data bundle.
+It is installed into an already-built generic node; it contains no executable
+AJ code or user journal content. Runtime requests still travel exclusively
+through the packaged SDK public API.
 
 ## 3. Mobile application containers
 
 ```mermaid
 flowchart TB
     UI[React Native UI]
-    VM[Feature view models / transient Zustand state]
+    VM[Feature controllers / React contexts / transient UI state]
     Domain[Journal, transcript, task, provenance domain]
     Repos[Repository layer]
     DB[(SQLite)]

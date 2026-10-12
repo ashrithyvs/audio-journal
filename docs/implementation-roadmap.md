@@ -292,6 +292,12 @@ Node-initiated requests for additional journal context or device capabilities
 are post-AJ-RI future work and require separate SDK protocol plus AJ
 UX/security decisions. They are not an implied AJ-RI deliverable.
 
+Every AJ-RI gate applies SDK ADR-026: public packaged SDK dependencies only,
+forbidden private imports/symbols, package-content/SBOM ownership checks,
+app-owned Whisper absent after AJ-RI-2, historical `node-companion` absent after
+AJ-RI-4, and an AJ capability bundle installed into an already-built generic
+node with no recompilation.
+
 ## 7. Required validation dimensions
 
 - **Unit:** domain invariants, reducers/view models, state machines, validators,

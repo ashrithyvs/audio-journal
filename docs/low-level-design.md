@@ -5,6 +5,12 @@ current first validated profile; iOS adapters and packaged SDK behavior remain
 required, are labelled unverified until macOS/Xcode execution, and close only
 through cumulative `GRI-6-I` plus the SDK's deferred iOS gates.
 
+**Product boundary:** Audio Journal consumes versioned public SDK artifacts and
+may emit a declarative capability data bundle. It cannot link private SDK/node
+targets, compile model runtimes after their migration gate, contain the node
+server/desktop adapters, or require node recompilation. Automated package and
+forbidden-import/symbol checks enforce `product-boundaries.md`.
+
 **Status:** Target contract. Open decisions are not implementation authorization.
 
 ## 1. Layer boundaries

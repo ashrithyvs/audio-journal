@@ -1,7 +1,8 @@
-# Technology Stack
+# Audio Journal Application Technology Stack
 
-**Status:** Foundation frozen. AJ-0 packages below are pinned and validated;
-persistence, credential, biometric, audio, and device-E2E packages remain Open.
+**Status:** Android application baseline implemented and validated through the
+recorded AJ-1–AJ-4-P/AJ-2 gates; AJ-RI migration is pending. Equivalent iOS
+adapters/packages remain required and unverified until `GRI-6-I`.
 
 ## 1. Frozen foundation
 
@@ -10,42 +11,48 @@ persistence, credential, biometric, audio, and device-E2E packages remain Open.
 | Application | React Native + TypeScript | Frozen |
 | Native architecture | React Native New Architecture / TurboModules / JSI | Frozen |
 | Runtime style | Native development builds; Expo Go is not a target | Frozen |
-| Navigation | React Navigation | Target |
-| Transient state | Zustand for UI/session/recorder/playback/AI operation state | Target |
-| Durable data | SQLite behind repository interfaces | Frozen boundary |
-| Audio files | App-private filesystem, referenced from SQLite | Frozen boundary |
-| Recording | App-owned `RecordingService` with native-capable implementation | Frozen boundary |
+| Navigation | React Navigation | Implemented Android; iOS unverified |
+| Transient state | React contexts, feature controllers, and component state; no external store package | Implemented |
+| Durable data | SQLCipher behind TypeScript repository interfaces and a native module | Implemented Android; iOS adapter required |
+| Audio files | Encrypted AJR1 in app-private storage, referenced from SQLCipher | Implemented Android; iOS adapter required |
+| Recording | Application-owned `RecordingService`; native Android AudioRecord/playback adapter | Implemented Android; iOS adapter required |
 | AI | Version-pinned packaged Hybrid AI React Native API | Frozen |
+| Contracts | Versioned JSON Schema for application-owned capabilities | Frozen |
+| Secrets | Android Keystore-backed native vault; Apple Keychain/Secure Enclave adapter required | Implemented Android; iOS unverified |
+| Biometrics | AndroidX BiometricPrompt with PIN fallback; Apple platform equivalent required | Implemented Android; iOS unverified |
 
 The mobile application supports Android and iOS. Android is currently the
 executable development profile; this does not narrow the frozen application
 scope. Native iOS dependencies, packaging, and runtime behavior remain
 unverified until the macOS/Xcode `GRI-6-I` catch-up gate.
-| Contracts | Versioned JSON Schema for application-owned capabilities | Frozen |
-| Secrets | Platform Keychain/Keystore-backed adapter | Frozen boundary |
-| Biometrics | Platform biometric prompt; result only, no raw data | Frozen behavior |
+
+This document owns the application stack only. The production Private AI Node
+is the SDK product's native C++20/CMake service plus operator CLI for Linux,
+Windows, and macOS. Its networking, TLS, model runtime, service adapters,
+credential storage, and packaging are frozen by SDK ADR-025 and the
+SDK [technology stack](../../hybridAi/docs/technology-stack.md). Audio Journal does
+not embed, fork, or select a node-server framework.
 
 Expo modules may be used inside native development builds where they meet the
 security, encryption, performance, and platform requirements. The architecture
 must not depend on Expo Go.
 
-## 2. Candidate package decisions
+## 2. Implemented Android choices and iOS parity work
 
-These are candidates, not approvals:
-
-| Concern | Candidate | Decision gate |
+| Concern | Implemented Android choice | iOS status |
 |---|---|---|
-| SQLite | `expo-sqlite` or another New-Architecture-compatible binding | Must satisfy approved encryption, WAL/migration, backup, and performance requirements. |
-| Database access | Thin typed repositories over explicit SQL; Drizzle only if it preserves migration/control needs | Evaluate after schema/encryption ADR. |
-| Secure values | `expo-secure-store` or a narrow native Keychain/Keystore adapter | Must support required key accessibility, invalidation, backup exclusion, and native builds. |
-| Biometrics | `expo-local-authentication` or narrow native platform adapters | Must expose OS result only and reliable PIN fallback/enrollment-change behavior. |
-| Audio | Existing maintained native-capable RN library or project native module | Must meet continuous capture, pause/resume, frames, interruptions, recovery, and memory tests. |
-| Unit/component tests | Jest or Vitest plus React Native Testing Library | Select one runner based on RN/toolchain compatibility. |
-| Device E2E | Detox or Maestro-style device workflow | Must cover native permissions, backgrounding, lock, recording, and process restart. |
+| Database | `sqlcipher-android` 4.19.1 + AndroidX SQLite 2.7.0 behind the native store module | Equivalent SQLCipher-backed adapter and migration/round-trip evidence required |
+| Domain access | Thin TypeScript repositories over explicit native SQL operations | Shared repositories remain; native adapter unverified |
+| Vault/PIN | Native Kotlin vault, P-H-C libargon2 20190702, Android Keystore wrapping | Keychain/Secure Enclave design exists; implementation/evidence required |
+| Biometrics | AndroidX Biometric 1.1.0, `BIOMETRIC_STRONG`, cryptographic prompt and PIN fallback | LocalAuthentication/Keychain equivalent required without raw biometric access |
+| Recording/playback | Native Kotlin module, AudioRecord/audio playback, AJR1 encrypted frames | Native Apple audio adapter required |
+| Backup/restore | Native AJB1 codec and system document picker flow | Apple document picker and cross-platform AJB1 round-trip required |
+| Unit/UI tests | Jest 29.6 + React Native Testing Library 14.1; JUnit 4.13.2 for native units | Shared JS suites plus XCTest/native coverage required |
+| Device E2E | Repository-owned Node.js 22 driver over adb/uiautomator | XCUITest or equivalent native iOS harness must be selected and pinned at `GRI-6-I` |
 
-No candidate package is frozen merely because it appears here. Pin exact versions
-and licenses only after compatibility/security spikes against the supported
-Android/iOS and Hybrid AI package matrix.
+Expo Go, Expo SQLite, Expo SecureStore, Expo LocalAuthentication, Zustand,
+Detox, and Maestro are not dependencies in the implemented Android baseline.
+Introducing one later requires an ADR and affected security/performance tests.
 
 ### AJ-0 pinned application profile
 
@@ -63,7 +70,7 @@ Android/iOS and Hybrid AI package matrix.
 | PIN and AJB1 KDF | P-H-C reference libargon2 `20190702` (`62358ba2`), archive SHA-256 `daf972a8…442c`, built by `android/vault-crypto` (ADR-017) | Vault JVM tests; the device benchmark is Open |
 | Biometric prompt | `androidx.biometric:biometric:1.1.0` (`BIOMETRIC_STRONG`, `CryptoObject` only) | AJ-1 |
 | Native unit tests | JUnit 4.13.2 (JVM; vault core) | `./gradlew :app:testDebugUnitTest` |
-| AJB1 reference and vectors | `tools/ajb1-reference` (Node 22, dependency-free; independent Argon2id checked against RFC 9106) | Proposed format, not frozen |
+| AJB1 reference and vectors | `tools/ajb1-reference` (Node 22, dependency-free; independent Argon2id checked against RFC 9106) | Frozen and implemented by ADR-017; physical low-end-device production KDF profile remains open |
 | Historical AJ-owned transcription | whisper.cpp v1.9.5 (`d1be6fde`), `base.en-q5_1` / `tiny.en-q5_1` (ADR-016) | Implemented pre-RI baseline; must be removed from the app by AJ-RI-2 |
 | Target transcription and organization runtimes | Version-pinned packaged Hybrid AI SDK providers and exact model profiles (ADR-021) | RI-2/RI-3/RI-4; the app owns no runtime or model artifact |
 | Private-node network profile | Stock Tailscale clients installed independently on Android and the Linux/Windows/macOS node host | Linux/Ubuntu is validated first; no AJ/SDK library or control-plane dependency |
@@ -85,13 +92,14 @@ library itself retains its configured compile API 35.
 - Record platform support, New Architecture status, binary size, maintenance,
   security history, and test evidence for each selected dependency.
 
-## 4. Selection spikes before AJ-0/AJ-1
+## 4. Historical selection spikes and remaining parity gates
 
-1. Build a minimal native React Native consumer of the packaged Hybrid AI SDK.
-2. Verify candidate secure-storage/biometric behavior across enrollment changes,
-   process restart, device lock state, and backup/restore.
-3. Verify the chosen SQLite encryption build and migration path on both platforms.
-4. Record uninterrupted and interrupted audio while streaming bounded frames;
-   measure loss, memory, battery, file recovery, and playback.
-5. Confirm that test tooling can automate lock, permission, recording, background,
-   process-death, and node-unavailable scenarios on the supported matrix.
+1. The Android packaged-SDK consumer, vault/biometrics, SQLCipher, recording,
+   backup, and device harness spikes are complete as recorded by their reports.
+2. AJ-RI-2 removes the historical app-owned whisper runtime and consumes
+   packaged SDK `audio.transcribe@1` without changing recording ownership.
+3. `GRI-6-I` selects/pins the remaining iOS-native packages and proves secure
+   storage, biometrics, SQLCipher migration/round-trip, audio, backup, lifecycle,
+   device E2E, and packaged SDK behavior.
+4. Physical Android production KDF, thermal, battery, and low-memory budgets
+   remain separate deferred certification work.

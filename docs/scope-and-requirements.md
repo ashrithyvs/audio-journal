@@ -50,6 +50,8 @@ material into useful views and tasks through Hybrid AI.
   relayed paths first on Linux/Ubuntu; Windows/macOS node support follows its
   native SDK validation gates without changing AJ.
 - Privacy-safe diagnostics that exclude journal content and credentials.
+- A versioned, bounded AJ capability data bundle that the already-built generic
+  node can validate/install without compiling AJ source or receiving user data.
 
 ## 4. Explicitly out of scope for v0.1
 
@@ -68,6 +70,10 @@ material into useful views and tasks through Hybrid AI.
 - SDK-private imports or journal-specific logic added to Hybrid AI SDK core.
 - App-owned model runtimes, direct model-server APIs, raw-audio node upload,
   and `aj.rules` as a production organization engine.
+- Private AI Node desktop service implementation, networking framework,
+  TLS/crypto, model host, OS service adapters, credential protection, and
+  native packages; these belong to the Hybrid AI SDK repository and its
+  `technology-stack.md`.
 - Embedded Tailscale libraries, Tailscale control-plane APIs, or treating
   tailnet membership as application/node authentication.
 - Node-initiated requests for additional journal data or device capabilities.
@@ -161,6 +167,7 @@ material into useful views and tasks through Hybrid AI.
 | Testability | Domain, repositories, security policy, capability adapters, and view models have injectable boundaries. |
 | Data integrity | Database migrations are transactional; file/database reconciliation is deterministic and recoverable. |
 | Portability | The frozen backup version restores across supported Android and iOS profiles. |
+| Product isolation | AJ consumes public SDK packages only and ships no SDK/node private source, desktop server, historical companion, or model runtime after the owning migration gate. |
 
 ## 7. v0.1 acceptance
 

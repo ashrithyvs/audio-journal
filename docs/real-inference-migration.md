@@ -34,6 +34,19 @@ The packaged Hybrid AI SDK owns:
 The app must not import or invoke a model runtime, local model server, or node
 model API. It uses public capability APIs only.
 
+The generic node is the SDK-owned product, not AJ's historical Node.js
+companion. Accepted SDK ADR-025 defines a native C++20/CMake service plus
+operator CLI. Its complete Linux/Windows/macOS technology and packaging stack
+is defined in the SDK
+[technology stack](../../hybridAi/docs/technology-stack.md). AJ has no
+node-host framework or desktop-OS branch.
+
+The AJ contract is exported only as a bounded capability data bundle. The
+generic node must install it without recompilation. AJ production code never
+imports SDK/node source, and post-migration packages exclude the app-owned
+Whisper runtime and historical `node-companion`. The enforced ownership matrix
+is in [product-boundaries.md](product-boundaries.md).
+
 ## 2. Target flows
 
 Voice capture and transcription:
