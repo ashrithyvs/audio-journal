@@ -484,7 +484,7 @@ in `aj1-artifacts/evidence/aj2-sdkaj5/`, outside the repository.
 | 8 | Full performance matrix, deterministic `aj.rules` baseline, `--expect-node-cancel` | Complete. 126/126 measured runs validated and rehearsed (42 explicitly partial); 20/20 typed refusals and rejections; cancel 5/5 at both ends; 3/3 deadlines. See [performance §5](AJ2-organize-performance.md#5-results) | `perf/` |
 | 9 | Fresh AJ-3 S00–S19 (`e2e/android/aj3-e2e.mjs --expect-persistent-pin`, SDK reference node at `984412f`, read only) | **20/20**, attempt 1, not resumed, 15:55–16:38 IST, release APK `22c0f35d…`. S19: logs clean | `aj3/` |
 | 10 | API 26 and API 28 paired organize smoke (`tls-profile.mjs`) | Both paired, organized, and `stored`. 7/7 handshakes each, all TLS 1.2 `TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256` with EMS, all accepted and on the profile. Repeated with device logs, same release APK `22c0f35d…`: same results | `tls-api26/`, `tls-api28/`; `privacy-api26-28/` |
-| 11 | Privacy and log scan over the complete run (`e2e/aj2/privacy-scan.mjs`) | **0 findings** in 54 logs (39.5 MB): 19 journal phrases from every suite, the test PIN, pairing payloads, and private keys. The scan covers the continuous API 35 logcat (until AJ-3 restarted `adbd` at 16:18), AJ-3's own logcat, every suite's device log, and every companion log. A planted control log was caught. **API 26 and 28 device logs** are covered too: the smokes were repeated with logcat streamed from before install and launch until after the organize result was stored. Start and end markers were found in both logs (3,501 and 4,944 lines). 0 findings in the 2 device logs and 2 companion logs (1.04 MB), with `arjun about the trip` added to the scanner's phrases; a control log with the smoke's own sentences was caught | `privacy-scan.json`, `privacy-api26-28/privacy-scan.json` |
+| 11 | Privacy and log scan over the complete run (`e2e/aj2/privacy-scan.mjs`); superseded by the final scan below | **0 findings** in 54 logs (39.5 MB): 19 journal phrases from every suite, the test PIN, pairing payloads, and private keys. The scan covers the continuous API 35 logcat (until AJ-3 restarted `adbd` at 16:18), AJ-3's own logcat, every suite's device log, and every companion log. A planted control log was caught. **API 26 and 28 device logs** are covered too: the smokes were repeated with logcat streamed from before install and launch until after the organize result was stored. Start and end markers were found in both logs (3,501 and 4,944 lines). 0 findings in the 2 device logs and 2 companion logs (1.04 MB), with `arjun about the trip` added to the scanner's phrases; a control log with the smoke's own sentences was caught | `privacy-scan.json`, `privacy-api26-28/privacy-scan.json` |
 
 **Result.** Every item on the AJ-2 Android-first closing list passed on
 emulators. SDK-AJ-5 is closed in the real Audio Journal path
@@ -501,4 +501,63 @@ released. What remains before a merge into `main`:
    - physical-device runs and the physical-device performance matrix (AJ-4);
    - iOS;
    - O-4 to O-6, and the chunking part of O-7.
+
+### 10.1 Evidence hygiene closure (2026-10-12)
+
+This closure changes no app code, SDK pins, or APKs, and the baseline was
+not rerun. Evidence is in `aj1-artifacts/evidence/aj2-sdkaj5/hygiene/`.
+
+**Privacy scanner (`b7b7d0c`):**
+
+- **New rules.** It adds the fixture phrases "call the bank tomorrow",
+  "kestrel team", and "weekend reading club for the neighbourhood", a
+  word-bounded `Priya`, and the generated over-cap filler (`Entry <word>
+  line <n> records an ordinary detail of the day`). That makes 23 phrases
+  and 5 patterns, with the test PIN, pairing payloads, and private keys.
+- **Output.** It records the canonical roots and every scanned file. Each
+  file and finding is labelled as either a device, companion, or boot log,
+  or a host harness console summary.
+- **Self-test.** Before each scan it plants one line per rule (28) and a
+  near-miss line in a temporary log, scanned by the same code. Every rule
+  must fire, with no false positive, and the log is removed and checked
+  gone. The result is recorded in the output.
+
+**Final scan** (`privacy-scan-final.json`):
+
+- **Roots:**
+  - `/home/igdclt0603/Desktop/Ash/aj1-artifacts/evidence/aj2-device`
+    (AJ-2.0 to AJ-2.2);
+  - `/home/igdclt0603/Desktop/Ash/aj1-artifacts/evidence/aj2-sdkaj5`
+    (the closing baseline, the API 26/28 device-log repeat, and this
+    closure).
+- **Self-test:** passed, 28/28 rules, 0 false positives, temporary log
+  removed.
+- **Device, companion, and boot logs:** 131 files, **0 findings**. These
+  include:
+  - the API 26 and 28 boot logs (`emu-api26.log`, `emu-api28.log`) and
+    their device logs;
+  - the continuous API 35 logcat and AJ-3's logcat;
+  - every suite's device and companion logs.
+- **Harness console summaries:** 38 files, including the API 26/28
+  `tls-api*.console.log`; **1 finding**.
+  - **File:** `aj2-device/voice-api35-run3.console.log`, a superseded
+    AJ-2.1 run from 2026-10-11.
+  - **Content:** the voice harness's own failure message quoted the cited
+    on-screen line. That line is the public-domain speech sample ("…fellow
+    Americans…"), not journal data and not app logging; the harness bug was
+    fixed before run 4.
+  - **Handling:** the retained evidence is left unedited. Harness console
+    summaries can quote on-screen text when a step fails, so the scanner
+    reports them separately.
+- **Total:** 169 files, 75,153,630 bytes. The scan's exit status is 1
+  because the scanner counts every finding.
+
+**O06 rerun:**
+
+- **Run:** the committed harness at `b7b7d0c` (after `eaa419d`), the
+  accepted release APK `22c0f35d…`, `aj-api35-4g` (`hygiene/o06/`).
+- **Result: pass.** The over-cap entry was `refused`. The reason "This is
+  too long to send in one request. Nothing was sent or shortened." was
+  shown. **0 jobs** were sent. The boundary half held too: a 60,045-byte
+  request and an exact 61,440-byte completed message.
 

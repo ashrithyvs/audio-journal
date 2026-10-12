@@ -265,8 +265,16 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
         device logs from repeat smokes (`privacy-api26-28/`: streamed
         logcat with start and end markers; 0 findings in 4 logs).
 
-      The baseline is accepted as technically successful (owner,
-      2026-10-12). The API 26/28 device-log closure was the only open item.
+      The closing baseline passed technically. AJ-2 is **not accepted and
+      not merged**: acceptance is the owner's decision after independent
+      review.
+    - **Evidence hygiene (2026-10-12):** see AJ-2 progress §10.
+      - The privacy scanner was extended and self-tested.
+      - The final scan over `aj2-device` and `aj2-sdkaj5` found 0 findings
+        in 131 device, companion, and boot logs. One finding is in a
+        superseded harness console summary.
+      - O06 was rerun with the committed harness (`b7b7d0c`) against the
+        accepted APK: refused, reason shown, 0 jobs sent.
 
       Evidence is in `aj1-artifacts/evidence/aj2-sdkaj5/`. Release APK
       `22c0f35d…e015`.
