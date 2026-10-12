@@ -5,12 +5,25 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 
 ## Current snapshot
 
-- **Phase:** AJ-1 (Android, emulator evidence) and the AJ-3 node workflow are on
-  `main`; neither milestone is accepted. **AJ-2 is accepted for the
-  Android-first profile (owner, 2026-10-12)** and merged into `main`
-  ([AJ-2 progress §11](validation/AJ2-progress.md#11-android-first-aj-2-acceptance-2026-10-12)).
-- **Branch:** `main` (AJ-2 merged as `692ac0b`).
-- **Last agent:** Claude Code `hybridai-81` (AJ-2.2 on `aj2/organize`).
+- **Phase:** AJ-4-E, the Android emulator-validated AJ-4 development
+  profile, is in progress on `aj4/hardening`
+  ([AJ-4 progress](validation/AJ4-progress.md)). The owner's records of
+  2026-10-12:
+  - AJ-1 and AJ-3 are accepted for the Android-emulator development profile;
+  - AJ-2 is accepted for the Android-first profile.
+
+  None of these is canonical, production, or cross-platform acceptance.
+  Physical Android and iOS stay deferred.
+- **Branch:** `aj4/hardening` (worktree `../audio-journal-aj4`) from `main`
+  `59339e9`. AJ-2 was merged as `692ac0b`.
+- **Last agent:** Claude Code `hybridai-81` (AJ-4-E on `aj4/hardening`).
+- **Claim (2026-10-12, Claude Code): AJ-4-E on `aj4/hardening`.** The
+  stages are AJ-4.0 (scope and gap freeze), AJ-4.1 (hardening), AJ-4.2
+  (cumulative validation), and AJ-4.3 (acceptance preparation).
+  - Touches the docs (roadmap, validation, tester guide), tests and
+    harnesses, and the app hardening that the gap freeze identifies.
+  - The SDK repository stays read-only.
+  - No merge, push, release, or canonical AJ-4 claim.
 - **Last updated:** 2026-10-12.
 - **AJ-3 (updated 2026-10-10 19:40 by `hybridai-7b`).** The Android node
   workflow passes 20 of 20 device steps on the AJ-1 fix build `72ee323`, in
