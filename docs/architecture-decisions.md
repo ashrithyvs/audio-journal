@@ -581,7 +581,7 @@ for v0.1 and keeps ADR-010/011 intact.
   It is neither part of the Hybrid AI SDK nor its reference node. To be
   reachable through the SDK it is a Private AI Node in its own right: an
   independent implementation of the SDK's published node protocol (ADR-021
-  jobs/streaming, ADR-022 pairing/mutual TLS). It is checked against the
+  jobs/streaming, SDK ADR-022 pairing/mutual TLS). It is checked against the
   SDK's published vectors and against the packaged SDK on device. No SDK
   source is copied or imported.
 - **What "separate" means** (owner clarification, 2026-10-10). The companion
@@ -649,7 +649,7 @@ persistence, and TLS requirements remain authoritative.
 - **Persistence:** one transaction writes an immutable derivation revision,
   its scope, tasks, and references; `requestKey` is unique, so a delivery
   can never be stored twice. Sources are never written.
-- **Historical AJ-2 companion:** an independent ADR-021/ADR-022 node in
+- **Historical AJ-2 companion:** an independent SDK ADR-021/ADR-022 node in
   `node-companion/` (Node.js 22), built only from the SDK's published protocol,
   schemas, and vectors. It keeps the frozen Android support profile: TLS 1.3, and on
   API 26–28 the restricted TLS 1.2 profile (ECDHE-ECDSA AEAD suites with
@@ -876,3 +876,29 @@ navigation are retained and exercised against real SDK results. Passing
 proof and authorizes broader exploratory Android phone use; it does not imply
 physical-device certification, canonical AJ-4, or release acceptance.
 It also does not imply iOS acceptance; that is closed only by `GRI-6-I`.
+
+## ADR-022: AJ-RI-2 packaged SDK transcription consumer
+
+**Status:** Accepted design freeze on 2026-10-13. Implementation remains
+blocked on formal SDK `GRI-1` acceptance.
+
+**Decision:** Consume SDK ADR-027 `audio.transcribe@1` through the packaged
+public native SDK surface. AJ supplies a runtime-scoped, read-only AJR1-backed
+16 kHz mono s16le source and retains capture, encryption, keys, validation,
+transcript revisions, and UX. Audio never crosses JavaScript or the node
+protocol. Lock cancels the request and closes/zeroes the source.
+
+The prototype transcribes only sources through 180 seconds. Final transcription
+is one sealed finite request; live text uses repeated bounded provisional SDK
+requests at the current provisional 8-second window/4-second cadence. Longer
+recordings remain durable/playable and return a typed unsupported-duration
+result without truncation.
+
+The selected Whisper model is a separate SDK-defined hash-pinned pack outside
+the AAR/framework. AJ's deployment may install that exact dependency into
+app-private SDK model storage, but AJ owns no model runtime, runtime selection,
+or downloader. App-owned Whisper/ggml/model assets are removed from the
+candidate product build before `GRI-2` acceptance.
+
+The complete consumer design is
+[`ri2-transcription-consumer.md`](ri2-transcription-consumer.md).

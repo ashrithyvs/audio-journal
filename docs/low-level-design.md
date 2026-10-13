@@ -341,6 +341,15 @@ port. ADR-021 forbids extending it: AJ-RI-2 replaces its implementation with a
 public SDK `audio.transcribe@1` adapter and removes whisper.cpp/model ownership
 from the app build. Recording/decryption and transcript validation remain here.
 
+AJ ADR-022 and SDK ADR-027 refine that replacement. The native adapter creates
+a runtime-scoped read-only PCM source over AJR1 authenticated frames and invokes
+the packaged SDK on the same runtime. No plaintext path, key, or PCM crosses
+JavaScript. The prototype accepts final/live source snapshots only through 180
+seconds. Final uses one sealed request; live preserves the provisional
+8-second window/4-second cadence as repeated finite SDK requests. Lock cancels
+then closes the source, zeroing its key. Invalid, cancelled, failed, or
+interrupted output is never persisted as an engine revision.
+
 ```ts
 interface TranscriptionService {
   models(): Promise<TranscriptionModelInfo[]>; // id, sha256, bytes, available

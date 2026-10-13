@@ -5,6 +5,15 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 
 ## Current snapshot
 
+- **AJ-RI-2 consumer architecture frozen (2026-10-13, Codex):** AJ ADR-022
+  and `ri2-transcription-consumer.md` freeze the packaged-SDK consumer side of
+  SDK ADR-027: runtime-scoped read-only AJR1 PCM, no audio/path/key through JS
+  or node, 180-second prototype limit, repeated provisional live windows, one
+  authoritative sealed final pass, lock cancellation/source zeroing, separate
+  SDK-defined model pack, and removal of AJ-owned Whisper from the candidate
+  build. Documentation only; implementation still waits for formal SDK GRI-1
+  acceptance and a hash-pinned RI-2 candidate package.
+
 - **Cross-repository diagnostics accepted (2026-10-13, owner/Codex):** AJ
   agents may inspect the exact pinned SDK/node source read-only when AJ
   functional, accuracy, load, or performance evidence suggests an SDK-owned

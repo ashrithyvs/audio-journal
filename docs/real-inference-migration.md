@@ -88,6 +88,13 @@ real-model acceptance claim cites `aj.rules`.
 
 Runs against an RI-2 packaged SDK.
 
+The frozen consumer design is AJ ADR-022 and
+[`ri2-transcription-consumer.md`](ri2-transcription-consumer.md): a
+runtime-scoped read-only AJR1 PCM source, explicit local-only execution,
+180-second prototype limit, unchanged SDK 120-second computation deadline,
+separate SDK-defined model pack, repeated bounded provisional live requests,
+and one authoritative sealed final request.
+
 - Replace `TranscriptionService`'s app-owned engine implementation with a public
   SDK `audio.transcribe@1` adapter.
 - Preserve encrypted recording access, live/final UX, cancellation, correction,

@@ -37,6 +37,9 @@ cross-platform mobile or v0.1 release claim.
 - [UML and behavioral diagrams](uml-diagrams.md) — visual trace of the architecture and lifecycle.
 - [Implementation roadmap](implementation-roadmap.md) — milestone order and acceptance gates.
 - [Real-inference migration](real-inference-migration.md) — mandatory AJ handoff for SDK-owned transcription and real local/node organization before release work.
+- [AJ-RI-2 transcription consumer](ri2-transcription-consumer.md) — frozen
+  packaged-SDK/JR1 source, live/final, model-pack, lock, durability, boundary,
+  and validation design (AJ ADR-022 / SDK ADR-027).
 - The migration's first prototype gate includes separately installed Tailscale
   clients for Android-to-Linux node access (Ubuntu is the first validation
   distribution) over direct and relayed paths. The Private AI Node product

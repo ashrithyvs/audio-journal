@@ -45,6 +45,11 @@ clearly labelled migration/history material until their removal stage. They
 are excluded from post-AJ-RI-2/post-AJ-RI-4 product builds, runtime selection,
 deployment instructions, and acceptance evidence respectively.
 
+AJ ADR-022 does not make the separate RI-2 model pack an AJ-owned runtime or
+model. AJ deployment may copy the exact SDK-defined, hash-pinned dependency to
+app-private SDK storage. AJ source cannot parse, select, load, invoke, replace,
+or download the model outside the packaged SDK public contract.
+
 SDK, node, and AJ versions/releases remain independent. Compatibility is
 carried by public SDK, protocol, schema, capability-package, and model-profile
 versions.

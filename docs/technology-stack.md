@@ -73,6 +73,7 @@ Introducing one later requires an ADR and affected security/performance tests.
 | AJB1 reference and vectors | `tools/ajb1-reference` (Node 22, dependency-free; independent Argon2id checked against RFC 9106) | Frozen and implemented by ADR-017; physical low-end-device production KDF profile remains open |
 | Historical AJ-owned transcription | whisper.cpp v1.9.5 (`d1be6fde`), `base.en-q5_1` / `tiny.en-q5_1` (ADR-016) | Implemented pre-RI baseline; must be removed from the app by AJ-RI-2 |
 | Target transcription and organization runtimes | Version-pinned packaged Hybrid AI SDK providers and exact model profiles (ADR-021) | RI-2/RI-3/RI-4; the app owns no runtime or model artifact |
+| RI-2 model delivery | Separate SDK-defined, hash-pinned model pack installed into app-private SDK storage; never an AJ runtime/download | AJ ADR-022 / SDK ADR-027 |
 | Private-node network profile | Stock Tailscale clients installed independently on Android and the Linux/Windows/macOS node host | Linux/Ubuntu is validated first; no AJ/SDK library or control-plane dependency |
 | Android device E2E | Node.js 22 driver over `adb` + `uiautomator` (`e2e/android/`), no third-party framework | AJ-3 device suite (ADR-015) |
 
