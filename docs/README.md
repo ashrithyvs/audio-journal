@@ -40,6 +40,10 @@ cross-platform mobile or v0.1 release claim.
 - [AJ-RI-2 transcription consumer](ri2-transcription-consumer.md) — frozen
   packaged-SDK/JR1 source, live/final, model-pack, lock, durability, boundary,
   and validation design (AJ ADR-022 / SDK ADR-027).
+- [AJ-RI-3 local organization consumer](ri3-organization-consumer.md) — frozen
+  declarative package, explicit-local flow, provenance/grounding boundary,
+  human-labelled corpus, scorer, privacy, and migration design (AJ ADR-023 /
+  SDK ADR-028); implementation remains blocked on SDK `GRI-1`.
 - The migration's first prototype gate includes separately installed Tailscale
   clients for Android-to-Linux node access (Ubuntu is the first validation
   distribution) over direct and relayed paths. The Private AI Node product

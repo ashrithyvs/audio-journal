@@ -124,6 +124,31 @@ sequenceDiagram
     end
 ```
 
+### 4a. AJ-RI-3 explicit-local organization (ADR-023)
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant AJ as Audio Journal
+    participant SDK as Packaged Hybrid AI SDK
+    participant M as SDK llama.cpp Provider
+
+    U->>AJ: choose entries + Local + consent
+    AJ->>SDK: journal.organize@1 (exact contract input)
+    SDK->>M: exact package/profile under lease
+    M-->>SDK: buffered grammar-constrained JSON
+    SDK-->>AJ: completed only after structural validation
+    AJ->>AJ: resultViolation + semantic/provenance checks
+    alt all checks pass
+        AJ-->>U: persist and show Organized/Tasks
+    else any check fails
+        AJ-->>U: typed no-result state; source unchanged
+    end
+```
+
+No token stream or partial JSON is persisted. `aj.rules` is not on this
+production path.
+
 ## 5. Source and derivation model
 
 ```mermaid

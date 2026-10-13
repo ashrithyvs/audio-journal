@@ -5,6 +5,13 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 
 ## Current snapshot
 
+- **AJ-RI-3 architecture freeze (2026-10-13, Codex; docs only):** AJ ADR-023
+  and `docs/ri3-organization-consumer.md` freeze the data-only package,
+  explicit-local SDK flow, existing source contract, domain-validation boundary,
+  sealed 100-case evaluation contribution, privacy, and migration order. No
+  model/runtime was added, no implementation or gate is claimed, and work
+  remains blocked on formal SDK GRI-1 acceptance.
+
 - **AJ-RI-2 consumer architecture frozen (2026-10-13, Codex):** AJ ADR-022
   and `ri2-transcription-consumer.md` freeze the packaged-SDK consumer side of
   SDK ADR-027: runtime-scoped read-only AJR1 PCM, no audio/path/key through JS

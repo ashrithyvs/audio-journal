@@ -109,6 +109,14 @@ durability never depends on AI success.
 
 Runs against an RI-3 packaged SDK.
 
+**Architecture freeze:** AJ ADR-023 and
+[`ri3-organization-consumer.md`](ri3-organization-consumer.md) are accepted for
+planning. Implementation remains blocked on formal SDK `GRI-1` acceptance and
+then an exact RI-3 candidate SDK/model pack. The freeze preserves the existing
+contract, uses creation-time hash-pinned data-only package bytes, forbids silent
+truncation and production `aj.rules`, and separates deterministic bounds from
+human-labelled semantic accuracy.
+
 - Load the AJ-owned declarative capability package through supported SDK
   configuration.
 - Add explicit Local organization mode.

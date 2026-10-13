@@ -13,6 +13,13 @@ forbidden-import/symbol checks enforce `product-boundaries.md`.
 
 **Status:** Target contract. Open decisions are not implementation authorization.
 
+> **AJ-RI-3 freeze:** ADR-023 and
+> [`ri3-organization-consumer.md`](ri3-organization-consumer.md) govern local
+> organization. The app passes exact package bytes during SDK runtime creation,
+> calls `journal.organize@1` with explicit `local`, accepts no partial JSON, and
+> persists only after the existing domain/provenance validator passes. Context
+> overflow fails without shortening input; chunking remains future work.
+
 ## 1. Layer boundaries
 
 ```text

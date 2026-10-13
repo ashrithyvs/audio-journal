@@ -902,3 +902,38 @@ candidate product build before `GRI-2` acceptance.
 
 The complete consumer design is
 [`ri2-transcription-consumer.md`](ri2-transcription-consumer.md).
+
+## ADR-023: AJ-RI-3 real local organization consumer
+
+**Status:** Accepted design freeze on 2026-10-13. Implementation remains
+blocked until formal SDK `GRI-1` acceptance.
+
+**Decision:** Keep the accepted `journal.organize@1` domain contract and
+execute it through the packaged Hybrid AI SDK's explicit `local` target using
+the real SDK-owned llama.cpp provider defined by SDK ADR-028. AJ publishes its
+schemas, instructions, profile approvals, constraints, and evaluation identity
+as exact hash-pinned data-only capability-package bytes. AJ owns no model,
+runtime, sampler, grammar engine, or downloader.
+
+AJ keeps consent, canonical request construction, `resultViolation()` domain
+and provenance validation, history/staleness/task semantics, source navigation,
+encrypted persistence, UX, and the human-labelled corpus. Only a completed SDK
+result that passes every AJ check may be persisted. Invalid, partial,
+cancelled, timed-out, over-context, or failed work stores no derived result.
+
+The existing source reference shape remains authoritative. Deterministic
+checks prove IDs, digests, ranges, ordering, date re-derivation, and contract
+bounds; they do not prove semantic support. The sealed GRI-3 evaluation
+therefore measures tasks, sections, people, ideas, dates, source grounding, and
+summary factuality on at least 100 human-labelled cases. `aj.rules` stays an
+isolated contract oracle and is forbidden in RI production execution.
+
+No selected source is silently shortened. Inputs that do not fit the exact
+profile context fail without persistence. Chunking and semantic aggregation
+remain future work requiring a new contract decision. Android is validated
+first; iOS parity remains required and runtime evidence is **UNVERIFIED** until
+`GRI-6-I`.
+
+The normative consumer, package, grounding, evaluation, privacy, platform, and
+migration design is
+[`ri3-organization-consumer.md`](ri3-organization-consumer.md).

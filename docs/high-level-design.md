@@ -11,6 +11,13 @@ contracts remain aligned and iOS stays unverified until `GRI-6-I`.
 
 ## 1. Architecture principles
 
+AJ ADR-023 freezes the RI-3 local-organization consumer: AJ supplies exact
+data-only capability-package bytes and invokes explicit `local` only through
+the packaged SDK. The SDK owns llama.cpp and structural inference mechanics;
+AJ retains consent, semantic provenance validation, history/tasks, encrypted
+persistence, and evaluation. No app-owned model or production `aj.rules` path
+is permitted.
+
 1. Journal first, AI second.
 2. Source data is immutable with traceable derivations.
 3. Local capture must survive AI, network, and process failures.

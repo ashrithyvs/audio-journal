@@ -300,6 +300,12 @@ node with no recompilation.
 
 ## 7. Required validation dimensions
 
+The mandatory pre-release real-inference lane is governed by
+`real-inference-migration.md`. AJ ADR-023 freezes the AJ-RI-3 consumer design:
+an exact data-only package, explicit-local SDK call, unchanged domain validation,
+and a sealed >=100-case real-model accuracy gate. It does not reopen the
+historical deterministic AJ-2 acceptance or treat `aj.rules` as model evidence.
+
 - **Unit:** domain invariants, reducers/view models, state machines, validators,
   repositories, key policy, and error mapping with fakes.
 - **Smoke:** clean build/install, lock/unlock, create/open entry, restart, SDK version.
