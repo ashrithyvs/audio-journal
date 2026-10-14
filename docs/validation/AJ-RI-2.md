@@ -1,8 +1,11 @@
 # AJ-RI-2 — Static transcription through the packaged Hybrid AI SDK
 
-**Status:** Implemented and validated on the API 35 emulator (2026-10-15);
-review requested from Codex (`AJ-RI-2-REV-1` on the bridge). Not merged, not
-pushed; full `GRI-2` acceptance is not claimed.
+**Status:** ACCEPTED at `09e3580` (`AJ-RI-2-REV-1`, 2026-10-15): both Audio
+Journal GRI-2 rows pass, and full `GRI-2` is accepted for the Android-emulator
+development profile. Physical Android, iOS, thermal/battery, a larger journal
+corpus, and release packaging remain deferred (not blockers); live
+transcription remains stopped. Not merged or pushed: the AJ merge is a
+separate action that needs the owner's instruction.
 **Branch:** `aj-ri2/static-transcription` from `main@837a77b`.
 **Gate:** the two Audio Journal rows of SDK `GRI-2` (RI-2 record §13/§16):
 
@@ -37,6 +40,10 @@ Exact copies with `SHA256SUMS` live in `Ash/hybrid-ai-packages/ri2-a54266a/`
 - `AJ-RI2-DEC-002` (Codex Option A): the exact RI-2 debug AAR for every AJ
   variant and path in this development branch, with a focused organize/node
   regression. All measurements are development evidence.
+- `AJ-RI2-DEC-003` (Option A): the SDK's queued pull methods (`prepare`,
+  `runQueued`, `nextEvent`, `cancel`, `close`) are an intentionally public
+  execution surface; using them is required to observe the request's
+  terminal before the audio source is released.
 
 ## 3. Implementation
 
@@ -155,8 +162,8 @@ voice-entry, and organize/node regressions ran on `fe7abfb` in stage 7 (§4.2,
 | J06 device-log privacy | 0 findings over 3.4 MB (no transcript phrase, path, key label, or WAV name); no buffer pruned |
 
 **Gate rows.** Row 1: the APK links no app-owned runtime and transcription
-uses only public SDK classes (boundary test, APK scan, `AJ-RI2-DEC-003`
-pending for the queued-pull surface). Row 2: the recording is never changed
+uses only public SDK classes (boundary test, APK scan; the queued-pull surface accepted by
+`AJ-RI2-DEC-003`). Row 2: the recording is never changed
 by provider failure, model failure, damage, cancel, lock, or process death,
 each is retryable, the lock cancels and observes the terminal before close,
 and no plaintext audio or transcript reaches storage or logs.
@@ -239,7 +246,8 @@ bounded wait (`b2d8aa0`); the final run is in §4.1.
   process) and N1-N3 (watchdog timing, watchdog reported as timeout, pull
   exception release order) fixed in `002d96d`; N4 doc bounds corrected.
   Scope point S1 (queued pull primitives instead of the `stream()` wrapper)
-  filed as `AJ-RI2-DEC-003`.
+  decided by `AJ-RI2-DEC-003` (Option A).
+- `AJ-RI-2-REV-1`: ACCEPTED at `09e3580`.
 
 ## 6. Not verified, deferred, and process notes
 

@@ -900,6 +900,14 @@ One static SDK transcription runs after Finish. Live text is deferred until a
 future SDK streaming gate is accepted; the dormant AJ live controller is not
 wired.
 
+**Amendment (2026-10-15, `AJ-RI2-DEC-003`, Option A):** the consumer drives
+the SDK's public queued pull execution (`prepare`, `runQueued`, `nextEvent`,
+`cancel`, `close`) rather than the `stream()` wrapper, so a cancel or lock
+observes the request's own terminal before the audio source is released.
+**Acceptance:** `AJ-RI-2-REV-1` accepted the AJ GRI-2 rows at
+`aj-ri2/static-transcription@09e3580`
+([`validation/AJ-RI-2.md`](validation/AJ-RI-2.md)).
+
 The selected Whisper model is a separate SDK-defined hash-pinned pack outside
 the AAR/framework. AJ's deployment may install that exact dependency into
 app-private SDK model storage, but AJ owns no model runtime, runtime selection,
