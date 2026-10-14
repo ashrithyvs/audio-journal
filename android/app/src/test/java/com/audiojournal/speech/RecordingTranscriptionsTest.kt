@@ -255,6 +255,33 @@ class RecordingTranscriptionsTest {
   }
 
   @Test
+  fun aLockRecordedBeforeTheInstanceExistedStillRefuses() {
+    val engine = FakeEngine(Script.COMPLETE)
+    val file = TestRecordings.write(dir, TestRecordings.samples(16_000))
+    val t =
+        RecordingTranscriptions(
+            { engine }, { TestRecordings.open(file) }, { false }, unlockEpoch = { epoch }, lockedAtEpoch = epoch)
+    assertEquals("LOCKED", t.transcribe("r1", TestRecordings.ID).failure)
+    assertEquals(emptyList<String>(), engine.log)
+    epoch += 1
+    assertEquals("ok", t.transcribe("r2", TestRecordings.ID).status)
+  }
+
+  @Test
+  fun aStuckStreamTimesOutAsAFailureNotAUserCancel() {
+    val engine = FakeEngine(Script.HANG_UNTIL_CANCELLED)
+    val file = TestRecordings.write(dir, TestRecordings.samples(16_000))
+    val t =
+        RecordingTranscriptions(
+            { engine }, { TestRecordings.open(file) }, { false }, deadlineMs = 50, deadlineGraceMs = 50)
+    val result = t.transcribe("r1", TestRecordings.ID)
+    assertEquals("failed", result.status)
+    assertEquals("TRANSCRIPTION_TIMEOUT", result.failure)
+    assertEquals(cancelOrder, engine.log)
+    assertTrue(steps(t).contains("watchdogCancel"))
+  }
+
+  @Test
   fun aCancelBeforeTheRequestStartsIsHonoured() {
     val engine = FakeEngine(Script.COMPLETE)
     val (t, _) = service({ engine })

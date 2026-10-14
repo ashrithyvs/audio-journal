@@ -18,6 +18,9 @@ object VaultHolder {
 
   fun vaultFile(context: Context) = File(context.noBackupFilesDir, "vault/vault.bin")
 
+  /** The open vault's unlock epoch, or 0 before the vault is first used. */
+  fun unlockEpoch(): Long = vault?.unlockEpoch ?: 0L
+
   fun get(context: Context): Vault =
       vault
           ?: synchronized(this) {

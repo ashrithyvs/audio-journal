@@ -18,16 +18,27 @@ import java.io.RandomAccessFile
  */
 object RecordingJobs {
   @Volatile private var instance: RecordingTranscriptions? = null
+  /** The vault epoch at the last lock, kept even before the first transcription. */
+  private var lockedAtEpoch = -1L
 
   fun get(context: Context): RecordingTranscriptions =
       instance
           ?: synchronized(this) {
-            instance ?: production(context.applicationContext).also { instance = it }
+            instance
+                ?: production(context.applicationContext, lockedAtEpoch).also { instance = it }
           }
 
-  /** Cancels before anything closes; a no-op before the first transcription. */
+  /**
+   * Cancels before anything closes, and refuses new requests until the next
+   * unlock, also when no transcription has run yet in this process.
+   */
   fun cancelAll() {
-    instance?.cancelAll()
+    val current =
+        synchronized(this) {
+          lockedAtEpoch = VaultHolder.unlockEpoch()
+          instance
+        }
+    current?.cancelAll()
   }
 
   /** Module teardown: cancel, then close the SDK client. */
@@ -38,7 +49,7 @@ object RecordingJobs {
     }
   }
 
-  private fun production(context: Context): RecordingTranscriptions {
+  private fun production(context: Context, lockedAtEpoch: Long): RecordingTranscriptions {
     val pack = TranscriptionPack(context)
     return RecordingTranscriptions(
         engineFactory = { SdkTranscriptionEngine(context, pack) },
@@ -47,6 +58,7 @@ object RecordingJobs {
           ActiveAudio.submit { ActiveAudio.capture?.recordingId == recordingId }
         },
         unlockEpoch = { VaultHolder.get(context).unlockEpoch },
+        lockedAtEpoch = lockedAtEpoch,
     )
   }
 

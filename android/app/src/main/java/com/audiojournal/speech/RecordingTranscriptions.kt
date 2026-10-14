@@ -29,8 +29,11 @@ class RecordingTranscriptions(
     private val isCapturing: (recordingId: String) -> Boolean,
     /** Increases with every vault unlock; requests are refused at or below a lock's epoch. */
     private val unlockEpoch: () -> Long = { 0L },
+    /** A lock recorded before this instance existed (see [RecordingJobs.cancelAll]). */
+    lockedAtEpoch: Long = -1L,
     private val deadlineMs: Int = DEADLINE_MS,
     private val cancelWaitMs: Long = CANCEL_WAIT_MS,
+    private val deadlineGraceMs: Long = DEADLINE_GRACE_MS,
     private val clock: () -> Long = { System.nanoTime() / 1_000_000 },
 ) {
   /** Refused before any SDK work, with a typed code. */
@@ -90,7 +93,7 @@ class RecordingTranscriptions(
   /** Cancels that arrived before their request started (bounded). */
   private val cancelledEarly = LinkedHashSet<String>()
   /** The vault epoch at the last lock; requests need a later unlock. */
-  private var lockedAtEpoch = -1L
+  private var lockedAtEpoch = lockedAtEpoch
   private val recent = ArrayDeque<JSONObject>()
   private val engineLock = Any()
   private var engine: TranscriptionEngine? = null
@@ -147,6 +150,8 @@ class RecordingTranscriptions(
           }
       val events = TranscriptionEvents(source.frames)
       var pullFailure: String? = null
+      var timedOut = false
+      var watchdogCancelledAt = -1L
       execution.use {
         synchronized(job) {
           job.execution = execution
@@ -164,33 +169,38 @@ class RecordingTranscriptions(
                 },
                 "aj-transcription-producer")
         producer.start()
-        val watchdog = started + deadlineMs + DEADLINE_GRACE_MS
-        var watchdogCancelledAt = -1L
-        while (true) {
+        // The SDK's deadline starts with the request; this only guards a stuck stream.
+        val watchdog = clock() + deadlineMs + deadlineGraceMs
+        try {
+          pull@ while (true) {
           when (val pulled = execution.next(POLL_MS)) {
             is TranscriptionEngine.Pulled.Event -> {
               if (pulled.type == "partial" && firstPartialMs < 0) firstPartialMs = clock() - started
               val wasOpen = events.outcome == null
               if (events.accept(pulled.type, pulled.dataJson) && wasOpen) job.step("terminal:${pulled.type}")
             }
-            TranscriptionEngine.Pulled.End -> break
+            TranscriptionEngine.Pulled.End -> break@pull
             TranscriptionEngine.Pulled.Timeout -> {
               if (producerFailed.get() && !producer.isAlive) {
                 pullFailure = TranscriptionEvents.FAILED
-                break
+                break@pull
               }
               val now = clock()
               if (watchdogCancelledAt < 0 && now > watchdog) {
-                // The SDK enforces the deadline; this only guards a stuck stream.
-                pullFailure = "TRANSCRIPTION_TIMEOUT"
+                timedOut = true
                 watchdogCancelledAt = now
                 job.step("watchdogCancel")
                 execution.cancel()
               } else if (watchdogCancelledAt >= 0 && now - watchdogCancelledAt > cancelWaitMs) {
-                break
+                break@pull
               }
             }
           }
+          }
+        } catch (_: Exception) {
+          // Same release order as every other end: cancel, join, lease, close.
+          pullFailure = TranscriptionEvents.FAILED
+          job.step("pullFailed")
         }
         execution.cancel() // no-op after the terminal; releases an abandoned producer
         producer.join(cancelWaitMs)
@@ -200,6 +210,10 @@ class RecordingTranscriptions(
       awaitLeaseRelease(engine, job)
       if (events.lateEvents > 0) job.step("lateEventsIgnored:${events.lateEvents}")
       if (job.cancelled) return cancelled(started)
+      // A watchdog cancel is a timeout, not a user cancel; nothing is stored.
+      if (timedOut && events.outcome !is TranscriptionEvents.Outcome.Completed) {
+        return failed("TRANSCRIPTION_TIMEOUT", started)
+      }
       return when (val outcome = events.outcome) {
         is TranscriptionEvents.Outcome.Completed ->
             Result("ok", null, outcome.segments, outcome.audioMs, clock() - started, firstPartialMs)
