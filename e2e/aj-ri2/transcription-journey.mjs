@@ -302,10 +302,8 @@ try {
         !d.find(nodes, { id: 'transcript-start' }),
         'a transcribe action was offered',
       );
-      expect(
-        d.find(nodes, { id: 'entry-recording' }),
-        'the recording is not shown',
-      );
+      // The recording stays stored and openable (the dump above can miss it).
+      await liveWaitFor({ id: 'entry-recording' }, { timeoutMs: 10_000 });
       return { clip: c.id, captured };
     },
   );
