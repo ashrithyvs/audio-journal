@@ -18,10 +18,16 @@ const SAMPLE_SHA256 =
   '59dfb9a4acb36fe2a2affc14bacbee2920ff435cb13cc314a08c13f66ba7860e';
 export const INPUT = `/sdcard/Android/data/${d.PACKAGE}/files/test-audio`;
 
-/** The pinned sample from the speech engine's whisper.cpp source tree. */
+/**
+ * The pinned sample (whisper.cpp's public-domain `jfk.wav`). AJ-RI-2 removed the
+ * app's speech engine, so its source tree is no longer built here: pass the
+ * file as `AJ_VOICE_SAMPLE`; the old engine tree is still searched if present.
+ */
 export function sample() {
   const cxx = path.join(ROOT, 'android', 'speech-engine', '.cxx');
-  const found = [];
+  const found = process.env.AJ_VOICE_SAMPLE
+    ? [process.env.AJ_VOICE_SAMPLE]
+    : [];
   const walk = dir => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       const full = path.join(dir, entry.name);

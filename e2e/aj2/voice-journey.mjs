@@ -4,7 +4,8 @@
 // - capture: the app's own capture path. The `e2e` build feeds the AJ-1
 //   speech sample (whisper.cpp's public-domain `jfk.wav`, the pinned SHA-256
 //   of `e2e/aj1/speech.mjs`) as microphone input; it is sealed into AJR1;
-// - the on-device final pass (whisper.cpp) makes the finalized transcript;
+// - the on-device final pass (the packaged Hybrid AI SDK's audio.transcribe@1
+//   since AJ-RI-2) makes the finalized transcript;
 // - journal.organize@1 runs only through the public Hybrid AI SDK, against
 //   the node companion;
 // - the app validates the result's transcript and audio-range provenance
@@ -15,8 +16,8 @@
 //   ANDROID_SERIAL=emulator-5554 node e2e/aj2/voice-journey.mjs \
 //     --apk android/app/build/outputs/apk/e2e/app-e2e.apk [--out <dir>]
 //
-// No audio is committed: the sample comes from the speech engine's pinned
-// whisper.cpp source tree. The synthetic duration ladder for repeatable
+// No audio is committed: the sample is whisper.cpp's pinned `jfk.wav`, passed
+// as AJ_VOICE_SAMPLE since AJ-RI-2 removed the app's own engine tree. The synthetic duration ladder for repeatable
 // performance stays in organize-perf.mjs.
 import fs from 'node:fs';
 import os from 'node:os';
