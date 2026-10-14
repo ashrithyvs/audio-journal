@@ -70,6 +70,9 @@ it('downloads no model and provisions only the pinned pack', () => {
     expect(gradle).toContain(`'${name}': [sha256: '${sha256}'`);
   }
   expect(gradle).toContain(`bytes: ${MODEL_BYTES}L`);
+  expect(gradle).toContain(
+    "def acceptedHybridAiAarSha256 = 'c336b93a181a5dc2982c9e2667b264dbf42d3871ac6a6540287c1bd70c528a49'",
+  );
   expect(read('android/gradle.properties')).toContain(
     'hybridAi.transcriptionPackDir=../../hybrid-ai-packages/ri2-a54266a',
   );
@@ -108,15 +111,16 @@ it('uses only the public SDK surface for transcription', () => {
   );
   expect([...imports].sort()).toEqual([
     'ai.hybrid.sdk.ExecuteRequest',
-    'ai.hybrid.sdk.ExecutionEvent',
     'ai.hybrid.sdk.ExecutionTarget',
     'ai.hybrid.sdk.HybridAIException',
     'ai.hybrid.sdk.ModelConfigurationDocument',
     'ai.hybrid.sdk.ModelRuntimeConfiguration',
+    'ai.hybrid.sdk.NativeExecutionOperation',
     'ai.hybrid.sdk.NativeHybridAIClient',
     'ai.hybrid.sdk.PcmAudioSource',
     'ai.hybrid.sdk.PcmRead',
     'ai.hybrid.sdk.PcmReadStatus',
+    'ai.hybrid.sdk.QueuedEvent',
   ]);
   // Local only: the transcription request never names node or auto.
   const engine = read(`${dir}/TranscriptionEngine.kt`);

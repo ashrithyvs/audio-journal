@@ -133,6 +133,8 @@ class TranscriptionDurabilityDeviceTest {
   }
 
   private var lastSource: Ajr1PcmSource? = null
+  /** Stands in for the vault's unlock epoch: a lock refuses requests until it rises. */
+  private var epoch = 1L
 
   private fun service(
       pack: TranscriptionPack = TranscriptionPack(context),
@@ -147,6 +149,7 @@ class TranscriptionDurabilityDeviceTest {
                 .also { lastSource = it }
           },
           isCapturing = { false },
+          unlockEpoch = { epoch },
           deadlineMs = deadlineMs,
       )
 
@@ -161,6 +164,21 @@ class TranscriptionDurabilityDeviceTest {
   }
 
   private fun names(steps: List<String>) = steps.map { it.substringBefore('@') }
+
+  /**
+   * The SDK operation's own `cancelled` terminal was observed after the cancel,
+   * its producer ended, and its model lease was released, all before the
+   * registration (and with it the source) was closed.
+   */
+  private fun assertCancelOrder(steps: List<String>) {
+    assertEquals(
+        steps.toString(),
+        listOf("registered", "cancelRequested", "terminal:cancelled", "producerEnded", "leaseReleased",
+            "registrationClosed", "sourceCloses:1"),
+        names(steps))
+    val times = steps.map { it.substringAfter('@').toLong() }
+    assertEquals(steps.toString(), times.sorted(), times)
+  }
 
   /**
    * Milliseconds until the SDK reports no active model lease (bounded). After a
@@ -304,8 +322,7 @@ class TranscriptionDurabilityDeviceTest {
       assertEquals(1, lastSource!!.closeCount)
       val leaseMs = leaseReleasedWithinMs(t)
       val steps = steps(t)
-      assertTrue(steps.toString(), at(steps, "cancelRequested") <= at(steps, "collectorEnded"))
-      assertTrue(steps.toString(), at(steps, "collectorEnded") <= at(steps, "registrationClosed"))
+      assertCancelOrder(steps)
       assertEquals(before, fileSha(id))
       assertEquals("ok", t.transcribe("cancel-retry", recordingId("ls-121-30s")).status)
       assertEquals(0, t.diagnostics().getInt("activeLeases"))
@@ -345,9 +362,12 @@ class TranscriptionDurabilityDeviceTest {
       val steps = steps(t)
       val order = names(steps)
       assertTrue(steps.toString(), !order.contains("cancelWaitExceeded"))
-      assertTrue(steps.toString(), at(steps, "cancelRequested") <= at(steps, "collectorEnded"))
-      assertTrue(steps.toString(), at(steps, "collectorEnded") <= at(steps, "registrationClosed"))
+      assertTrue(steps.toString(), !order.contains("leaseWaitExceeded"))
+      assertCancelOrder(steps)
       assertEquals(before, fileSha(id))
+      // Locked: nothing starts until the vault is unlocked again.
+      assertEquals("LOCKED", t.transcribe("while-locked", recordingId(id)).failure)
+      epoch += 1 // unlock
       // After unlock the same client transcribes again.
       assertEquals("ok", t.transcribe("lock-retry", recordingId(id)).status)
       assertEquals(0, t.diagnostics().getInt("activeLeases"))

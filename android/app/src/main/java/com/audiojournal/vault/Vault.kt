@@ -53,6 +53,15 @@ class Vault(
 ) {
   @Volatile private var masterKey: ByteArray? = null
 
+  /**
+   * Increases each time the vault is unlocked (MK installed). Work refused at a
+   * lock (for example recording transcription, AJ ADR-022) resumes only after
+   * a later unlock.
+   */
+  @Volatile
+  var unlockEpoch = 0L
+    private set
+
   private fun read(): VaultRecord? {
     if (!file.exists()) return null
     val sealed = file.readBytes()
@@ -105,6 +114,7 @@ class Vault(
     val mk = VaultCrypto.randomBytes(VaultCrypto.KEY_BYTES)
     write(wrapForPin(mk, pin, base = null))
     masterKey = mk
+    unlockEpoch += 1
   }
 
   @Synchronized
@@ -133,6 +143,7 @@ class Vault(
       write(current.copy(failures = 0, lastFailureAt = null))
     }
     masterKey = mk
+    unlockEpoch += 1
     return PinResult.Unlocked
   }
 
@@ -209,6 +220,7 @@ class Vault(
     val copy = read()?.biometric ?: return false
     return try {
       masterKey = cipher.doFinal(copy.wrapped)
+      unlockEpoch += 1
       true
     } catch (_: Exception) {
       false

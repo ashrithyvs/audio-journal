@@ -1,12 +1,12 @@
 package com.audiojournal.speech
 
 import ai.hybrid.sdk.ExecuteRequest
-import ai.hybrid.sdk.ExecutionEvent
 import ai.hybrid.sdk.ExecutionTarget
+import ai.hybrid.sdk.NativeExecutionOperation
 import ai.hybrid.sdk.NativeHybridAIClient
 import ai.hybrid.sdk.PcmAudioSource
+import ai.hybrid.sdk.QueuedEvent
 import android.content.Context
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 
@@ -21,21 +21,47 @@ interface TranscriptionEngine : AutoCloseable {
     val token: String
   }
 
+  /** One pull from a running request. */
+  sealed class Pulled {
+    class Event(val type: String, val dataJson: String) : Pulled()
+
+    /** The terminal has been delivered; nothing follows it. */
+    object End : Pulled()
+
+    object Timeout : Pulled()
+  }
+
+  /**
+   * One prepared explicit-local request with queued delivery: [run] is the
+   * producer (returns once the terminal is queued), [next] the single
+   * consumer, [cancel] cancels the operation (its terminal still arrives
+   * through [next]), and [close] releases the handle.
+   */
+  interface Execution : AutoCloseable {
+    fun run()
+
+    fun next(timeoutMs: Int): Pulled
+
+    fun cancel()
+  }
+
   fun register(source: PcmAudioSource): Registration
 
-  /** One explicit-local request; cancelling the collector cancels it. */
-  fun stream(token: String, frames: Long, requestId: String, deadlineMs: Int): Flow<ExecutionEvent>
+  fun prepare(token: String, frames: Long, requestId: String, deadlineMs: Int): Execution
 
-  /** Model leases still held (diagnostics only). */
+  /** Model leases still held (inference still running). */
   fun activeLeases(): Int
 }
 
 /**
  * The packaged public SDK surface only (AJ ADR-021/022): one
  * [NativeHybridAIClient] created with the exact pinned model configuration,
- * `registerAudioSource(source, "audio.transcribe", 1)`, and pull `stream()`
- * with an explicit `LOCAL` target. Closing this engine closes the client; it
- * is not cancellation, so [RecordingTranscriptions] cancels first.
+ * `registerAudioSource(source, "audio.transcribe", 1)`, and the public queued
+ * pull execution (`prepare`, `runQueued`, `nextEvent`, `cancel`;
+ * RI-SHARED-DEC-001 S6, the surface `stream()` is built on) with an explicit
+ * `LOCAL` target. Holding the operation lets a cancel observe the request's
+ * own terminal. Closing this engine closes the client; it is not
+ * cancellation, so [RecordingTranscriptions] cancels first.
  */
 class SdkTranscriptionEngine(context: Context, pack: TranscriptionPack) : TranscriptionEngine {
   private val client = NativeHybridAIClient(context = context, modelConfiguration = pack.configuration())
@@ -50,15 +76,31 @@ class SdkTranscriptionEngine(context: Context, pack: TranscriptionPack) : Transc
     }
   }
 
-  override fun stream(token: String, frames: Long, requestId: String, deadlineMs: Int): Flow<ExecutionEvent> =
-      client.stream(
-          ExecuteRequest(
-              TranscriptionPins.CAPABILITY,
-              input(token, frames),
-              ExecutionTarget.LOCAL,
-              majorVersion = TranscriptionPins.CAPABILITY_MAJOR.toUInt(),
-              requestId = requestId,
-              deadlineMs = deadlineMs))
+  override fun prepare(token: String, frames: Long, requestId: String, deadlineMs: Int): TranscriptionEngine.Execution {
+    val operation: NativeExecutionOperation =
+        client.prepare(
+            ExecuteRequest(
+                TranscriptionPins.CAPABILITY,
+                input(token, frames),
+                ExecutionTarget.LOCAL,
+                majorVersion = TranscriptionPins.CAPABILITY_MAJOR.toUInt(),
+                requestId = requestId,
+                deadlineMs = deadlineMs))
+    return object : TranscriptionEngine.Execution {
+      override fun run() = operation.runQueued()
+
+      override fun next(timeoutMs: Int): TranscriptionEngine.Pulled =
+          when (val pulled = operation.nextEvent(timeoutMs)) {
+            is QueuedEvent.Event -> TranscriptionEngine.Pulled.Event(pulled.event.type, pulled.event.dataJson)
+            QueuedEvent.End -> TranscriptionEngine.Pulled.End
+            QueuedEvent.Timeout -> TranscriptionEngine.Pulled.Timeout
+          }
+
+      override fun cancel() = operation.cancel()
+
+      override fun close() = operation.close()
+    }
+  }
 
   override fun activeLeases(): Int = runBlocking {
     client.modelProfiles().firstOrNull { it.profileId == TranscriptionPins.PROFILE_ID }?.activeLeases ?: 0

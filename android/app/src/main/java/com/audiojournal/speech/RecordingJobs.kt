@@ -46,6 +46,7 @@ object RecordingJobs {
         isCapturing = { recordingId ->
           ActiveAudio.submit { ActiveAudio.capture?.recordingId == recordingId }
         },
+        unlockEpoch = { VaultHolder.get(context).unlockEpoch },
     )
   }
 

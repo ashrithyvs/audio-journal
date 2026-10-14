@@ -17,8 +17,9 @@ class Ajr1Reader(
   private val headerBytes = source.read(0, Ajr1.HEADER_BYTES)
   private val header = Ajr1.Header.decode(headerBytes)
   private val headerHash = Ajr1.headerHash(headerBytes)
-  private var key: ByteArray? = Ajr1.fileKey(recordingRootKey, header.salt, recordingId)
   private val frames = Ajr1.frames(source)
+  // Derived last, so a structurally unreadable file never leaves a file key behind.
+  private var key: ByteArray? = Ajr1.fileKey(recordingRootKey, header.salt, recordingId)
 
   /** PCM bytes in structurally complete frames (authenticated only when read). */
   val pcmBytes: Long = frames.lastOrNull()?.let { it.pcmOffset + it.length } ?: 0L

@@ -1,6 +1,5 @@
 package com.audiojournal.speech
 
-import ai.hybrid.sdk.ExecutionEvent
 import ai.hybrid.sdk.HybridAIException
 import ai.hybrid.sdk.PcmAudioSource
 import java.io.File
@@ -9,11 +8,9 @@ import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -45,12 +42,20 @@ class RecordingTranscriptionsTest {
   /** What the scripted request does after `accepted` and one partial. */
   enum class Script { COMPLETE, FAIL, FAIL_ON_READ, HANG_UNTIL_CANCELLED, IGNORE_CANCEL, LATE_EVENTS }
 
-  inner class FakeEngine(var script: Script) : TranscriptionEngine {
+  /**
+   * Behaves like the SDK's queued execution: the producer emits `accepted` and
+   * a partial, then follows [script]; a cancel ends the operation with one
+   * `cancelled` terminal that the consumer still pulls; the SDK closes the
+   * claimed source after the terminal, and the model lease is released a
+   * little after the terminal (as the inference worker leaves).
+   */
+  inner class FakeEngine(@Volatile var script: Script) : TranscriptionEngine {
     val log: MutableList<String> = Collections.synchronizedList(mutableListOf())
     val started = CountDownLatch(1)
     val leases = AtomicInteger()
-    var sources = mutableListOf<PcmAudioSource>()
+    val sources = Collections.synchronizedList(mutableListOf<PcmAudioSource>())
     var refuseRegistration: String? = null
+    var leaseReleaseDelayMs = 50L
 
     override fun register(source: PcmAudioSource): TranscriptionEngine.Registration {
       refuseRegistration?.let { throw HybridAIException(it, it) }
@@ -65,54 +70,75 @@ class RecordingTranscriptionsTest {
             if (!open) return
             open = false
           }
-          // Revocation closes a source the request did not already close.
           if (!(source as Ajr1PcmSource).isClosed) source.close()
           log += "registrationClose"
         }
       }
     }
 
-    override fun stream(token: String, frames: Long, requestId: String, deadlineMs: Int): Flow<ExecutionEvent> = flow {
-      val source = sources.last()
-      leases.incrementAndGet()
-      var terminal = "none"
-      try {
-        emit(event("accepted", "{}"))
-        val seg = TranscriptionEventsTest.segment(0, 0, frames * 1_000 / 16_000, "words")
-        emit(event("partial", TranscriptionEventsTest.partial(seg)))
-        started.countDown()
-        when (script) {
-          Script.COMPLETE -> {
-            emit(event("completed", TranscriptionEventsTest.completed(listOf(seg), frames * 1_000 / 16_000)))
-            terminal = "completed"
+    override fun prepare(token: String, frames: Long, requestId: String, deadlineMs: Int): TranscriptionEngine.Execution {
+      val source = sources.last() as Ajr1PcmSource
+      val queue = LinkedBlockingQueue<TranscriptionEngine.Pulled>()
+      val cancelled = CountDownLatch(1)
+      val ended = java.util.concurrent.atomic.AtomicBoolean(false)
+      return object : TranscriptionEngine.Execution {
+        override fun run() {
+          leases.incrementAndGet()
+          val audioMs = frames * 1_000 / 16_000
+          val seg = TranscriptionEventsTest.segment(0, 0, audioMs, "words")
+          fun emit(type: String, data: String) = queue.put(TranscriptionEngine.Pulled.Event(type, data))
+          fun terminal(type: String, data: String = "{}") {
+            ended.set(true)
+            log += "terminal:$type"
+            emit(type, data)
+            if (!source.isClosed) source.close()
+            log += "sourceClosedBySdk"
+            queue.put(TranscriptionEngine.Pulled.End)
+            // The inference worker leaves slightly after the terminal.
+            Thread {
+                  Thread.sleep(leaseReleaseDelayMs)
+                  log += "leaseReleased"
+                  leases.decrementAndGet()
+                }
+                .start()
           }
-          Script.LATE_EVENTS -> {
-            emit(event("completed", TranscriptionEventsTest.completed(listOf(seg), frames * 1_000 / 16_000)))
-            emit(event("partial", TranscriptionEventsTest.partial(seg)))
-            emit(event("cancelled", "{}"))
-            terminal = "completed"
-          }
-          Script.FAIL -> {
-            emit(event("failed", JSONObject().put("code", "MODEL_UNAVAILABLE").toString()))
-            terminal = "failed"
-          }
-          Script.FAIL_ON_READ -> {
-            val read = source.read(16_000, java.nio.ShortBuffer.allocate(16_000))
-            emit(event("failed", JSONObject().put("code", "SOURCE_READ_FAILED").put("read", read.status.name).toString()))
-            terminal = "failed"
-          }
-          Script.HANG_UNTIL_CANCELLED -> awaitCancellation()
-          Script.IGNORE_CANCEL -> {
-            Thread.sleep(1_500) // non-cooperative compute
-            emit(event("completed", TranscriptionEventsTest.completed(listOf(seg), frames * 1_000 / 16_000)))
-            terminal = "completed"
+          emit("accepted", "{}")
+          emit("partial", TranscriptionEventsTest.partial(seg))
+          started.countDown()
+          when (script) {
+            Script.COMPLETE -> terminal("completed", TranscriptionEventsTest.completed(listOf(seg), audioMs))
+            Script.LATE_EVENTS -> {
+              emit("completed", TranscriptionEventsTest.completed(listOf(seg), audioMs))
+              log += "terminal:completed"
+              emit("partial", TranscriptionEventsTest.partial(seg))
+              terminal("cancelled")
+            }
+            Script.FAIL -> terminal("failed", JSONObject().put("code", "MODEL_UNAVAILABLE").toString())
+            Script.FAIL_ON_READ -> {
+              source.read(16_000, java.nio.ShortBuffer.allocate(16_000))
+              terminal("failed", JSONObject().put("code", "SOURCE_READ_FAILED").toString())
+            }
+            Script.HANG_UNTIL_CANCELLED -> {
+              cancelled.await()
+              terminal("cancelled")
+            }
+            Script.IGNORE_CANCEL -> {
+              Thread.sleep(1_500) // non-cooperative compute
+              terminal("completed", TranscriptionEventsTest.completed(listOf(seg), audioMs))
+            }
           }
         }
-      } finally {
-        // The operation's single terminal; then the SDK closes the claimed source.
-        log += "operationEnded:${if (terminal == "none") "cancelled" else terminal}"
-        if (!(source as Ajr1PcmSource).isClosed) source.close()
-        leases.decrementAndGet()
+
+        override fun next(timeoutMs: Int): TranscriptionEngine.Pulled =
+            queue.poll(timeoutMs.toLong(), TimeUnit.MILLISECONDS) ?: TranscriptionEngine.Pulled.Timeout
+
+        override fun cancel() {
+          // After the terminal a cancel is a no-op, as in the SDK.
+          if (!ended.get() && cancelled.count > 0L) log += "operationCancel"
+          cancelled.countDown()
+        }
+
+        override fun close() = Unit
       }
     }
 
@@ -121,9 +147,9 @@ class RecordingTranscriptionsTest {
     override fun close() {
       log += "engineClose"
     }
-
-    private fun event(type: String, data: String) = ExecutionEvent(0, type, "r", data)
   }
+
+  private var epoch = 1L
 
   private fun service(
       engine: () -> TranscriptionEngine,
@@ -138,6 +164,7 @@ class RecordingTranscriptionsTest {
             engineFactory = engine,
             openSource = { TestRecordings.open(file).also { last = it } },
             isCapturing = { capturing },
+            unlockEpoch = { epoch },
             cancelWaitMs = cancelWaitMs,
         )
     return transcriptions to { last!! }
@@ -152,6 +179,10 @@ class RecordingTranscriptionsTest {
     return (0 until steps.length()).map { steps.getString(it).substringBefore('@') }
   }
 
+  /** The SDK-side order every cancel must produce: cancel, terminal, lease, then close. */
+  private val cancelOrder =
+      listOf("register", "operationCancel", "terminal:cancelled", "sourceClosedBySdk", "leaseReleased", "registrationClose")
+
   @Test
   fun completesAndReleasesEverything() {
     val engine = FakeEngine(Script.COMPLETE)
@@ -163,11 +194,14 @@ class RecordingTranscriptionsTest {
     assertEquals(1, source().closeCount)
     assertEquals(0, t.activeCount())
     assertEquals(0, engine.activeLeases())
-    assertEquals(listOf("registered", "terminal:completed", "collectorEnded", "registrationClosed", "sourceCloses:1"), steps(t))
+    assertEquals(
+        listOf("registered", "terminal:completed", "producerEnded", "leaseReleased", "registrationClosed", "sourceCloses:1"),
+        steps(t))
+    assertEquals(listOf("register", "terminal:completed", "sourceClosedBySdk", "leaseReleased", "registrationClose"), engine.log)
   }
 
   @Test
-  fun userCancelEndsTheOperationBeforeTheRegistrationCloses() {
+  fun userCancelObservesTheTerminalAndLeaseBeforeClosing() {
     val engine = FakeEngine(Script.HANG_UNTIL_CANCELLED)
     val (t, source) = service({ engine })
     val pending = t.async("r1")
@@ -176,30 +210,34 @@ class RecordingTranscriptionsTest {
     val result = pending.get(5, TimeUnit.SECONDS)
     assertEquals("cancelled", result.status)
     assertTrue(result.segments.isEmpty())
-    assertEquals(listOf("register", "operationEnded:cancelled", "registrationClose"), engine.log)
+    assertEquals(cancelOrder, engine.log)
     assertEquals(1, source().closeCount)
     assertEquals(0, engine.activeLeases())
     assertEquals(0, t.activeCount())
+    assertEquals(
+        listOf("registered", "cancelRequested", "terminal:cancelled", "producerEnded", "leaseReleased",
+            "registrationClosed", "sourceCloses:1"),
+        steps(t))
   }
 
   @Test
-  fun lockCancelsWaitsForTheTerminalThenCloses() {
+  fun lockCancelsWaitsForTerminalAndLeaseThenClosesAndRefusesUntilUnlock() {
     val engine = FakeEngine(Script.HANG_UNTIL_CANCELLED)
     val (t, source) = service({ engine })
     val pending = t.async("r1")
     assertTrue(engine.started.await(5, TimeUnit.SECONDS))
     assertEquals(1, t.cancelAll())
-    // cancelAll returned only after the request had ended and been released.
-    assertEquals(listOf("register", "operationEnded:cancelled", "registrationClose"), engine.log)
+    // cancelAll returned only after the terminal, the lease release, and the close.
+    assertEquals(cancelOrder, engine.log)
     assertEquals(1, source().closeCount)
     assertEquals(0, t.activeCount())
     assertEquals("cancelled", pending.get(5, TimeUnit.SECONDS).status)
-    val order = steps(t)
-    assertTrue(order.toString(), order.indexOf("cancelRequested") < order.indexOf("collectorEnded"))
-    assertTrue(order.toString(), order.indexOf("collectorEnded") < order.indexOf("registrationClosed"))
-    // The client survives the lock; the next request works.
+    // Until the vault is unlocked again nothing new starts (no key, no audio).
     engine.script = Script.COMPLETE
-    assertEquals("ok", t.transcribe("r2", TestRecordings.ID).status)
+    assertEquals("LOCKED", t.transcribe("r2", TestRecordings.ID).failure)
+    assertEquals(cancelOrder, engine.log)
+    epoch += 1 // unlock
+    assertEquals("ok", t.transcribe("r3", TestRecordings.ID).status)
   }
 
   @Test
@@ -214,6 +252,16 @@ class RecordingTranscriptionsTest {
     assertEquals("a cancelled request never yields a transcript", "cancelled", result.status)
     assertTrue(steps(t).contains("cancelWaitExceeded"))
     assertEquals(1, source().closeCount)
+  }
+
+  @Test
+  fun aCancelBeforeTheRequestStartsIsHonoured() {
+    val engine = FakeEngine(Script.COMPLETE)
+    val (t, _) = service({ engine })
+    t.cancel("r1")
+    assertEquals("cancelled", t.transcribe("r1", TestRecordings.ID).status)
+    assertEquals(emptyList<String>(), engine.log)
+    assertEquals("ok", t.transcribe("r2", TestRecordings.ID).status)
   }
 
   @Test
@@ -254,7 +302,7 @@ class RecordingTranscriptionsTest {
   @Test
   fun refusalsHappenBeforeAnySdkWorkAndReleaseTheKey() {
     val engine = FakeEngine(Script.COMPLETE)
-    val (capturing, capturedSource) = service({ engine }, capturing = true)
+    val (capturing, _) = service({ engine }, capturing = true)
     assertEquals("RECORDING_NOT_SEALED", capturing.transcribe("r1", TestRecordings.ID).failure)
 
     val (tooLong, longSource) = service({ engine }, seconds = 181)
@@ -270,7 +318,6 @@ class RecordingTranscriptionsTest {
     assertEquals("INSUFFICIENT_RESOURCES", refused.transcribe("r4", TestRecordings.ID).failure)
     assertTrue("a source the SDK never took is closed by the app", refusedSource().isClosed)
     assertEquals(1, refusedSource().closeCount)
-    assertTrue(capturedSource == capturedSource) // capture refusal opens no source
   }
 
   @Test
@@ -294,7 +341,7 @@ class RecordingTranscriptionsTest {
     val pending = t.async("r1")
     assertTrue(engine.started.await(5, TimeUnit.SECONDS))
     t.close()
-    assertEquals(listOf("register", "operationEnded:cancelled", "registrationClose", "engineClose"), engine.log)
+    assertEquals(cancelOrder + "engineClose", engine.log)
     assertEquals("cancelled", pending.get(5, TimeUnit.SECONDS).status)
   }
 

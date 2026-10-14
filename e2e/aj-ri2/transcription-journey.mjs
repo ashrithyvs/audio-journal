@@ -9,7 +9,7 @@
 //            after unlock the pass is queued again and completes
 //   J04      process death (kill -9) during the pass; after relaunch and
 //            unlock the recording is intact and the pass completes
-//   J05      user cancel during the pass, then a user retry completes
+//   J05      user cancel during a 60 s pass, then a user retry completes
 //   J07      a recording past 3:00 shows the typed unsupported state, is never
 //            sent, and stays stored
 //   J06      device-log privacy scan: no transcript words, no paths or keys (last)
@@ -261,13 +261,12 @@ try {
 
   await step(
     'J05',
-    'ls-121-30s: user cancel during the pass, then retry',
+    'ls-260-60s: user cancel during the pass, then retry',
     async () => {
-      const c = clip('ls-121-30s');
+      const c = clip('ls-260-60s');
       const { captured } = await record(c, Math.ceil(c.durationMs / 1000) + 1);
-      await liveWaitFor({ id: 'transcript-running' }, { timeoutMs: 30_000 });
-      await d.sleep(2_000);
-      await liveTap({ id: 'transcript-cancel' });
+      // Cancel as soon as the pass shows (a 60 s pass takes ~11 s here).
+      await liveTap({ id: 'transcript-cancel' }, { timeoutMs: 30_000 });
       await liveWaitFor({ id: 'transcript-start' }, { timeoutMs: 15_000 });
       expect(
         !d.find(liveDump(), { id: 'transcript-kind-final' }),
@@ -278,7 +277,7 @@ try {
       return {
         clip: c.id,
         captured,
-        ...(await finalPass('ls-121-30s', retriedAt)),
+        ...(await finalPass('ls-260-60s', retriedAt)),
       };
     },
   );

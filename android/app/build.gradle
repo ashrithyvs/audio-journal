@@ -169,6 +169,13 @@ def provisionTranscriptionPack = tasks.register('provisionTranscriptionPack') {
         }
     }
 }
+// AJ-RI2-DEC-002: the accepted RI-2 AAR identity is fixed here, so a Gradle
+// property alone cannot swap the packaged SDK (`:hybrid-ai-android` checks the
+// file against the property).
+def acceptedHybridAiAarSha256 = 'c336b93a181a5dc2982c9e2667b264dbf42d3871ac6a6540287c1bd70c528a49'
+if (findProperty('hybridAi.aarSha256') != acceptedHybridAiAarSha256) {
+    throw new GradleException("hybridAi.aarSha256 is not the accepted RI-2 AAR ${acceptedHybridAiAarSha256}")
+}
 android.sourceSets.main.assets.srcDirs += transcriptionAssets
 tasks.named('preBuild') { dependsOn provisionTranscriptionPack }
 

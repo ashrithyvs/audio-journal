@@ -35,6 +35,9 @@ const UNSUPPORTED = {
   reason: 'UNSUPPORTED_DURATION',
 } as const satisfies TranscriptionStatus;
 
+/** Distinguishes controllers (one per unlock) within a JS runtime. */
+let controllers = 0;
+
 interface Job {
   recordingId: string;
   durationMs: number;
@@ -44,11 +47,24 @@ export class TranscriptionController {
   private snapshot: ReadonlyMap<string, TranscriptionStatus> = new Map();
   private readonly listeners = new Set<() => void>();
   private queue: Job[] = [];
-  private running?: { recordingId: string; requestId: string };
+  private running?: {
+    recordingId: string;
+    requestId: string;
+    /** The user cancelled: no result of this request may be stored. */
+    cancelled: boolean;
+  };
   private sequence = 0;
   private disposed = false;
+  /**
+   * Request IDs stay unique across locks and JS reloads, so a cancel can never
+   * reach another session's native request.
+   */
+  private readonly session: string;
 
-  constructor(private readonly deps: TranscriptionDependencies) {}
+  constructor(private readonly deps: TranscriptionDependencies) {
+    controllers += 1;
+    this.session = `${deps.now().toString(36)}-${controllers}`;
+  }
 
   getSnapshot = (): ReadonlyMap<string, TranscriptionStatus> => this.snapshot;
 
@@ -105,6 +121,7 @@ export class TranscriptionController {
 
   cancel(recordingId: string): void {
     if (this.running?.recordingId === recordingId) {
+      this.running.cancelled = true;
       this.deps.transcriber.cancel(this.running.requestId);
       return;
     }
@@ -136,17 +153,22 @@ export class TranscriptionController {
   private async run(job: Job): Promise<void> {
     const { transcriber, transcripts, now } = this.deps;
     this.sequence += 1;
-    const requestId = `transcribe-${this.sequence}`;
-    this.running = { recordingId: job.recordingId, requestId };
+    const requestId = `transcribe-${this.session}-${this.sequence}`;
+    const running = {
+      recordingId: job.recordingId,
+      requestId,
+      cancelled: false,
+    };
+    this.running = running;
     this.set(job.recordingId, { phase: 'running' });
     try {
       const result = await transcriber.transcribe({
         requestId,
         recordingId: job.recordingId,
       });
-      // A lock (dispose) cancels the request; a result that still arrives is
-      // never stored, so nothing is persisted after the journal closed.
-      if (result.status === 'cancelled' || this.disposed) {
+      // A user cancel or a lock (dispose) cancels the request; a result that
+      // still arrives is never stored.
+      if (result.status === 'cancelled' || running.cancelled || this.disposed) {
         this.set(job.recordingId, { phase: 'cancelled' });
         return;
       }

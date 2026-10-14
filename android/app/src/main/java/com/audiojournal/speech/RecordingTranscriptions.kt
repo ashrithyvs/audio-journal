@@ -3,12 +3,7 @@ package com.audiojournal.speech
 import ai.hybrid.sdk.HybridAIException
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
+import java.util.concurrent.atomic.AtomicBoolean
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -18,19 +13,22 @@ import org.json.JSONObject
  * recording; the SDK owns the model, inference, events, and cancellation.
  *
  * Lifecycle rules (RI-2 §16, `RI-REV-2B`): closing a registration or the
- * client is not cancellation. A cancel or a lock therefore cancels the
- * request first (by cancelling its collector, which cancels the SDK
- * operation and returns only after the operation has reached its single
- * terminal), waits for that within [cancelWaitMs], and only then closes the
- * registration. A failed, cancelled, or interrupted request never touches the
- * recording and yields no transcript.
+ * client is not cancellation. A cancel or a lock therefore cancels the SDK
+ * operation, keeps pulling until that operation's single terminal arrives,
+ * waits for its producer to return and its model lease to be released (all
+ * within [cancelWaitMs]), and only then closes the registration. A failed,
+ * cancelled, or interrupted request never touches the recording and yields no
+ * transcript. After a lock, no new request starts until the vault has been
+ * unlocked again ([unlockEpoch]).
  *
- * Each job keeps a content-free trace (step names only) for evidence.
+ * Each job keeps a content-free trace (step names and times) for evidence.
  */
 class RecordingTranscriptions(
     private val engineFactory: () -> TranscriptionEngine,
     private val openSource: (recordingId: String) -> Ajr1PcmSource,
     private val isCapturing: (recordingId: String) -> Boolean,
+    /** Increases with every vault unlock; requests are refused at or below a lock's epoch. */
+    private val unlockEpoch: () -> Long = { 0L },
     private val deadlineMs: Int = DEADLINE_MS,
     private val cancelWaitMs: Long = CANCEL_WAIT_MS,
     private val clock: () -> Long = { System.nanoTime() / 1_000_000 },
@@ -64,7 +62,7 @@ class RecordingTranscriptions(
   private class Job(val requestId: String, private val clock: () -> Long) {
     private val started = clock()
     @Volatile var cancelled = false
-    var collector: kotlinx.coroutines.Job? = null // guarded by this
+    var execution: TranscriptionEngine.Execution? = null // guarded by this
     var registration: TranscriptionEngine.Registration? = null // guarded by this
     var source: Ajr1PcmSource? = null
     val done = CountDownLatch(1)
@@ -81,13 +79,18 @@ class RecordingTranscriptions(
               cancelled = true
               step("cancelRequested")
             }
-            collector
+            execution
           }
+      // The operation ends with its own terminal, which the worker still pulls.
       running?.cancel()
     }
   }
 
   private val jobs = LinkedHashMap<String, Job>()
+  /** Cancels that arrived before their request started (bounded). */
+  private val cancelledEarly = LinkedHashSet<String>()
+  /** The vault epoch at the last lock; requests need a later unlock. */
+  private var lockedAtEpoch = -1L
   private val recent = ArrayDeque<JSONObject>()
   private val engineLock = Any()
   private var engine: TranscriptionEngine? = null
@@ -101,6 +104,8 @@ class RecordingTranscriptions(
     val job = Job(requestId, clock)
     synchronized(jobs) {
       if (jobs.containsKey(requestId)) return failed("DUPLICATE_REQUEST", started)
+      if (unlockEpoch() <= lockedAtEpoch) return failed("LOCKED", started)
+      if (cancelledEarly.remove(requestId)) return cancelled(started)
       jobs[requestId] = job
     }
     var firstPartialMs = -1L
@@ -131,43 +136,68 @@ class RecordingTranscriptions(
           } catch (error: HybridAIException) {
             return failed(TranscriptionEvents.code(error.code), started)
           }
+      synchronized(job) { job.registration = registration }
       job.step("registered")
-      synchronized(job) {
-        job.registration = registration
-        if (job.cancelled) return cancelled(started)
-      }
+      if (job.cancelled) return cancelled(started)
+      val execution =
+          try {
+            engine.prepare(registration.token, source.frames, requestId, deadlineMs)
+          } catch (error: HybridAIException) {
+            return failed(TranscriptionEvents.code(error.code), started)
+          }
       val events = TranscriptionEvents(source.frames)
-      var streamFailure: String? = null
-      runBlocking {
-        val collector =
-            launch(start = CoroutineStart.LAZY) {
-              try {
-                withTimeout(deadlineMs.toLong() + DEADLINE_GRACE_MS) {
-                  engine.stream(registration.token, source.frames, requestId, deadlineMs).collect { event ->
-                    if (event.type == "partial" && firstPartialMs < 0) firstPartialMs = clock() - started
-                    val wasOpen = events.outcome == null
-                    if (events.accept(event.type, event.dataJson) && wasOpen) job.step("terminal:${event.type}")
+      var pullFailure: String? = null
+      execution.use {
+        synchronized(job) {
+          job.execution = execution
+          if (job.cancelled) execution.cancel()
+        }
+        val producerFailed = AtomicBoolean(false)
+        val producer =
+            Thread(
+                {
+                  try {
+                    execution.run()
+                  } catch (_: Throwable) {
+                    producerFailed.set(true)
                   }
-                }
-              } catch (_: TimeoutCancellationException) {
-                streamFailure = "TRANSCRIPTION_TIMEOUT"
-              } catch (cancel: CancellationException) {
-                throw cancel
-              } catch (error: HybridAIException) {
-                streamFailure = TranscriptionEvents.code(error.code)
-              } catch (_: Exception) {
-                streamFailure = TranscriptionEvents.FAILED
+                },
+                "aj-transcription-producer")
+        producer.start()
+        val watchdog = started + deadlineMs + DEADLINE_GRACE_MS
+        var watchdogCancelledAt = -1L
+        while (true) {
+          when (val pulled = execution.next(POLL_MS)) {
+            is TranscriptionEngine.Pulled.Event -> {
+              if (pulled.type == "partial" && firstPartialMs < 0) firstPartialMs = clock() - started
+              val wasOpen = events.outcome == null
+              if (events.accept(pulled.type, pulled.dataJson) && wasOpen) job.step("terminal:${pulled.type}")
+            }
+            TranscriptionEngine.Pulled.End -> break
+            TranscriptionEngine.Pulled.Timeout -> {
+              if (producerFailed.get() && !producer.isAlive) {
+                pullFailure = TranscriptionEvents.FAILED
+                break
+              }
+              val now = clock()
+              if (watchdogCancelledAt < 0 && now > watchdog) {
+                // The SDK enforces the deadline; this only guards a stuck stream.
+                pullFailure = "TRANSCRIPTION_TIMEOUT"
+                watchdogCancelledAt = now
+                job.step("watchdogCancel")
+                execution.cancel()
+              } else if (watchdogCancelledAt >= 0 && now - watchdogCancelledAt > cancelWaitMs) {
+                break
               }
             }
-        val start =
-            synchronized(job) {
-              job.collector = collector
-              !job.cancelled
-            }
-        if (start) collector.start() else collector.cancel()
-        collector.join()
+          }
+        }
+        execution.cancel() // no-op after the terminal; releases an abandoned producer
+        producer.join(cancelWaitMs)
+        job.step(if (producer.isAlive) "producerJoinExceeded" else "producerEnded")
       }
-      job.step("collectorEnded")
+      // Inference has left the model before the source registration is closed.
+      awaitLeaseRelease(engine, job)
       if (events.lateEvents > 0) job.step("lateEventsIgnored:${events.lateEvents}")
       if (job.cancelled) return cancelled(started)
       return when (val outcome = events.outcome) {
@@ -176,20 +206,18 @@ class RecordingTranscriptions(
         is TranscriptionEvents.Outcome.Failed ->
             failed(if (source.damaged) "SOURCE_DAMAGED" else outcome.code, started)
         TranscriptionEvents.Outcome.Cancelled -> cancelled(started)
-        null -> failed(streamFailure ?: TranscriptionEvents.PROTOCOL, started)
+        null -> failed(pullFailure ?: TranscriptionEvents.PROTOCOL, started)
       }
     } finally {
-      // After the request has ended (or never started): revoke the registration,
-      // which returns only after the source is closed, then close a source the
-      // SDK never took.
-      synchronized(job) { job.registration }?.let { registration ->
+      val registration = synchronized(job) { job.registration }
+      if (registration != null) {
+        // The SDK owns the source once registered: revoking returns only after its close.
         registration.close()
         job.step("registrationClosed")
+      } else {
+        job.source?.let { if (!it.isClosed) it.close() }
       }
-      job.source?.let { source ->
-        if (!source.isClosed) source.close()
-        job.step("sourceCloses:${source.closeCount}")
-      }
+      job.source?.let { job.step("sourceCloses:${it.closeCount}") }
       synchronized(jobs) {
         jobs.remove(requestId)
         recent.addLast(trace(job))
@@ -199,18 +227,52 @@ class RecordingTranscriptions(
     }
   }
 
-  /** User cancel. Returns at once; [transcribe] then ends with `cancelled`. */
-  fun cancel(requestId: String) {
-    synchronized(jobs) { jobs[requestId] }?.cancel()
+  private fun awaitLeaseRelease(engine: TranscriptionEngine, job: Job) {
+    val until = clock() + cancelWaitMs
+    while (true) {
+      val leases = runCatching { engine.activeLeases() }.getOrDefault(-1)
+      if (leases == 0) {
+        job.step("leaseReleased")
+        return
+      }
+      if (leases < 0 || clock() >= until) {
+        job.step("leaseWaitExceeded")
+        return
+      }
+      Thread.sleep(LEASE_POLL_MS)
+    }
   }
 
   /**
-   * Vault lock, erase, restore, or teardown: cancel every request, wait (bounded)
-   * for each to reach its terminal and release its source, and only then close
-   * any registration still open. Returns how many jobs were active.
+   * User cancel. Returns at once; [transcribe] then ends with `cancelled`. A
+   * cancel that arrives before its request has started is remembered.
+   */
+  fun cancel(requestId: String) {
+    val job =
+        synchronized(jobs) {
+          val running = jobs[requestId]
+          if (running == null) {
+            cancelledEarly += requestId
+            while (cancelledEarly.size > EARLY_CANCELS) cancelledEarly.remove(cancelledEarly.first())
+          }
+          running
+        }
+    job?.cancel()
+  }
+
+  /**
+   * Vault lock, erase, restore, or teardown: refuse new requests until the
+   * next unlock, cancel every running request, and wait (bounded) for each to
+   * reach its terminal, release its model lease, and close its registration.
+   * Anything still open after the bound is closed here. Returns how many jobs
+   * were active.
    */
   fun cancelAll(): Int {
-    val active = synchronized(jobs) { jobs.values.toList() }
+    val active =
+        synchronized(jobs) {
+          lockedAtEpoch = unlockEpoch()
+          jobs.values.toList()
+        }
     active.forEach { it.cancel() }
     val until = clock() + cancelWaitMs
     for (job in active) {
@@ -256,8 +318,11 @@ class RecordingTranscriptions(
     /** The SDK's unchanged 120 s computation deadline (AJ-RI-2 plan). */
     const val DEADLINE_MS = 120_000
     private const val DEADLINE_GRACE_MS = 10_000L
-    /** Lock waits at most this long for the cancelled request's terminal. */
+    /** A cancel or lock waits at most this long for terminal, producer, and lease. */
     const val CANCEL_WAIT_MS = 3_000L
+    private const val POLL_MS = 100
+    private const val LEASE_POLL_MS = 5L
     private const val RECENT_TRACES = 16
+    private const val EARLY_CANCELS = 32
   }
 }

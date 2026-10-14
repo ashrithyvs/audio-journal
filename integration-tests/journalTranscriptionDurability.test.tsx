@@ -161,7 +161,7 @@ describe('AJ-RI-2 transcription durability', () => {
     transcription.dispose(); // lock
     expect(engine.calls).toEqual([
       `transcribe ${a.recordingId}`,
-      'cancel transcribe-1',
+      expect.stringMatching(/^cancel transcribe-[0-9a-z]+-\d+-1$/),
     ]);
     // The request raced to completion anyway: it must not be stored.
     engine.resolve({ segments: [{ t0Ms: 0, t1Ms: 900, text: 'late' }] });
@@ -170,6 +170,51 @@ describe('AJ-RI-2 transcription durability', () => {
     expect(transcription.status(a.recordingId)).toEqual({ phase: 'cancelled' });
     expect(await context.transcripts.records(a.recordingId)).toEqual([]);
     await recordingUnchanged(context, a.entryId);
+  });
+
+  it('stores nothing when the user cancelled but the SDK still completed', async () => {
+    const engine = new ManualTranscriber();
+    const transcription = new TranscriptionController({
+      transcriber: engine,
+      transcripts: context.transcripts,
+      now: () => 1,
+    });
+    const a = await readyVoiceEntry(context, 3_000);
+    transcription.request(a.recordingId, 3_000);
+    transcription.cancel(a.recordingId);
+    engine.resolve({ segments: [{ t0Ms: 0, t1Ms: 900, text: 'late' }] });
+    await flush();
+    await flush();
+    expect(transcription.status(a.recordingId)).toEqual({ phase: 'cancelled' });
+    expect(await context.transcripts.records(a.recordingId)).toEqual([]);
+    // The user may still transcribe it afterwards.
+    transcription.request(a.recordingId, 3_000);
+    engine.resolve({ segments: [{ t0Ms: 0, t1Ms: 900, text: 'kept' }] });
+    await flush();
+    await flush();
+    expect(
+      (await context.transcripts.records(a.recordingId)).map(r => r.text),
+    ).toEqual(['kept']);
+  });
+
+  it('uses request IDs that differ across controllers', async () => {
+    const engine = new ManualTranscriber();
+    const ids: string[] = [];
+    engine.cancel = id => {
+      ids.push(id);
+    };
+    for (let i = 0; i < 2; i += 1) {
+      const controller = new TranscriptionController({
+        transcriber: engine,
+        transcripts: context.transcripts,
+        now: () => 1,
+      });
+      const a = await readyVoiceEntry(context, 3_000, 1_700_000_000_000 + i);
+      controller.request(a.recordingId, 3_000);
+      controller.dispose();
+    }
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2);
   });
 
   it('recovers after process death: nothing partial is stored and the next open re-queues', async () => {
