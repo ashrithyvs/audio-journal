@@ -264,6 +264,9 @@ ADR-024 and `hybridAi/docs/real-inference-roadmap.md`.
 
 - AJ-RI-0: documentation/evidence reset.
 - AJ-RI-2: replace app-owned Whisper with SDK `audio.transcribe@1` local.
+  Implemented on `aj-ri2/static-transcription` with evidence in
+  [`validation/AJ-RI-2.md`](validation/AJ-RI-2.md); awaiting Codex review of
+  the two GRI-2 AJ rows (not merged, not GRI-2 acceptance).
 - AJ-RI-3: real local `journal.organize@1`.
 - AJ-RI-4: generic SDK Private AI Node real organization.
 - AJ-RI-5: dual-mode app integration and cumulative regression.
