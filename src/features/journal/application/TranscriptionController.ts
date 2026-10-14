@@ -2,18 +2,25 @@ import { validateEngineSegments } from '../domain/transcript';
 import type { TranscriptRepository } from '../ports/JournalRepository';
 import type { RecordingTranscriber } from '../ports/RecordingTranscriber';
 
-// Final transcription passes (ADR-017). One runs at a time. They start after a
-// capture is saved, after each unlock for every ready recording without a
-// full pass (the explicit LLD §9 step 5 policy, owner decision 2026-10-10),
-// or when the user asks. A result is validated
-// against the recording's duration and stored as a new engine revision; any
-// failure or cancel leaves the recording and the stored transcript unchanged.
+// Final transcription passes (ADR-017) through the Hybrid AI SDK (AJ ADR-022).
+// One runs at a time. They start after a capture is saved, after each unlock
+// for every ready recording without a full pass (the explicit LLD §9 step 5
+// policy, owner decision 2026-10-10), or when the user asks. A result is
+// validated against the recording's duration and stored as a new engine
+// revision; any failure or cancel leaves the recording and the stored
+// transcript unchanged. Recordings longer than the SDK profile's limit stay
+// stored and playable and are never sent, so nothing is silently truncated.
+
+/** The accepted SDK profile transcribes at most 180 seconds (AJ ADR-022). */
+export const MAX_TRANSCRIPTION_MS = 180_000;
 
 export type TranscriptionStatus =
   | { phase: 'queued' }
   | { phase: 'running' }
   | { phase: 'cancelled' }
-  | { phase: 'failed'; reason: string };
+  | { phase: 'failed'; reason: string }
+  /** Longer than the model profile accepts; retrying cannot help. */
+  | { phase: 'unsupported'; reason: 'UNSUPPORTED_DURATION' };
 
 export interface TranscriptionDependencies {
   transcriber: RecordingTranscriber;
@@ -22,6 +29,11 @@ export interface TranscriptionDependencies {
   /** A new revision was stored (lists and details reload). */
   onSaved?: (recordingId: string) => void;
 }
+
+const UNSUPPORTED = {
+  phase: 'unsupported',
+  reason: 'UNSUPPORTED_DURATION',
+} as const satisfies TranscriptionStatus;
 
 interface Job {
   recordingId: string;
@@ -77,8 +89,13 @@ export class TranscriptionController {
       this.disposed ||
       phase === 'queued' ||
       phase === 'running' ||
+      phase === 'unsupported' ||
       (origin === 'automatic' && (phase === 'failed' || phase === 'cancelled'))
     ) {
+      return;
+    }
+    if (durationMs > MAX_TRANSCRIPTION_MS) {
+      this.set(recordingId, UNSUPPORTED);
       return;
     }
     this.queue.push({ recordingId, durationMs });
@@ -127,8 +144,14 @@ export class TranscriptionController {
         requestId,
         recordingId: job.recordingId,
       });
-      if (result.status === 'cancelled') {
+      // A lock (dispose) cancels the request; a result that still arrives is
+      // never stored, so nothing is persisted after the journal closed.
+      if (result.status === 'cancelled' || this.disposed) {
         this.set(job.recordingId, { phase: 'cancelled' });
+        return;
+      }
+      if (result.status === 'failed' && result.failure === UNSUPPORTED.reason) {
+        this.set(job.recordingId, UNSUPPORTED);
         return;
       }
       if (result.status === 'failed') {

@@ -9,14 +9,6 @@
 
 # Add any project specific keep options here:
 
-# App-owned transcription JNI (ADR-016): natives and the callback are bound by name.
--keepclasseswithmembernames,includedescriptorclasses class com.audiojournal.speech.WhisperNative {
-    native <methods>;
-}
--keep class com.audiojournal.speech.WhisperNative { *; }
--keep interface com.audiojournal.speech.SegmentListener { *; }
--keep class * implements com.audiojournal.speech.SegmentListener { void onSegment(...); }
-
 # SQLCipher (ADR-017): JNI binds Java classes and methods by name.
 -keep,includedescriptorclasses class net.zetetic.database.** { *; }
 -keep,includedescriptorclasses interface net.zetetic.database.** { *; }
