@@ -267,7 +267,8 @@ ADR-024 and `hybridAi/docs/real-inference-roadmap.md`.
   Implemented on `aj-ri2/static-transcription` with evidence in
   [`validation/AJ-RI-2.md`](validation/AJ-RI-2.md); ACCEPTED at `09e3580`
   (`AJ-RI-2-REV-1`; GRI-2 accepted for the Android-emulator development
-  profile). Not merged into `main` yet.
+  profile). Merged into `main` by `112dab7` (`AJ-RI2-MERGE-1`); still pinned
+  to the accepted RI-2 debug AAR.
 - AJ-RI-3: real local `journal.organize@1`.
 - AJ-RI-4: generic SDK Private AI Node real organization.
 - AJ-RI-5: dual-mode app integration and cumulative regression.

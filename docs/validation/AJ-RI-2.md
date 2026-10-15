@@ -4,9 +4,10 @@
 Journal GRI-2 rows pass, and full `GRI-2` is accepted for the Android-emulator
 development profile. Physical Android, iOS, thermal/battery, a larger journal
 corpus, and release packaging remain deferred (not blockers); live
-transcription remains stopped. Not merged or pushed: the AJ merge is a
-separate action that needs the owner's instruction.
-**Branch:** `aj-ri2/static-transcription` from `main@837a77b`.
+transcription remains stopped. **Merged into `main`** by `112dab7`
+(`AJ-RI2-MERGE-1`, 2026-10-15; §7); not pushed or released. The app stays
+pinned to the accepted RI-2 debug AAR, not the integrated SDK `main` AAR.
+**Branch:** `aj-ri2/static-transcription` from `main@837a77b` (retained).
 **Gate:** the two Audio Journal rows of SDK `GRI-2` (RI-2 record §13/§16):
 
 1. Audio Journal invokes static transcription only through the public Hybrid
@@ -263,3 +264,59 @@ bounded wait (`b2d8aa0`); the final run is in §4.1.
   Finish overshoot near 3:00 (J03), `kill` needing root on the emulator and
   `pidof` exiting non-zero after the kill (J04), a 30 s pass finishing before
   Cancel could be tapped (J05 moved to 60 s), and a one-shot dump in J07.
+
+## 7. Merge into `main` (`AJ-RI2-MERGE-1`, 2026-10-15)
+
+- **Merge:** `112dab7`, normal `--no-ff` merge of
+  `aj-ri2/static-transcription@910daa5` into `main`; parents `837a77b`
+  (`main`) and `910daa5`. `main` was the merge base, so there were no
+  conflicts and nothing was resolved. The merged tree is byte-identical to
+  `910daa5`, every non-doc path equals the accepted `09e3580`, and all
+  AJ-RI-2 commits (`3934a1f`…`910daa5`) are ancestors. The branch and its
+  worktree are kept.
+- **Tree:** `android/speech-engine`, `WhisperNative`, and `SpeechModels` are
+  absent and no Gradle file references the engine; the app's `loadLibrary`
+  calls are only `sqlcipher` and `aj_argon2`; inference imports are only
+  public `ai.hybrid.sdk.*`; the only execution target is
+  `ExecutionTarget.LOCAL`. No APK, AAR, model, evidence, key, `.claude/`,
+  local configuration, or build output is tracked (the RN template
+  `debug.keystore` and `ios/.xcode.env` predate the merge).
+- **Pins (verified directly, unchanged):** AAR `c336b93a…8a49`
+  (`gradle.properties`, `build.gradle` accepted constant, staged package and
+  `ri2-evidence` copy); model `ggml-tiny.en-q5_1.bin` 32,166,155 bytes
+  `c77c5766…7c2b`; profile `5d722be2…0b`; package `f2f59c4d…44`; provider
+  `whisper.cpp v1.9.5+d1be6fde.ri2-decode.1`; decode `ri2-decode.1`. Not
+  repinned to the integrated SDK `main@0da325a` AAR `b432b947…`.
+- **Validation** (`Ash/.aj-exclusive-run`, one API 35 emulator
+  `aj-api35-4g`; evidence `Ash/aj-ri2-merge-evidence`, 58 files, `SHA256SUMS`
+  SHA-256 `986eff8d016fae2309a40232b935c091c2302a6e7d7ffdee27b0c1edbba1880a`):
+
+  | Check | Result |
+  |---|---|
+  | Prettier, `tsc`, ESLint `--max-warnings 0` | pass |
+  | Jest unit / smoke / integration | 313/313, 3/3, 166/166 |
+  | Gradle `testDebugUnitTest` | 81/81 (speech 25) |
+  | `assembleDebug`, `assembleRelease`, `assembleE2e` | pass |
+  | APK boundary (debug, release, e2e) | no `aj_whisper`, `libwhisper`, `libggml`, `speech-models`, `ggml-base`, or `speech-engine`; only app native library `libaj_argon2`; SDK `.so` files byte-identical to the pinned AAR; packaged model/profile/package hashes equal the pins |
+  | Emulator smoke (30 s clip `ls-61-30s` through the e2e capture) | record → Finish → SDK static pass → stored final transcript (13.7 s, development figure); HOME locked the app; relaunch, unlock, reopen: the one recording and the same transcript remain; device log 0 findings (transcript 4-word phrases, recording/model paths, `.ajr`, key label, input name) |
+  | Organize/node regression `e2e/aj2/organize-e2e.mjs --only O00,O01` | 2/2 (pairing with compared codes; consent, decline sends nothing, stored result) |
+
+- **Attempts:** attempt 1 passed every static/build step; its two emulator
+  steps failed for harness/environment reasons, with no production cause:
+  the outside-Git smoke script read the transcript line's `Pressable` text
+  attribute, which is empty (the text is in the child node; the accepted
+  journey's UI text capture shows the same limitation), and the `main`
+  worktree had no gitignored `node-companion/node_modules` (`reflect-metadata`
+  missing). The smoke script was corrected and the dependencies copied with
+  `cp -a` from the AJ-RI-2 worktree (identical lockfile; nothing downloaded);
+  attempt 2 reran only the emulator steps with the same APKs (hashes
+  identical) and passed. Stale gitignored pre-merge build trees of the `main`
+  worktree were moved to `Ash/aj-ri2-merge-build/prior-ignored/`.
+- **Not repeated (accepted at `09e3580`):** WER, 180 s, performance/memory,
+  the durability suite, live transcription, AJ-3 S00-S19, physical Android,
+  iOS, private-node real model.
+- **Status:** AJ-RI-2 merged; full `GRI-2` stays accepted for the
+  Android-emulator development profile; static transcription uses the
+  accepted packaged SDK and real tiny.en model; live transcription stays
+  stopped (future work); physical Android, iOS, thermal/battery, a larger
+  journal corpus, and release packaging stay deferred.

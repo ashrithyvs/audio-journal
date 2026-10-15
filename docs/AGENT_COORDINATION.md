@@ -5,6 +5,23 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 
 ## Current snapshot
 
+- **AJ-RI-2 MERGED into `main` (2026-10-15 23:20 IST, Claude Code,
+  `AJ-RI2-MERGE-1`).** Merge `112dab7` (parents `837a77b`, `910daa5`;
+  `--no-ff`, no conflicts, tree identical to `910daa5`). Full `GRI-2` stays
+  accepted for the Android-emulator development profile; static
+  transcription uses the accepted packaged SDK and real tiny.en model; live
+  transcription stays stopped. Pins unchanged (AAR `c336b93a…8a49`, model
+  `c77c5766…7c2b`, profile `5d722be2…0b`, package `f2f59c4d…44`); not
+  repinned to the integrated SDK AAR `b432b947…`. Validation: JS
+  313/3/166 + format/typecheck/lint, JVM 81/81, debug/release/e2e assembly,
+  APK boundary, emulator smoke M00-M03, organize O00,O01 2/2
+  ([`validation/AJ-RI-2.md`](validation/AJ-RI-2.md) §7; evidence
+  `Ash/aj-ri2-merge-evidence`, `SHA256SUMS` `986eff8d…880a`). Deferred:
+  physical Android, iOS (`GRI-6-I`), thermal/battery, larger journal corpus,
+  release packaging. Branch/worktree `aj-ri2/static-transcription` kept.
+  Not pushed or released. The exclusive lock is released. The entry below
+  is the pre-merge record.
+
 - **AJ-RI-2 ACCEPTED (2026-10-15, `AJ-RI-2-REV-1` at `09e3580`; GRI-2
   accepted for the Android-emulator development profile; `AJ-RI2-DEC-003`
   Option A). AJ merge awaits the owner's instruction.** Implementation
