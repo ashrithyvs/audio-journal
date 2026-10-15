@@ -6,7 +6,6 @@ import { reconcileRecordings } from '../features/journal/application/startupReco
 import { UnavailableRecordingService } from '../features/journal/adapters/UnavailableRecordingService';
 import { createIdSource } from '../features/journal/domain/ids';
 import type { OrganizeServices } from '../features/organize/application/OrganizeContext';
-import { NativeLiveTranscriber } from '../features/transcription/adapters/NativeLiveTranscriber';
 import { NativeRecordingTranscriber } from '../features/transcription/adapters/NativeRecordingTranscriber';
 import { migrate } from '../platform/storage/migrationRunner';
 import { openNativeJournalDatabase } from '../platform/storage/NativeSqlDriver';
@@ -76,10 +75,9 @@ export async function openProductionJournal(
       transcripts: new SqliteTranscriptRepository(db, ids),
       recorder,
       playback,
-      // On-device transcription (ADR-016, ADR-017): final passes over sealed
-      // recordings, and live text while capturing.
+      // Final passes over sealed recordings through the packaged Hybrid AI
+      // SDK (AJ ADR-022). No live text: GRI-2L stopped (AJ-RI2-DEC-001).
       transcriber: speech ? new NativeRecordingTranscriber(speech) : undefined,
-      live: speech ? new NativeLiveTranscriber(speech) : undefined,
       ids,
     },
     organize: {

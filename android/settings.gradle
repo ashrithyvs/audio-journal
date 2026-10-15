@@ -3,7 +3,6 @@ plugins { id("com.facebook.react.settings") }
 extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
 rootProject.name = 'AudioJournal'
 include ':app'
-include ':speech-engine'
 include ':vault-crypto'
 include ':hybrid-ai-android'
 project(':hybrid-ai-android').projectDir = file('hybrid-ai-android')

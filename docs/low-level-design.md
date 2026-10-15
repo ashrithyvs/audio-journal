@@ -306,6 +306,31 @@ JavaScript reaches it through `NativeRecordingService` and
 - Post-recording reconciliation may create a new transcript revision; it does
   not rewrite the first-pass engine history silently.
 
+**AJ-RI-2 implementation (ADR-021, ADR-022; validation
+[`AJ-RI-2.md`](validation/AJ-RI-2.md)):**
+
+- `TranscriptionController` is unchanged in policy (one pass at a time,
+  after save and after each unlock, user cancel and retry) and adds a typed
+  `unsupported` state for recordings over 180 s, which are never sent.
+- `AudioJournalSpeech.transcribeRecording` runs `RecordingTranscriptions`:
+  it refuses unsealed, missing, locked, empty, or over-limit recordings,
+  opens `Ajr1PcmSource` (read-only AJR1, frame-by-frame decryption into the
+  SDK buffer), registers it with `registerAudioSource(source,
+  "audio.transcribe", 1)` on a process-wide `NativeHybridAIClient` created
+  from the verified `TranscriptionPack`, and runs it through the public
+  queued pull execution (`prepare`, `runQueued`, `nextEvent`) with an explicit
+  local target.
+- `TranscriptionEvents` accepts only `accepted` first, exactly one terminal,
+  and a contract-valid `completed` output for the pinned model; later events
+  are ignored. Stored model ID: `sdk.whisper.tiny-en-q5-1_1.0.0`.
+- Cancel and lock cancel the SDK operation, observe its own terminal, join
+  its producer, and wait for the model lease to be released (each wait
+  bounded), then close the registration. The vault's lock, erase, and restore
+  call `RecordingJobs.cancelAll()`, which waits at most 3 s in total and then
+  closes any registration itself. After a lock no request starts until
+  the vault's unlock epoch rises. The client survives a lock and closes on
+  teardown. No live text (`AJ-RI2-DEC-001`).
+
 **Historical AJ-1 implementation (ADR-016, ADR-017; migration required by
 ADR-021):**
 
@@ -792,10 +817,11 @@ full file paths, or arbitrary SDK error messages that may contain payload data.
   - The transcript section's `transcript-kind-<kind>` testID distinguishes a
     final or empty pass from a live draft.
   - The emulator's microphone is silent, so real speech reaches the final
-    pass through `RecordingSpeechDeviceTest`: `e2e/aj1/speech.mjs` pushes
-    whisper.cpp's `jfk.wav` (SHA-256 pinned), the test seals it into AJR1, and
-    the production `RecordingPass` decodes it in one window and across a
-    forced cut.
+    pass through the `e2e` build's test input and, since AJ-RI-2, through
+    `TranscriptionDurabilityDeviceTest`, which seals the pinned public
+    LibriSpeech clips into AJR1 and transcribes them through the packaged SDK
+    (the AJ-1 `RecordingSpeechDeviceTest` and `e2e/aj1/speech.mjs` were
+    removed with the app-owned engine).
 
 ## 13. Backup and restore service
 

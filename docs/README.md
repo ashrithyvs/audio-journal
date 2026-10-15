@@ -38,8 +38,10 @@ cross-platform mobile or v0.1 release claim.
 - [Implementation roadmap](implementation-roadmap.md) — milestone order and acceptance gates.
 - [Real-inference migration](real-inference-migration.md) — mandatory AJ handoff for SDK-owned transcription and real local/node organization before release work.
 - [AJ-RI-2 transcription consumer](ri2-transcription-consumer.md) — frozen
-  packaged-SDK/JR1 source, live/final, model-pack, lock, durability, boundary,
-  and validation design (AJ ADR-022 / SDK ADR-027).
+  packaged-SDK/JR1 source, final-pass (live text deferred, `AJ-RI2-DEC-001`),
+  model-pack, lock, durability, boundary, and validation design (AJ ADR-022 /
+  SDK ADR-027); implementation evidence in
+  [`validation/AJ-RI-2.md`](validation/AJ-RI-2.md).
 - [AJ-RI-3 local organization consumer](ri3-organization-consumer.md) — frozen
   declarative package, explicit-local flow, provenance/grounding boundary,
   human-labelled corpus, scorer, privacy, and migration design (AJ ADR-023 /

@@ -119,16 +119,22 @@ android {
     }
 }
 
-// ADR-016: pinned on-device transcription models, shipped as assets and
-// verified by SHA-256 at build time (and again on device before loading).
+// AJ ADR-022: the SDK-defined `audio.transcribe@1` model pack, exactly the bytes
+// accepted by RI-REV-2B (SDK RI-2 record §16), copied from the pinned local
+// package directory into APK assets. Nothing is downloaded or rebuilt; a missing
+// file or any size or SHA-256 difference fails the build. The app checks them
+// again on device, and the SDK checks the artifact before loading it.
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 
-def speechModels = [
-    'base.en-q5_1': '4baf70dd0d7c4247ba2b81fafd9c01005ac77c2f9ef064e00dcf195d0e2fdd2f',
-    'tiny.en-q5_1': 'c77c5766f1cef09b6b7d47f21b546cbddd4157886b3b5d6d4f709e91e66c7c2b',
+def transcriptionPack = [
+    'ggml-tiny.en-q5_1.bin': [sha256: 'c77c5766f1cef09b6b7d47f21b546cbddd4157886b3b5d6d4f709e91e66c7c2b', bytes: 32166155L],
+    'sdk.whisper.tiny-en-q5-1.profile.json': [sha256: '5d722be29fe7feae78c7880f12f7e6eae35458e9237753941a3c7d7e54a4e50b'],
+    'audio-transcribe.tiny-en.package.json': [sha256: 'f2f59c4d576acae207646a67b556123c3057c9798a5b97c388b9bef152696544'],
 ]
-def speechModelRevision = '5359861c739e955e79d9a303bcbc70fb988958b1'
-def speechAssets = layout.buildDirectory.dir('generated/speech-models')
+def transcriptionPackDir = rootProject.file(findProperty('hybridAi.transcriptionPackDir'))
+def transcriptionAssets = layout.buildDirectory.dir('generated/transcription-pack')
 
 def fileSha256 = { File file ->
     def digest = MessageDigest.getInstance('SHA-256')
@@ -140,37 +146,45 @@ def fileSha256 = { File file ->
     digest.digest().encodeHex().toString()
 }
 
-def provisionSpeechModels = tasks.register('provisionSpeechModels') {
-    def cacheDir = findProperty('audioJournal.speechModelCache')
-    outputs.dir(speechAssets)
+def provisionTranscriptionPack = tasks.register('provisionTranscriptionPack') {
+    inputs.files(transcriptionPack.keySet().collect { new File(transcriptionPackDir, it) })
+    outputs.dir(transcriptionAssets)
     doLast {
-        def target = new File(speechAssets.get().asFile, 'speech-models')
+        def target = new File(transcriptionAssets.get().asFile, 'hybrid-ai-transcription')
+        target.deleteDir()
         target.mkdirs()
-        speechModels.each { id, sha ->
-            def out = new File(target, "ggml-${id}.bin")
-            if (out.isFile() && fileSha256(out) == sha) return
-            def cached = cacheDir ? new File(cacheDir.toString(), "ggml-${id}.bin") : null
-            if (cached?.isFile()) {
-                out.bytes = cached.bytes
-            } else {
-                def url = "https://huggingface.co/ggerganov/whisper.cpp/resolve/${speechModelRevision}/ggml-${id}.bin"
-                new URL(url).withInputStream { input -> out.withOutputStream { it << input } }
+        transcriptionPack.each { name, pin ->
+            def source = new File(transcriptionPackDir, name)
+            if (!source.isFile()) throw new GradleException("transcription pack file missing: ${name}")
+            if (pin.bytes != null && source.length() != pin.bytes) {
+                throw new GradleException("transcription pack ${name}: ${source.length()} bytes, expected ${pin.bytes}")
             }
-            if (fileSha256(out) != sha) {
+            def out = new File(target, name)
+            Files.copy(source.toPath(), out.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            def actual = fileSha256(out)
+            if (actual != pin.sha256) {
                 out.delete()
-                throw new GradleException("speech model ${id} SHA-256 mismatch")
+                throw new GradleException("transcription pack ${name} SHA-256 ${actual}, expected ${pin.sha256}")
             }
         }
     }
 }
-android.sourceSets.main.assets.srcDirs += speechAssets
-tasks.named('preBuild') { dependsOn provisionSpeechModels }
+// AJ-RI2-DEC-002: the accepted RI-2 AAR identity is fixed here, so a Gradle
+// property alone cannot swap the packaged SDK (`:hybrid-ai-android` checks the
+// file against the property).
+def acceptedHybridAiAarSha256 = 'c336b93a181a5dc2982c9e2667b264dbf42d3871ac6a6540287c1bd70c528a49'
+if (findProperty('hybridAi.aarSha256') != acceptedHybridAiAarSha256) {
+    throw new GradleException("hybridAi.aarSha256 is not the accepted RI-2 AAR ${acceptedHybridAiAarSha256}")
+}
+android.sourceSets.main.assets.srcDirs += transcriptionAssets
+tasks.named('preBuild') { dependsOn provisionTranscriptionPack }
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
-    // App-owned on-device transcription engine (ADR-016).
-    implementation(project(':speech-engine'))
+    // The packaged Hybrid AI SDK (pinned AAR): transcription through its public
+    // Kotlin API only (AJ ADR-021/022). Audio Journal links no model runtime.
+    implementation(project(':hybrid-ai-android'))
     // ADR-017: native vault (reference libargon2), encrypted journal store, biometrics.
     implementation(project(':vault-crypto'))
     implementation("net.zetetic:sqlcipher-android:4.19.1@aar")

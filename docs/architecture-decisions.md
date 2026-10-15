@@ -889,10 +889,24 @@ transcript revisions, and UX. Audio never crosses JavaScript or the node
 protocol. Lock cancels the request and closes/zeroes the source.
 
 The prototype transcribes only sources through 180 seconds. Final transcription
-is one sealed finite request; live text uses repeated bounded provisional SDK
-requests at the current provisional 8-second window/4-second cadence. Longer
-recordings remain durable/playable and return a typed unsupported-duration
-result without truncation.
+is one sealed finite request. Longer recordings remain durable/playable and
+return a typed unsupported-duration result without truncation.
+
+**Amendment (2026-10-15, `AJ-RI2-DEC-001`, Codex Option A):** the AJ-RI-2
+candidate shows no provisional live text. The SDK's `GRI-2L` live-transcription
+gate stopped (RI-2 §18: the 8 s/4 s windowed candidate failed its accuracy and
+latency thresholds), so repeated provisional requests have no accepted basis.
+One static SDK transcription runs after Finish. Live text is deferred until a
+future SDK streaming gate is accepted; the dormant AJ live controller is not
+wired.
+
+**Amendment (2026-10-15, `AJ-RI2-DEC-003`, Option A):** the consumer drives
+the SDK's public queued pull execution (`prepare`, `runQueued`, `nextEvent`,
+`cancel`, `close`) rather than the `stream()` wrapper, so a cancel or lock
+observes the request's own terminal before the audio source is released.
+**Acceptance:** `AJ-RI-2-REV-1` accepted the AJ GRI-2 rows at
+`aj-ri2/static-transcription@09e3580`
+([`validation/AJ-RI-2.md`](validation/AJ-RI-2.md)).
 
 The selected Whisper model is a separate SDK-defined hash-pinned pack outside
 the AAR/framework. AJ's deployment may install that exact dependency into

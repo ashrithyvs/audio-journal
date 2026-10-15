@@ -5,6 +5,30 @@ Permanent decisions belong in the canonical documents linked from `README.md`.
 
 ## Current snapshot
 
+- **AJ-RI-2 ACCEPTED (2026-10-15, `AJ-RI-2-REV-1` at `09e3580`; GRI-2
+  accepted for the Android-emulator development profile; `AJ-RI2-DEC-003`
+  Option A). AJ merge awaits the owner's instruction.** Implementation
+  (2026-10-15 04:45 IST, Claude Code): branch `aj-ri2/static-transcription` (worktree
+  `Ash/audio-journal-aj-ri2`) from `main@837a77b`: `3934a1f` feature,
+  `97e99a5` tests, `fe7abfb` and `002d96d` review fixes, `b2d8aa0` harness,
+  plus the docs commit. Not merged or pushed; `main` untouched. Transcription
+  runs only through the pinned RI-2 debug AAR `c336b93a…8a49` and model pack
+  (model `c77c5766…7c2b`, profile `5d722be2…0b`, package `f2f59c4d…44`);
+  app-owned whisper.cpp, its JNI module, model download, live text, and the
+  Load Lab speech plan are removed. Evidence:
+  [`validation/AJ-RI-2.md`](validation/AJ-RI-2.md), `Ash/aj-ri2-evidence`
+  (`SHA256SUMS` `aa47a560…15b0`). Final stage 8 on `002d96d`: device suite
+  8/8, WER 7.05%, UI journey J00-J07 pass (lock, kill -9, cancel, over-limit),
+  0 privacy findings; stage 7 on `fe7abfb`: Jest 313/166/3, voice-entry 7/7,
+  organize/node 3/3. Decisions: `AJ-RI2-DEC-001`/`-002` DECIDED (Option A);
+  `AJ-RI2-DEC-003` (queued pull execution) DECIDED Option A;
+  review `AJ-RI-2-REV-1` ACCEPTED. Docs changed: ADR-022 amendment,
+  `ri2-transcription-consumer.md`, `real-inference-migration.md`, LLD,
+  roadmap, README, validation record. Deferred: physical Android, iOS
+  (`GRI-6-I`), thermal/battery, >180 s audio, journal-style corpus, release
+  packaging. Handoff: do not merge without the owner's instruction; RI-3/RI-4 AJ work
+  not started. The exclusive lock is released.
+
 - **AJ-RI-3 architecture freeze (2026-10-13, Codex; docs only):** AJ ADR-023
   and `docs/ri3-organization-consumer.md` freeze the data-only package,
   explicit-local SDK flow, existing source contract, domain-validation boundary,

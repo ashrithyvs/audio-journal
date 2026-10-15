@@ -1,36 +1,97 @@
 package com.audiojournal.speech
 
+import android.content.Context
+import com.audiojournal.recording.ActiveAudio
+import com.audiojournal.recording.Ajr1
 import com.audiojournal.recording.Ajr1Reader
+import com.audiojournal.recording.AudioJournalRecordingsModule
+import com.audiojournal.recording.RecordingFiles
+import com.audiojournal.vault.VaultHolder
+import java.io.RandomAccessFile
 
 /**
- * Recording transcriptions in progress. Locking the vault cancels them and
- * closes their readers, which zeroes the recording keys (ADR-017). A job
- * leaves the registry before its whisper cancel handle is freed, so a lock
- * never touches a freed handle.
+ * The process's recording transcriptions (ADR-017, AJ ADR-022). The vault
+ * calls [cancelAll] on lock, erase, and restore before it closes the journal
+ * and zeroes keys: every SDK request is cancelled, its terminal awaited
+ * (bounded), and only then is its source registration closed. The SDK client
+ * is kept across locks (it holds no key or audio) and closed on teardown.
  */
 object RecordingJobs {
-  class Job(val requestId: String, val cancel: Long, val reader: Ajr1Reader) {
-    @Volatile var cancelled = false
-  }
+  @Volatile private var instance: RecordingTranscriptions? = null
+  /** The vault epoch at the last lock, kept even before the first transcription. */
+  private var lockedAtEpoch = -1L
 
-  private val jobs = HashMap<String, Job>()
+  fun get(context: Context): RecordingTranscriptions =
+      instance
+          ?: synchronized(this) {
+            instance
+                ?: production(context.applicationContext, lockedAtEpoch).also { instance = it }
+          }
 
-  @Synchronized
-  fun register(requestId: String, cancel: Long, reader: Ajr1Reader): Job =
-      Job(requestId, cancel, reader).also { jobs[requestId] = it }
-
-  @Synchronized
-  fun finish(job: Job) {
-    if (jobs[job.requestId] === job) jobs.remove(job.requestId)
-    job.reader.close()
-  }
-
-  @Synchronized
+  /**
+   * Cancels before anything closes, and refuses new requests until the next
+   * unlock, also when no transcription has run yet in this process.
+   */
   fun cancelAll() {
-    for (job in jobs.values) {
-      job.cancelled = true
-      WhisperNative.cancel(job.cancel)
-      job.reader.close()
+    val current =
+        synchronized(this) {
+          lockedAtEpoch = VaultHolder.unlockEpoch()
+          instance
+        }
+    current?.cancelAll()
+  }
+
+  /** Module teardown: cancel, then close the SDK client. */
+  fun close() {
+    synchronized(this) {
+      instance?.close()
+      instance = null
+    }
+  }
+
+  private fun production(context: Context, lockedAtEpoch: Long): RecordingTranscriptions {
+    val pack = TranscriptionPack(context)
+    return RecordingTranscriptions(
+        engineFactory = { SdkTranscriptionEngine(context, pack) },
+        openSource = { recordingId -> openSealed(context, recordingId) },
+        isCapturing = { recordingId ->
+          ActiveAudio.submit { ActiveAudio.capture?.recordingId == recordingId }
+        },
+        unlockEpoch = { VaultHolder.get(context).unlockEpoch },
+        lockedAtEpoch = lockedAtEpoch,
+    )
+  }
+
+  /**
+   * A read-only source over the durable AJR1 file. The recording key leaves the
+   * vault only into the reader, which zeroes it on close.
+   */
+  private fun openSealed(context: Context, recordingId: String): Ajr1PcmSource {
+    val file =
+        try {
+          RecordingFiles(context.noBackupFilesDir).fileFor(recordingId)
+        } catch (_: IllegalArgumentException) {
+          throw RecordingTranscriptions.Refused("RECORDING_MISSING")
+        }
+    if (!file.isFile) throw RecordingTranscriptions.Refused("RECORDING_MISSING")
+    val key =
+        try {
+          VaultHolder.get(context).purposeKey(AudioJournalRecordingsModule.RECORDING_KEY_LABEL)
+        } catch (_: Exception) {
+          throw RecordingTranscriptions.Refused("LOCKED")
+        }
+    try {
+      val raf = RandomAccessFile(file, "r")
+      val reader =
+          try {
+            Ajr1Reader(Ajr1.FileSource(raf), key, recordingId)
+          } catch (_: Exception) {
+            raf.close()
+            throw RecordingTranscriptions.Refused("SOURCE_DAMAGED")
+          }
+      return Ajr1PcmSource(reader)
+    } finally {
+      key.fill(0)
     }
   }
 }

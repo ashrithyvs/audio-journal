@@ -23,11 +23,12 @@ message without truncation. Failure, cancellation, lock, or process death
 never changes the recording and stores no partial engine revision. Existing
 startup policy may queue a fresh final pass after unlock.
 
-Live text remains provisional. The app schedules bounded snapshots through the
-same SDK capability, initially preserving the provisional 8-second window and
-4-second cadence. Busy snapshots may be skipped. Final sealed output
-supersedes the live rows. The app retains its documented non-speech filter and
-validates every returned segment before persistence.
+**Live text (amended 2026-10-15, `AJ-RI2-DEC-001`):** none in the AJ-RI-2
+candidate. `GRI-2L` stopped, so capture shows no provisional text and the
+transcript appears after the single sealed final request. Live text returns
+only through a future accepted SDK streaming gate. The app retains its
+documented non-speech filter and validates every returned segment before
+persistence.
 
 The selected model is delivered as a separate SDK-defined, hash-pinned model
 pack outside the AAR. AJ's deployment consumes it as a packaged dependency and

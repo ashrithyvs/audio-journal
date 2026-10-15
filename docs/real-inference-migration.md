@@ -92,13 +92,14 @@ The frozen consumer design is AJ ADR-022 and
 [`ri2-transcription-consumer.md`](ri2-transcription-consumer.md): a
 runtime-scoped read-only AJR1 PCM source, explicit local-only execution,
 180-second prototype limit, unchanged SDK 120-second computation deadline,
-separate SDK-defined model pack, repeated bounded provisional live requests,
-and one authoritative sealed final request.
+separate SDK-defined model pack, and one authoritative sealed final request.
+Provisional live text is deferred (`AJ-RI2-DEC-001`: `GRI-2L` stopped; no live
+text until a future accepted SDK streaming gate).
 
 - Replace `TranscriptionService`'s app-owned engine implementation with a public
   SDK `audio.transcribe@1` adapter.
-- Preserve encrypted recording access, live/final UX, cancellation, correction,
-  reconciliation, and transcript revisions.
+- Preserve encrypted recording access, final-transcript UX, cancellation,
+  correction, reconciliation, and transcript revisions (live text deferred).
 - Remove app build/runtime dependencies on whisper.cpp and its model artifact.
 
 Exit: real 30/60/180-second recordings transcribe through the packaged SDK;

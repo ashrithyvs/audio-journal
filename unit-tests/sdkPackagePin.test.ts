@@ -5,17 +5,20 @@ import path from 'node:path';
 
 import { SDK_PACKAGE_VERSION } from '../src/platform/hybrid-ai/PackagedHybridAiGateway';
 
-// Evidence must stay reproducible against the pinned packages: the accepted
-// SDK-AJ-5 packages built from SDK commit `c4b302e` (ADR-015 amendment). These checks
-// fail if the app drifts to a live SDK working tree or to a different artifact.
+// Evidence must stay reproducible against the pinned packages: the React Native
+// binding from the accepted SDK-AJ-5 package (`c4b302e`, ADR-015 amendment) and
+// the Android AAR accepted for GRI-2 (RI-REV-2B, RI-2 `a54266a`, built from
+// `27843f8`; AJ-RI2-DEC-002). These checks fail if the app drifts to a live SDK
+// working tree or to a different artifact.
 const root = path.join(__dirname, '..');
 const read = (file: string) => fs.readFileSync(path.join(root, file), 'utf8');
 const packageDir = path.join(root, '..', 'hybrid-ai-packages', 'c4b302e');
+const ri2Dir = path.join(root, '..', 'hybrid-ai-packages', 'ri2-a54266a');
 const TARBALL = 'hybrid-ai-react-native-0.1.0-m5.tgz';
 const TARBALL_SHA256 =
   'a11cba67036d6e38662e6485c75d891dfc0110ebc41cd05aa7ea8f870c14ee2a';
 const AAR_SHA256 =
-  '8751a5a7623a2c6ea5a75216afd410d9483410da3c9f96f4c4527c852da86b1a';
+  'c336b93a181a5dc2982c9e2667b264dbf42d3871ac6a6540287c1bd70c528a49';
 
 it('depends on the packed M5 tarball, never on SDK source', () => {
   const manifest = JSON.parse(read('package.json'));
@@ -48,22 +51,22 @@ it('consumes the packaged AAR with a pinned SHA-256, not SDK Gradle source', () 
   const properties = read('android/gradle.properties');
   expect(properties).toContain(`hybridAi.aarSha256=${AAR_SHA256}`);
   expect(properties).toContain(
-    'hybridAi.aarPath=../../hybrid-ai-packages/c4b302e/hybrid-ai-android-release.aar',
+    'hybridAi.aarPath=../../hybrid-ai-packages/ri2-a54266a/hybrid-ai-android-debug.aar',
   );
   expect(properties).toMatch(/^reactNativeArchitectures=arm64-v8a,x86_64$/m);
 });
 
 const describeArtifacts = fs.existsSync(packageDir) ? describe : describe.skip;
 describeArtifacts('package directory on this machine', () => {
-  const sha256 = (file: string) =>
+  const sha256 = (file: string, dir = packageDir) =>
     crypto
       .createHash('sha256')
-      .update(fs.readFileSync(path.join(packageDir, file)))
+      .update(fs.readFileSync(path.join(dir, file)))
       .digest('hex');
 
-  it('matches the SHA-256 values from the SDK handoff', () => {
+  it('matches the SHA-256 values from the SDK handoffs', () => {
     expect(sha256(TARBALL)).toBe(TARBALL_SHA256);
-    expect(sha256('hybrid-ai-android-release.aar')).toBe(AAR_SHA256);
+    expect(sha256('hybrid-ai-android-debug.aar', ri2Dir)).toBe(AAR_SHA256);
   });
 
   it('matches the lockfile integrity', () => {

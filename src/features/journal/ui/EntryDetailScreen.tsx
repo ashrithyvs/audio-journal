@@ -14,6 +14,7 @@ import {
   useJournal,
   useTranscriptionStatus,
 } from '../application/JournalContext';
+import { MAX_TRANSCRIPTION_MS } from '../application/TranscriptionController';
 import type { RecordingRecord } from '../domain/entry';
 import {
   formatDayHeading,
@@ -211,6 +212,17 @@ function TranscriptAction({ recording }: { recording?: RecordingRecord }) {
       </View>
     );
   }
+  if (
+    status?.phase === 'unsupported' ||
+    recording.durationMs > MAX_TRANSCRIPTION_MS
+  ) {
+    return (
+      <Text style={journalStyles.muted} testID="transcript-unsupported">
+        Recordings longer than 3 minutes are not transcribed on this device yet.
+        The recording is saved and can be played.
+      </Text>
+    );
+  }
   return (
     <View testID="transcript-action">
       {status?.phase === 'failed' ? (
@@ -221,6 +233,8 @@ function TranscriptAction({ recording }: { recording?: RecordingRecord }) {
         >
           {status.reason === 'SOURCE_DAMAGED'
             ? 'The recording could not be read in full, so no transcript was made. The recording has not been changed.'
+            : status.reason === 'MODEL_PACK_INVALID'
+            ? 'The transcription model on this device is missing or damaged, so no transcript was made. The recording is safe.'
             : 'The transcript could not be made. The recording is safe.'}
         </Text>
       ) : null}
